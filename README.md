@@ -211,4 +211,7 @@ flowchart LR
 
 ## Team
 
-*To be added.*
+Anton Liubetskyi
+Mykhailo Kostenko
+Leonid Krichevskyi
+Mykyta Luchaninov

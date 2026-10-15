@@ -211,7 +211,7 @@ flowchart LR
 
 ## Team
 
-Anton Liubetskyi
-Mykhailo Kostenko
-Leonid Krichevskyi
-Mykyta Luchaninov
+- Anton Liubetskyi
+- Mykhailo Kostenko
+- Leonid Krichevskyi
+- Mykyta Luchaninov

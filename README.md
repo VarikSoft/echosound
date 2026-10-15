@@ -201,7 +201,7 @@ flowchart LR
 
 ## Requirements
 
-- Unity *(version TBD)*
+- Unity 6000.3
 - A GPU capable of running a 7–8B LLM locally
 - Microphone; headphones recommended
 

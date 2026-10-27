@@ -1,0 +1,5 @@
+{
+  "name": "EchoSound.Testing",
+  "rootNamespace": "EchoSound.Testing",
+  "references": ["EchoSound.Generation", "EchoSound.Player"]
+}

@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9e866d7d3beea7498ae0c50638e30d0, type: 3}
+  m_Name: DefaultRooms
+  m_EditorClassIdentifier: EchoSound.Rooms::EchoSound.Rooms.RoomCatalog
+  roomSize: 12
+  rooms:
+  - prefab: {fileID: 5000635682997369569, guid: 316c1e74c04e593488e798429c1682d9, type: 3}
+    weight: 1
+    allowRotation: 1
+  - prefab: {fileID: 1307933476811686839, guid: ca4518ef6698893429a81a37a9952934, type: 3}
+    weight: 1
+    allowRotation: 1
+  - prefab: {fileID: 3233154376482410351, guid: 2f83465e5e0409f48a7215e8ad2bbfe7, type: 3}
+    weight: 1
+    allowRotation: 1
+  - prefab: {fileID: 1026859453227517543, guid: d10bb62872d3abb4e8ca5af23f9fbb5b, type: 3}
+    weight: 1
+    allowRotation: 1
+  - prefab: {fileID: 8509521953039426093, guid: 064fe57fd28ca7548b2aa5a893a68361, type: 3}
+    weight: 1
+    allowRotation: 1
+  - prefab: {fileID: 6496334738227767654, guid: 98f35460011009a4bac9cad63ea800bf, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 2685720983343832726, guid: 81b8d6e184324db47b73a5d06c3dacf2, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 1092431499669307608, guid: 0766ff463275b2c438a1392fcacf8747, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 8277878802267694370, guid: 561ffba79aa6b644f95cf41d5f104d62, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 7306786699605947486, guid: b94443e2fc6f47a49ba68a1503c8c90d, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 385430884782837377, guid: c38b4e97f9d065a45aadd4bff0c4f88d, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 328797839896772400, guid: eb59ee02ba78e8c4dabcbbb6c4a22d37, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 7485140431977886088, guid: 7416787e1411ba94b850760cf7b39c56, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 4305258178692981818, guid: f46f88716436bf14ba3826d6a8af3d70, type: 3}
+    weight: 3
+    allowRotation: 1

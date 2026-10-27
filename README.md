@@ -207,7 +207,19 @@ flowchart LR
 
 ## Getting Started
 
-*To be added once the prototype is set up.*
+### Room generation playground
+
+Use **Unity 6000.6.7f1**. Open `Assets/EchoSound/Scenes/RoomShowcase.unity` to see 14 editable room prefabs, including bridges and pit walkways, secret alcoves, two-player puzzle layouts, ambush corners and a pillar room. Encounter markers describe future gameplay placements; puzzles and enemies are not implemented.
+
+Open `Assets/EchoSound/Scenes/GenerationTest.unity` to generate layouts in the Inspector or press Play to walk through them. The scene contains only room generation, scene lighting and a first-person player: no flashlight, artifacts, extraction, HUD or minimap.
+
+Select **Level Generator → Generate Preview / Same Seed** or **Generate Next Seed**. Add new **GameObject prefab assets** to `Assets/EchoSound/Settings/DefaultRooms.asset`; no generator changes are needed for compatible room variants.
+
+**[Room authoring guide](ROOM_AUTHORING.md)** · **[Script reading guide](Assets/EchoSound/Scripts/README.md)**
+
+Controls: WASD + mouse, Shift to run, Space to jump, Esc to release the cursor, R to regenerate, T to respawn. Falling into a pit returns the player to the starting room.
+
+Separate modules handle room metadata/catalog, layout data and prefab placement, player controls, and test-scene wiring. All C# comments are in English. Editor checks cover 1000 layouts and physical routes from each room's safe anchor to its doorways.
 
 ## Team
 

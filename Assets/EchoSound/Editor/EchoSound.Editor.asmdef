@@ -1,0 +1,6 @@
+{
+  "name": "EchoSound.Editor",
+  "rootNamespace": "EchoSound.Editor",
+  "references": ["EchoSound.Rooms", "EchoSound.Generation", "EchoSound.Player", "EchoSound.Testing"],
+  "includePlatforms": ["Editor"]
+}

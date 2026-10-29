@@ -221,6 +221,14 @@ Controls: WASD + mouse, Shift to run, Space to jump, Esc to release the cursor, 
 
 Separate modules handle room metadata/catalog, layout data and prefab placement, player controls, and test-scene wiring. All C# comments are in English. Editor checks cover 1000 layouts and physical routes from each room's safe anchor to its doorways.
 
+### AI companion playground
+
+1. Install [Ollama](https://ollama.com), run `ollama serve` and pull a model that supports tools, e.g. `ollama pull qwen3.5:9b`. The model name is set on the companion's `CompanionBrain` component.
+2. Select **EchoSound → Create companion test scene** once. This creates `Assets/EchoSound/Prefabs/Companion/AICompanion.prefab` and `Assets/EchoSound/Scenes/CompanionTest.unity`.
+3. Press Play. Press Enter to type an order to the companion, for example *"открой дверь передо мной"*, *"follow me"* or *"stop"*. Press E to use a door yourself.
+
+The LLM picks functions from a fixed set (`follow_curator`, `wait_here`, `go_to`, `open_door`, `close_door`). The companion walks there through the NavMesh first, then uses the object and reports back. Text chat stands in for speech-to-text for now.
+
 ## Team
 
 - Anton Liubetskyi

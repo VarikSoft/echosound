@@ -1,9 +1,12 @@
 using UnityEngine;
+using EchoSound.Sound;
+using EchoSound.VFX;
 
 namespace EchoSound
 {
-    /// <summary>Player controls only. Has no knowledge of rooms or level generation.</summary>
+    /// <summary>Player controls, sound emission, and camera echolocation integration.</summary>
     [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(PlayerSoundEmitter))]
     public sealed class FirstPersonPlayer : MonoBehaviour
     {
         [Header("Movement")]
@@ -16,18 +19,35 @@ namespace EchoSound
         public float sensitivity = 2f;
 
         private CharacterController controller;
+        private PlayerSoundEmitter soundEmitter;
         private float cameraPitch;
         private float verticalSpeed;
 
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            soundEmitter = GetComponent<PlayerSoundEmitter>();
+
             if (view == null)
             {
                 Debug.LogError("Assign a camera to the player prefab.", this);
                 enabled = false;
                 return;
             }
+
+            // Ensure Echolocation effect is active on the player's view camera
+            if (view.GetComponent<EcholocationEffect>() == null)
+            {
+                view.gameObject.AddComponent<EcholocationEffect>();
+            }
+
+            // Ensure EcholocationManager is present in the scene
+            if (EcholocationManager.Instance == null)
+            {
+                var mgrGo = new GameObject("EcholocationManager");
+                mgrGo.AddComponent<EcholocationManager>();
+            }
+
             SetCursorLocked(true);
         }
 
@@ -75,6 +95,9 @@ namespace EchoSound
             transform.position = position;
             controller.enabled = true;
             verticalSpeed = 0;
+
+            if (soundEmitter == null) soundEmitter = GetComponent<PlayerSoundEmitter>();
+            if (soundEmitter != null) soundEmitter.ResetTracking();
         }
 
         private static void SetCursorLocked(bool locked)

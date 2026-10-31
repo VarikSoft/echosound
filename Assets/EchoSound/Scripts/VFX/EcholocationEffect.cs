@@ -4,8 +4,7 @@ namespace EchoSound.VFX
 {
     /// <summary>
     /// Fullscreen image effect placed on the Player Camera or Security Cameras.
-    /// Reconstructs world-space position from the depth buffer and renders echolocation pulses,
-    /// glowing grid highlights, and geometric edge detection.
+    /// Reconstructs geometry and renders neon sphere fronts, Fresnel contours and bloom.
     /// </summary>
     [ExecuteAlways]
     [RequireComponent(typeof(Camera))]
@@ -19,11 +18,13 @@ namespace EchoSound.VFX
         [Header("Tuning Overrides")]
         [Tooltip("Master brightness multiplier for echolocation illumination.")]
         [Range(0.1f, 3f)]
-        public float masterBrightness = 1.0f;
+        public float masterBrightness = 0.85f;
 
-        [Tooltip("Reveal a faint silhouette of normal textured geometry when hit by a pulse.")]
+        [Tooltip("Subtle material detail under the source-colored emissive scan.")]
         [Range(0f, 1f)]
-        public float revealOriginalTexture = 0.35f;
+        public float revealOriginalTexture = 0.1f;
+
+        [Range(0f, 1f)] public float bloomStrength = 0.3f;
 
         private Material material;
         private Camera targetCamera;
@@ -102,11 +103,43 @@ namespace EchoSound.VFX
             frustumCorners.SetRow(3, bottomLeft);
 
             material.SetMatrix(PropFrustumCornersWS, frustumCorners);
+            material.SetMatrix("_EchoViewToWorld", targetCamera.cameraToWorldMatrix);
             material.SetVector(PropCameraWS, targetCamera.transform.position);
             material.SetFloat(PropMasterBrightness, masterBrightness);
             material.SetFloat(PropRevealTexture, revealOriginalTexture);
 
-            Graphics.Blit(source, destination, material);
+            if (bloomStrength <= 0f)
+            {
+                Graphics.Blit(source, destination, material, 0);
+                return;
+            }
+            var echo = RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
+            var glowA = RenderTexture.GetTemporary(Mathf.Max(1, source.width / 2), Mathf.Max(1, source.height / 2), 0, source.format);
+            var glowB = RenderTexture.GetTemporary(glowA.width, glowA.height, 0, source.format);
+            echo.filterMode = glowA.filterMode = glowB.filterMode = FilterMode.Bilinear;
+            try
+            {
+                Graphics.Blit(source, echo, material, 0);
+                material.SetFloat("_ExtractGlow", 1f);
+                material.SetVector("_BlurDirection", new Vector4(1, 0, 0, 0));
+                Graphics.Blit(echo, glowA, material, 1);
+                material.SetFloat("_ExtractGlow", 0f);
+                material.SetVector("_BlurDirection", new Vector4(0, 1, 0, 0));
+                Graphics.Blit(glowA, glowB, material, 1);
+                material.SetVector("_BlurDirection", new Vector4(2, 0, 0, 0));
+                Graphics.Blit(glowB, glowA, material, 1);
+                material.SetVector("_BlurDirection", new Vector4(0, 2, 0, 0));
+                Graphics.Blit(glowA, glowB, material, 1);
+                material.SetTexture("_EchoBloom", glowB);
+                material.SetFloat("_BloomStrength", bloomStrength);
+                Graphics.Blit(echo, destination, material, 2);
+            }
+            finally
+            {
+                RenderTexture.ReleaseTemporary(echo);
+                RenderTexture.ReleaseTemporary(glowA);
+                RenderTexture.ReleaseTemporary(glowB);
+            }
         }
     }
 }

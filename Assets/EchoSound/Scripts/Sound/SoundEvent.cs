@@ -14,7 +14,7 @@ namespace EchoSound.Sound
         /// <summary>Maximum radius (in meters) the sound reaches for hearing and echolocation.</summary>
         public readonly float Radius;
 
-        /// <summary>Normalized intensity / volume of the sound (typically 0.0 to 1.0, but can exceed 1.0 for explosions/shouts).</summary>
+        /// <summary>Relative source pressure when emitted; attenuated received pressure in listener callbacks.</summary>
         public readonly float Intensity;
 
         /// <summary>Category of the sound.</summary>
@@ -45,6 +45,20 @@ namespace EchoSound.Sound
             Timestamp = Time.time;
             Tag = tag;
         }
+
+        private SoundEvent(in SoundEvent original, float intensity)
+        {
+            Position = original.Position;
+            Radius = original.Radius;
+            Intensity = intensity;
+            Type = original.Type;
+            Source = original.Source;
+            Timestamp = original.Timestamp;
+            Tag = original.Tag;
+        }
+
+        /// <summary>Preserves origin/time/context while reporting received pressure to a listener.</summary>
+        public SoundEvent WithIntensity(float intensity) => new SoundEvent(this, Mathf.Max(0f, intensity));
 
         /// <summary>
         /// Checks whether a target point in world space is within hearing / illumination radius.

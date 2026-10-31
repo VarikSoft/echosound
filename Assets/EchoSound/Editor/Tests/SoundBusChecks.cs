@@ -62,6 +62,8 @@ namespace EchoSound.Editor.Tests
             Require(SoundBus.ListenerCount == 2, "SoundBus listener count mismatch.");
 
             SoundBus.Emit(testPos, 10f, 1f, SoundType.CameraPing);
+            Require(listenerNearby.HeardCount == 0, "Sound must not arrive instantly.");
+            SoundBus.Advance(Time.time + 0.1f);
 
             Require(listenerNearby.HeardCount == 1, "Nearby listener should have heard the sound.");
             Require(Mathf.Approximately(listenerNearby.LastDistance, 2f), "Nearby listener distance mismatch.");
@@ -77,6 +79,7 @@ namespace EchoSound.Editor.Tests
             SoundBus.RegisterListener(sensitiveListener);
 
             SoundBus.Emit(testPos, 10f, 1f, SoundType.Voice);
+            SoundBus.Advance(Time.time + 0.1f);
             Require(sensitiveListener.HeardCount == 1, "Sensitive listener should hear sound amplified by sensitivity.");
 
             // 4. Verify unregistration
@@ -84,7 +87,8 @@ namespace EchoSound.Editor.Tests
             Require(SoundBus.ListenerCount == 2, "Unregistered listener count mismatch.");
 
             SoundBus.Emit(testPos, 10f, 1f, SoundType.FootstepWalk);
-            Require(listenerNearby.HeardCount == 1, "Unregistered listener should not receive subsequent sounds.");
+            SoundBus.Advance(Time.time + 0.1f);
+            Require(listenerNearby.HeardCount == 2, "Unregistered listener should not receive subsequent sounds.");
 
             // 5. Attenuation helper test
             var sound = new SoundEvent(Vector3.zero, 10f, 1f, SoundType.Impact);

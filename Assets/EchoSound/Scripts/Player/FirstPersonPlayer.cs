@@ -35,6 +35,10 @@ namespace EchoSound
                 return;
             }
 
+            var voice = GetComponent<PushToTalkVoice>();
+            if (voice == null) voice = gameObject.AddComponent<PushToTalkVoice>();
+            if (voice.mouth == null) voice.mouth = view.transform;
+
             // Ensure Echolocation effect is active on the player's view camera
             if (view.GetComponent<EcholocationEffect>() == null)
             {

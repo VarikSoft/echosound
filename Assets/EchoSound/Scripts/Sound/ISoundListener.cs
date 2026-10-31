@@ -20,7 +20,7 @@ namespace EchoSound.Sound
         /// Called by SoundBus when a sound event reaches this listener.
         /// </summary>
         /// <param name="soundEvent">The emitted sound event.</param>
-        /// <param name="distance">Distance in meters from the sound origin to ListenerPosition.</param>
+        /// <param name="distance">Travelled acoustic path in meters, including detours around obstacles.</param>
         void OnSoundHeard(in SoundEvent soundEvent, float distance);
     }
 }

@@ -47,6 +47,8 @@ namespace EchoSound.Testing
 
         private void PlacePlayerAtStart(GeneratedLevel level)
         {
+            Sound.SoundBus.ClearPending();
+            if (VFX.EcholocationManager.Instance != null) VFX.EcholocationManager.Instance.ClearAllPulses();
             player.Teleport(level.Spawn + Vector3.up * 0.1f);
         }
     }

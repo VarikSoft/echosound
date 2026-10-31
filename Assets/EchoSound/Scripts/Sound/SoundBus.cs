@@ -4,127 +4,119 @@ using UnityEngine;
 
 namespace EchoSound.Sound
 {
-    /// <summary>
-    /// Central event bus for emitting and distributing sound events across EchoSound.
-    /// Supports both global broadcast delegates (for visual echolocation and debug tools)
-    /// and spatially-filtered listener subscriptions (for AI and enemies).
-    /// </summary>
     public static class SoundBus
     {
-        /// <summary>
-        /// Global event fired whenever any sound occurs in the world.
-        /// Ideal for echolocation shader managers, global audio managers, and debug tools.
-        /// </summary>
         public static event Action<SoundEvent> OnSoundEmitted;
+        public static event Action<SoundEvent, AcousticField> OnSoundPropagated;
+        public static int ObstacleMask { get; set; } = Physics.DefaultRaycastLayers;
+        private static readonly List<ISoundListener> listeners = new List<ISoundListener>();
+        private static readonly List<Wave> waves = new List<Wave>();
+        private static SoundPropagationDriver driver;
+        private sealed class Wave
+        {
+            public SoundEvent Sound;
+            public AcousticField Field;
+            public ISoundListener[] Targets;
+        }
 
-        private static readonly List<ISoundListener> registeredListeners = new List<ISoundListener>();
-        private static readonly List<ISoundListener> deadListenersBuffer = new List<ISoundListener>();
-
-        /// <summary>Current count of actively registered spatial listeners.</summary>
-        public static int ListenerCount => registeredListeners.Count;
-
-        /// <summary>
-        /// Registers a spatial listener to receive sound events within its hearing range.
-        /// </summary>
+        public static int ListenerCount => listeners.Count;
         public static void RegisterListener(ISoundListener listener)
         {
-            if (listener == null) return;
-            if (!registeredListeners.Contains(listener))
-            {
-                registeredListeners.Add(listener);
-            }
+            if (listener != null && !listeners.Contains(listener)) listeners.Add(listener);
         }
-
-        /// <summary>
-        /// Unregisters a spatial listener.
-        /// </summary>
         public static void UnregisterListener(ISoundListener listener)
         {
-            if (listener == null) return;
-            registeredListeners.Remove(listener);
+            listeners.Remove(listener);
+            foreach (var wave in waves)
+                for (int i = 0; i < wave.Targets.Length; i++)
+                    if (ReferenceEquals(wave.Targets[i], listener)) wave.Targets[i] = null;
         }
 
-        /// <summary>
-        /// Emits a sound event into the bus.
-        /// Broadcasts to OnSoundEmitted and notifies all in-range registered listeners.
-        /// </summary>
         public static void Emit(in SoundEvent soundEvent)
         {
-            // 1. Notify global observers (Echolocation VFX, Debugger, etc.)
-            try
+            if (soundEvent.Intensity <= 0f) return;
+            if (Application.isPlaying && driver == null)
             {
-                OnSoundEmitted?.Invoke(soundEvent);
+                var go = new GameObject("Sound propagation");
+                UnityEngine.Object.DontDestroyOnLoad(go);
+                driver = go.AddComponent<SoundPropagationDriver>();
             }
-            catch (Exception ex)
+            Physics.SyncTransforms();
+            listeners.RemoveAll(l => l == null || (l is UnityEngine.Object obj && obj == null));
+            float range = soundEvent.Radius;
+            foreach (var listener in listeners) range = Mathf.Max(range, soundEvent.Radius * listener.HearingSensitivity);
+            var field = listeners.Count > 0 || OnSoundPropagated != null
+                ? new AcousticField(soundEvent, range, ObstacleMask) : null;
+            if (listeners.Count > 0)
             {
-                Debug.LogException(ex);
+                if (waves.Count >= 64) waves.RemoveAt(0);
+                waves.Add(new Wave { Sound = soundEvent, Field = field, Targets = listeners.ToArray() });
             }
-
-            // 2. Notify spatial listeners (AI, Companion, etc.)
-            deadListenersBuffer.Clear();
-
-            for (int i = 0; i < registeredListeners.Count; i++)
-            {
-                ISoundListener listener = registeredListeners[i];
-
-                // Check for destroyed Unity objects implementing ISoundListener
-                if (listener is UnityEngine.Object unityObj && unityObj == null)
-                {
-                    deadListenersBuffer.Add(listener);
-                    continue;
-                }
-
-                float distance = Vector3.Distance(soundEvent.Position, listener.ListenerPosition);
-                float effectiveRadius = soundEvent.Radius * Mathf.Max(0.01f, listener.HearingSensitivity);
-
-                if (distance <= effectiveRadius)
-                {
-                    try
-                    {
-                        listener.OnSoundHeard(soundEvent, distance);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogException(ex);
-                    }
-                }
-            }
-
-            // Clean up any stale destroyed listeners
-            if (deadListenersBuffer.Count > 0)
-            {
-                for (int i = 0; i < deadListenersBuffer.Count; i++)
-                {
-                    registeredListeners.Remove(deadListenersBuffer[i]);
-                }
-                deadListenersBuffer.Clear();
-            }
+            // One failing observer cannot starve the remaining subscribers.
+            if (OnSoundEmitted != null)
+                foreach (Action<SoundEvent> handler in OnSoundEmitted.GetInvocationList())
+                    try { handler(soundEvent); } catch (Exception e) { Debug.LogException(e); }
+            if (OnSoundPropagated != null)
+                foreach (Action<SoundEvent, AcousticField> handler in OnSoundPropagated.GetInvocationList())
+                    try { handler(soundEvent, field); } catch (Exception e) { Debug.LogException(e); }
         }
 
-        /// <summary>
-        /// Convenience helper to construct and emit a SoundEvent in one call.
-        /// </summary>
-        public static void Emit(
-            Vector3 position,
-            float radius,
-            float intensity = 1f,
-            SoundType type = SoundType.Generic,
-            GameObject source = null,
-            object tag = null)
+        /// <summary>Advances physical arrival in seconds. Public for deterministic editor checks.</summary>
+        public static void Advance(float now)
         {
-            Emit(new SoundEvent(position, radius, intensity, type, source, tag));
+            if (waves.Count == 0) return;
+            // Collect first so callbacks may safely emit, reset or unregister.
+            var deliveries = new List<(ISoundListener listener, SoundEvent sound, float distance)>();
+            for (int w = waves.Count - 1; w >= 0; w--)
+            {
+                var wave = waves[w];
+                float travelled = (now - wave.Sound.Timestamp) * AcousticField.SpeedOfSound;
+                bool pending = false;
+                for (int i = 0; i < wave.Targets.Length; i++)
+                {
+                    var listener = wave.Targets[i];
+                    if (listener == null || (listener is UnityEngine.Object obj && obj == null)) continue;
+                    float direct = Vector3.Distance(wave.Sound.Position, listener.ListenerPosition);
+                    if (direct > travelled) { pending = true; continue; }
+                    float distance = wave.Field.PathDistance(listener.ListenerPosition);
+                    if (distance > travelled) { pending = true; continue; }
+                    wave.Targets[i] = null;
+                    float sensitivity = Mathf.Max(0f, listener.HearingSensitivity);
+                    float received = wave.Sound.Intensity * AcousticField.Pressure(distance, direct);
+                    float threshold = AcousticField.Pressure(wave.Sound.Radius, wave.Sound.Radius);
+                    if (distance <= wave.Sound.Radius * sensitivity && received * sensitivity >= threshold)
+                        deliveries.Add((listener, wave.Sound.WithIntensity(received), distance));
+                }
+                if (!pending || travelled > wave.Field.Range + AcousticField.SpeedOfSound * 0.1f) waves.RemoveAt(w);
+            }
+            foreach (var delivery in deliveries)
+            {
+                if (!listeners.Contains(delivery.listener)) continue;
+                try { delivery.listener.OnSoundHeard(delivery.sound, delivery.distance); }
+                catch (Exception e) { Debug.LogException(e); }
+            }
         }
 
-        /// <summary>
-        /// Resets all listeners and delegate subscriptions.
-        /// Automatically called upon play mode state change or domain reload.
-        /// </summary>
+        public static void Emit(Vector3 position, float radius, float intensity = 1f,
+            SoundType type = SoundType.Generic, GameObject source = null, object tag = null)
+            => Emit(new SoundEvent(position, radius, intensity, type, source, tag));
+
+        public static void ClearPending() => waves.Clear();
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset()
         {
             OnSoundEmitted = null;
-            registeredListeners.Clear();
-            deadListenersBuffer.Clear();
+            OnSoundPropagated = null;
+            listeners.Clear();
+            waves.Clear();
+            ObstacleMask = Physics.DefaultRaycastLayers;
+            if (driver != null)
+            {
+                if (Application.isPlaying) UnityEngine.Object.Destroy(driver.gameObject);
+                else UnityEngine.Object.DestroyImmediate(driver.gameObject);
+            }
+            driver = null;
         }
     }
 }

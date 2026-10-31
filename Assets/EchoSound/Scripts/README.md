@@ -24,6 +24,9 @@
 | Sound/ISoundListener.cs | Интерфейс для сущностей, слышащих звук (враги, напарник) |
 | Sound/SoundEmitter.cs | Универсальный компонент на объектах (двери, кнопки, приманки) |
 | Sound/PlayerSoundEmitter.cs | Отслеживание шагов, прыжков и приземления игрока |
+| Sound/PushToTalkVoice.cs | Локальный микрофон по удержанию V, индикатор и звуковые события от речи |
+| Sound/VoiceActivity.cs | Измерение громкости PCM и порог отсечения тишины |
+| Sound/AcousticField.cs | Расчёт путей распространения звука с учётом стен и проходов |
 | Sound/SoundListenerComponent.cs | Базовый компонент-слушатель для монстров и напарника |
 | Sound/SoundDebugVisualizer.cs | Визуализатор звуковых волн в Scene view через Gizmos |
 | VFX/EcholocationConfig.cs | Настройки скорости волн, затухания, сетки и палитры цветов по типам звуков |

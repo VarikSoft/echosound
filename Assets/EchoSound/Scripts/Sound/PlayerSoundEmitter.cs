@@ -12,10 +12,10 @@ namespace EchoSound.Sound
     {
         [Header("Footsteps")]
         [Tooltip("Hearing/illumination radius for walking footsteps in meters.")]
-        public float walkRadius = 6f;
+        public float walkRadius = 14f;
 
         [Tooltip("Hearing/illumination radius for running footsteps in meters.")]
-        public float runRadius = 16f;
+        public float runRadius = 24f;
 
         [Tooltip("Distance in meters traveled between footsteps while walking.")]
         public float walkStepDistance = 2.0f;
@@ -25,10 +25,10 @@ namespace EchoSound.Sound
 
         [Header("Jumping & Landing")]
         [Tooltip("Hearing/illumination radius when jumping.")]
-        public float jumpRadius = 8f;
+        public float jumpRadius = 16f;
 
         [Tooltip("Hearing/illumination radius when landing.")]
-        public float landRadius = 12f;
+        public float landRadius = 22f;
 
         [Tooltip("Minimum fall distance/speed required to trigger a landing sound.")]
         public float minimumLandVelocity = 3f;
@@ -38,6 +38,8 @@ namespace EchoSound.Sound
         private float distanceTravelled;
         private bool wasGrounded;
         private float peakVerticalVelocity;
+        private bool wasMoving;
+        private float nextFootstepTime;
 
         private void Awake()
         {
@@ -56,6 +58,8 @@ namespace EchoSound.Sound
             distanceTravelled = 0f;
             peakVerticalVelocity = 0f;
             wasGrounded = controller != null && controller.isGrounded;
+            wasMoving = false;
+            nextFootstepTime = 0;
         }
 
         private void Update()
@@ -63,6 +67,7 @@ namespace EchoSound.Sound
             if (controller == null) return;
 
             bool isGrounded = controller.isGrounded;
+            bool movedThisFrame = false;
 
             // Detect Jump Takeoff (space pressed while on ground)
             if (isGrounded && Input.GetKeyDown(KeyCode.Space))
@@ -99,13 +104,17 @@ namespace EchoSound.Sound
                 // Ignore huge position jumps caused by teleports or lag spikes.
                 if (stepLength > 0.001f && stepLength < 5f)
                 {
-                    distanceTravelled += stepLength;
+                    movedThisFrame = true;
                     bool isRunning = Input.GetKey(KeyCode.LeftShift);
                     float targetStepDistance = isRunning ? runStepDistance : walkStepDistance;
+                    // First contact reveals a route as movement begins. Later contacts follow stride length.
+                    if (!wasMoving) distanceTravelled = targetStepDistance;
+                    distanceTravelled += stepLength;
 
-                    if (distanceTravelled >= targetStepDistance)
+                    if (distanceTravelled >= targetStepDistance && Time.time >= nextFootstepTime)
                     {
                         distanceTravelled -= targetStepDistance;
+                        nextFootstepTime = Time.time + 0.18f;
                         float radius = isRunning ? runRadius : walkRadius;
                         SoundType type = isRunning ? SoundType.FootstepRun : SoundType.FootstepWalk;
                         float intensity = isRunning ? 1.0f : 0.6f;
@@ -117,6 +126,7 @@ namespace EchoSound.Sound
 
             lastPosition = transform.position;
             wasGrounded = isGrounded;
+            wasMoving = movedThisFrame;
         }
     }
 }

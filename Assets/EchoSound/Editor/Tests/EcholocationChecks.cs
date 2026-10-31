@@ -46,6 +46,25 @@ namespace EchoSound.Editor.Tests
                 var manager = go.AddComponent<EcholocationManager>();
                 manager.config = config;
 
+                Require(EcholocationManager.VisualRadius(10, 0.25f) < EcholocationManager.VisualRadius(10, 1f),
+                    "Quiet sounds must produce smaller spheres.");
+                Require(EcholocationManager.VisualRadius(10, 0) == 0, "Silence must not produce a sphere.");
+                SoundBus.Emit(Vector3.zero, 14, 0.6f, SoundType.FootstepWalk);
+                SoundBus.Emit(Vector3.right * 3, 10, 1, SoundType.Voice);
+                manager.SendMessage("Update");
+                Require(Shader.GetGlobalInt("_EchoPulseCount") == 2, "Simultaneous sounds must retain independent spheres.");
+                var colors = Shader.GetGlobalVectorArray("_EchoPulseColors");
+                Require(Vector4.Distance(colors[0], colors[1]) > 0.1f, "Different sound types must retain their colors.");
+                var parameters = Shader.GetGlobalVectorArray("_EchoPulseParams");
+                Require(Mathf.Approximately(parameters[0].y, config.waveSpeed), "Visual sphere must use the configured scan speed.");
+                Require(Shader.GetGlobalVectorArray("_EchoPulseOrigins")[0].w > 16f,
+                    "Normal walking must reveal a useful navigation radius.");
+                Require(parameters[0].z > 0.8f && parameters[0].w > 1.9f,
+                    "Walking must leave a readable trail between successive strides.");
+                Require(Mathf.Approximately(parameters[1].z, 1.1f) && Mathf.Approximately(parameters[1].w, config.trailDecayDuration * 0.85f),
+                    "Voice response must retain its existing tuning.");
+                manager.ClearAllPulses();
+
                 // Emit sound via SoundBus
                 Vector3 origin = new Vector3(15f, 2f, -8f);
                 SoundBus.Emit(origin, 25f, 1.5f, SoundType.CameraPing);

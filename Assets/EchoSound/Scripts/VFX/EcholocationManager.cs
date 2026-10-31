@@ -1,199 +1,113 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 using EchoSound.Sound;
 
 namespace EchoSound.VFX
 {
-    /// <summary>
-    /// Central manager for echolocation visual waves. Subscribes to SoundBus.OnSoundEmitted,
-    /// tracks expanding wave pulses, and uploads pulse data to GPU global shader properties.
-    /// </summary>
+    /// <summary>Bounded visual sphere pulses; gameplay hearing remains on the acoustic sound bus.</summary>
     [ExecuteAlways]
     [AddComponentMenu("EchoSound/VFX/Echolocation Manager")]
     public class EcholocationManager : MonoBehaviour
     {
         public const int MaxPulses = 16;
-
         public static EcholocationManager Instance { get; private set; }
-
-        [Header("Configuration")]
-        [Tooltip("Visual configuration asset. If null, built-in defaults are used.")]
         public EcholocationConfig config;
-
-        [Header("Debug")]
-        [Tooltip("Log pulse emissions to the console.")]
-        public bool logPulses = false;
-
-        private struct ActivePulse
+        public bool logPulses;
+        private struct Pulse
         {
             public Vector3 Origin;
-            public float StartTime;
-            public float MaxRadius;
-            public float Speed;
-            public float Intensity;
-            public float DecayDuration;
-            public float WaveWidth;
+            public float Start, Radius, Speed, Intensity, Decay, Width;
             public Color Color;
-            public float TotalLifetime;
-            public bool IsActive;
+            public bool Active;
         }
-
-        private readonly ActivePulse[] pulsePool = new ActivePulse[MaxPulses];
-        private int nextPulseIndex = 0;
-
-        // Cached shader property IDs
-        private static readonly int PropPulseCount = Shader.PropertyToID("_EchoPulseCount");
-        private static readonly int PropOrigins = Shader.PropertyToID("_EchoPulseOrigins");
-        private static readonly int PropParams = Shader.PropertyToID("_EchoPulseParams");
-        private static readonly int PropColors = Shader.PropertyToID("_EchoPulseColors");
-        private static readonly int PropGridScale = Shader.PropertyToID("_EchoGridScale");
-        private static readonly int PropGridIntensity = Shader.PropertyToID("_EchoGridIntensity");
-        private static readonly int PropEdgeIntensity = Shader.PropertyToID("_EchoEdgeIntensity");
-        private static readonly int PropAmbientBrightness = Shader.PropertyToID("_EchoAmbientBrightness");
-        private static readonly int PropVoidColor = Shader.PropertyToID("_EchoVoidColor");
-        private static readonly int PropGlobalWaveWidth = Shader.PropertyToID("_EchoWaveWidth");
-
-        // GPU upload buffers (allocated once to avoid GC in Update)
-        private readonly Vector4[] gpuOrigins = new Vector4[MaxPulses];
-        private readonly Vector4[] gpuParams = new Vector4[MaxPulses];
-        private readonly Vector4[] gpuColors = new Vector4[MaxPulses];
-
-        private void Awake()
-        {
-            if (Instance == null)
-            {
-                Instance = this;
-            }
-            EnsureConfig();
-        }
+        private readonly Pulse[] pulses = new Pulse[MaxPulses];
+        private readonly Vector4[] origins = new Vector4[MaxPulses];
+        private readonly Vector4[] parameters = new Vector4[MaxPulses];
+        private readonly Vector4[] colors = new Vector4[MaxPulses];
+        private int next;
+        private EcholocationConfig ownedConfig;
+        private static float Now => Application.isPlaying ? Time.time : Time.realtimeSinceStartup;
 
         private void OnEnable()
         {
-            if (Instance == null) Instance = this;
+            if (Instance != null && Instance != this) { enabled = false; return; }
+            Instance = this;
             EnsureConfig();
             SoundBus.OnSoundEmitted += HandleSoundEmitted;
             ClearAllPulses();
         }
-
         private void OnDisable()
         {
             SoundBus.OnSoundEmitted -= HandleSoundEmitted;
+            if (Instance != this) return;
             ClearAllPulses();
-            UploadToGPU(0);
-            if (Instance == this) Instance = null;
+            Instance = null;
+            if (ownedConfig != null) DestroyImmediate(ownedConfig);
+            ownedConfig = null;
         }
-
         private void EnsureConfig()
         {
-            if (config == null)
-            {
-                config = ScriptableObject.CreateInstance<EcholocationConfig>();
-                config.PopulateDefaults();
-            }
+            if (config != null) return;
+            ownedConfig = ScriptableObject.CreateInstance<EcholocationConfig>();
+            ownedConfig.hideFlags = HideFlags.HideAndDontSave;
+            ownedConfig.PopulateDefaults();
+            config = ownedConfig;
         }
-
         private void Update()
         {
             EnsureConfig();
-            float now = Application.isPlaying ? Time.time : (float)DateTime.Now.TimeOfDay.TotalSeconds;
-
-            int activeCount = 0;
-
+            int count = 0;
+            float now = Now;
             for (int i = 0; i < MaxPulses; i++)
             {
-                if (!pulsePool[i].IsActive) continue;
-
-                float elapsed = now - pulsePool[i].StartTime;
-                if (elapsed > pulsePool[i].TotalLifetime || elapsed < 0)
-                {
-                    pulsePool[i].IsActive = false;
-                    continue;
-                }
-
-                // Pack GPU data
-                ref var pulse = ref pulsePool[i];
-                gpuOrigins[activeCount] = new Vector4(pulse.Origin.x, pulse.Origin.y, pulse.Origin.z, pulse.MaxRadius);
-                gpuParams[activeCount] = new Vector4(pulse.StartTime, pulse.Speed, pulse.Intensity, pulse.DecayDuration);
-                gpuColors[activeCount] = new Vector4(pulse.Color.r, pulse.Color.g, pulse.Color.b, pulse.WaveWidth);
-                activeCount++;
+                var p = pulses[i];
+                if (!p.Active) continue;
+                float elapsed = now - p.Start;
+                if (elapsed < 0 || elapsed > p.Radius / p.Speed + p.Decay)
+                { pulses[i].Active = false; continue; }
+                origins[count] = new Vector4(p.Origin.x, p.Origin.y, p.Origin.z, p.Radius);
+                parameters[count] = new Vector4(p.Start, p.Speed, p.Intensity, p.Decay);
+                colors[count] = new Vector4(p.Color.r, p.Color.g, p.Color.b, p.Width);
+                count++;
             }
-
-            UploadToGPU(activeCount);
+            Shader.SetGlobalFloat("_EchoTime", now);
+            Shader.SetGlobalInt("_EchoPulseCount", count);
+            Shader.SetGlobalVectorArray("_EchoPulseOrigins", origins);
+            Shader.SetGlobalVectorArray("_EchoPulseParams", parameters);
+            Shader.SetGlobalVectorArray("_EchoPulseColors", colors);
+            Shader.SetGlobalFloat("_EchoGridScale", config.gridScale);
+            Shader.SetGlobalFloat("_EchoGridIntensity", config.gridIntensity);
+            Shader.SetGlobalFloat("_EchoEdgeIntensity", config.edgeHighlightIntensity);
+            Shader.SetGlobalFloat("_EchoSurfaceTint", config.surfaceTint);
+            Shader.SetGlobalFloat("_EchoFresnelIntensity", config.fresnelIntensity);
         }
-
-        private void UploadToGPU(int activeCount)
-        {
-            Shader.SetGlobalInt(PropPulseCount, activeCount);
-
-            if (activeCount > 0)
-            {
-                Shader.SetGlobalVectorArray(PropOrigins, gpuOrigins);
-                Shader.SetGlobalVectorArray(PropParams, gpuParams);
-                Shader.SetGlobalVectorArray(PropColors, gpuColors);
-            }
-
-            if (config != null)
-            {
-                Shader.SetGlobalFloat(PropGridScale, config.gridScale);
-                Shader.SetGlobalFloat(PropGridIntensity, config.gridIntensity);
-                Shader.SetGlobalFloat(PropEdgeIntensity, config.edgeHighlightIntensity);
-                Shader.SetGlobalFloat(PropAmbientBrightness, config.ambientBrightness);
-                Shader.SetGlobalColor(PropVoidColor, config.voidColor);
-                Shader.SetGlobalFloat(PropGlobalWaveWidth, config.waveFrontWidth);
-            }
-        }
-
         public void HandleSoundEmitted(SoundEvent sound)
         {
+            if (sound.Intensity <= 0) return;
             EnsureConfig();
             var profile = config.GetProfile(sound.Type);
-
-            float speed = Mathf.Max(1f, config.waveSpeed * profile.speedMultiplier);
-            float intensity = sound.Intensity * profile.intensityMultiplier;
-            float decay = Mathf.Max(0.1f, config.trailDecayDuration * profile.decayMultiplier);
-            float totalLifetime = (sound.Radius / speed) + decay;
-
-            float now = Application.isPlaying ? Time.time : (float)DateTime.Now.TimeOfDay.TotalSeconds;
-
-            pulsePool[nextPulseIndex] = new ActivePulse
+            pulses[next] = new Pulse
             {
-                Origin = sound.Position,
-                StartTime = now,
-                MaxRadius = sound.Radius,
-                Speed = speed,
-                Intensity = intensity,
-                DecayDuration = decay,
-                WaveWidth = config.waveFrontWidth,
-                Color = profile.waveColor,
-                TotalLifetime = totalLifetime,
-                IsActive = true
+                Origin = sound.Position, Start = Now,
+                Radius = VisualRadius(sound.Radius, sound.Intensity) * (profile.rangeMultiplier > 0 ? profile.rangeMultiplier : 1f),
+                Speed = Mathf.Max(1, config.waveSpeed),
+                Intensity = sound.Intensity * profile.intensityMultiplier,
+                Decay = Mathf.Max(0.1f, config.trailDecayDuration * profile.decayMultiplier),
+                Width = Mathf.Max(0.05f, config.waveFrontWidth),
+                Color = profile.waveColor, Active = true
             };
-
-            nextPulseIndex = (nextPulseIndex + 1) % MaxPulses;
-
-            if (logPulses)
-            {
-                Debug.Log($"<color=#38BDF8>[EcholocationManager]</color> Spawned pulse at {sound.Position}, Radius={sound.Radius:F1}m, Color={profile.waveColor}");
-            }
+            next = (next + 1) % MaxPulses;
+            if (logPulses) Debug.Log($"Echo sphere: {sound.Type}, radius {VisualRadius(sound.Radius, sound.Intensity):F1}m", this);
         }
+        public static float VisualRadius(float sourceRange, float loudness)
+            => loudness <= 0 ? 0 : Mathf.Max(0.1f, sourceRange) * Mathf.Sqrt(Mathf.Clamp(loudness, 0f, 4f));
 
         public void ClearAllPulses()
         {
-            for (int i = 0; i < MaxPulses; i++)
-            {
-                pulsePool[i].IsActive = false;
-                gpuOrigins[i] = Vector4.zero;
-                gpuParams[i] = Vector4.zero;
-                gpuColors[i] = Vector4.zero;
-            }
+            for (int i = 0; i < MaxPulses; i++) pulses[i].Active = false;
+            next = 0;
+            Shader.SetGlobalInt("_EchoPulseCount", 0);
         }
-
         [ContextMenu("Emit Test Pulse (Center)")]
-        public void EmitTestPulse()
-        {
-            Vector3 origin = transform.position;
-            SoundBus.Emit(origin, 20f, 1.2f, SoundType.CameraPing);
-        }
+        public void EmitTestPulse() => SoundBus.Emit(transform.position, 20, 1.2f, SoundType.CameraPing);
     }
 }

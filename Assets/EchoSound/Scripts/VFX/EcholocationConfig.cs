@@ -41,6 +41,16 @@ namespace EchoSound.VFX
         [Range(0f, 3f)]
         public float edgeHighlightIntensity = 2.2f;
 
+        [Header("Surface Contact")]
+        [Tooltip("Ground afterglow brightness relative to walls and objects.")]
+        [Range(0f, 1f)] public float floorVisibility = 0.45f;
+        [Tooltip("Ground afterglow near the player's feet.")]
+        [Range(0f, 1f)] public float nearFloorVisibility = 0.2f;
+        [Tooltip("Short contour/shape response when the wave touches a surface.")]
+        [Range(0f, 3f)] public float contactIntensity = 1.4f;
+        [Tooltip("World-anchored variation of the contact response; does not alter the fading trail.")]
+        [Range(0f, 1f)] public float contactVariation = 0.6f;
+
         [Header("Atmosphere")]
         [Tooltip("Very faint baseline ambient visibility so pitch black isn't completely disorienting.")]
         [Range(0f, 0.1f)]

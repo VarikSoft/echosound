@@ -41,9 +41,13 @@ follow distance travelled, with a short anti-spam cooldown. Hearing radius and v
 profiles retain their own tuning. The optional per-profile rangeMultiplier defaults to 1
 for older serialized profiles that do not contain it.
 
-The shared shader include supplies spherical distance masks, a narrow bright front and
-an exponential temporal trail. Fresnel, depth/normal edges and a faint emissive surface
-fill reveal shape in otherwise black rooms. A separable highlight bloom adds glow.
+The shared shader include uses spherical distance for arrival timing, then separates
+the short surface-contact response from the existing fading surface memory. Contact
+emphasizes Fresnel, geometric boundaries and subtle world-anchored surface variation,
+instead of a broad uniformly glowing sphere shell. The temporal trail keeps its previous
+color, range and decay. Upward-facing ground below the camera is dimmed, especially near
+the player's feet; walls, props, tabletops and ceilings keep their response. A separable
+highlight bloom adds glow.
 The camera effect works on the existing scene materials; EcholocationSurface provides
 an emissive material version using the same pulse data. Both work without scene lighting.
 
@@ -51,6 +55,9 @@ Tune waveSpeed, waveFrontWidth, trailDecayDuration, surfaceTint (surface fill),
 fresnelIntensity and edgeHighlightIntensity in EcholocationConfig. Optional gridIntensity
 is zero by default. The camera exposes masterBrightness, revealOriginalTexture (subtle
 material detail only) and bloomStrength; zero bloom skips its passes.
+The Surface Contact group exposes floorVisibility, nearFloorVisibility, contactIntensity
+and contactVariation. Setting both floor values to 1 disables ground suppression;
+setting contactIntensity to 0 leaves only the fading surface memory.
 This uses the existing Built-in Render Pipeline, not URP.
 
 Attach ImpactSoundEmitter to throwable rigidbody props for automatic collision pulses.

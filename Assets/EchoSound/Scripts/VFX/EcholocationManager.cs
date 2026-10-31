@@ -79,6 +79,8 @@ namespace EchoSound.VFX
             Shader.SetGlobalFloat("_EchoEdgeIntensity", config.edgeHighlightIntensity);
             Shader.SetGlobalFloat("_EchoSurfaceTint", config.surfaceTint);
             Shader.SetGlobalFloat("_EchoFresnelIntensity", config.fresnelIntensity);
+            Shader.SetGlobalVector("_EchoContactStyle", new Vector4(config.floorVisibility,config.nearFloorVisibility,
+                config.contactIntensity,config.contactVariation));
         }
         public void HandleSoundEmitted(SoundEvent sound)
         {

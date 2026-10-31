@@ -57,14 +57,18 @@ Shader "EchoSound/Echolocation"
                 float edge = smoothstep(0.015, 0.09, (abs(dr-dl) + abs(du-dd)) / max(1, depth));
                 edge = max(edge, saturate(length(fwidth(normal)) * 2));
                 float3 echo;
-                float light;
-                EvaluateEcho(world, normal, echo, light);
+                float3 contact;
+                EvaluateEcho(world, normal, echo, contact);
                 float grid = EchoGrid(world, normal);
                 float3 scene = tex2D(_MainTex, i.uv).rgb;
                 float luminance = dot(scene, float3(0.2126, 0.7152, 0.0722));
                 float fresnel = EchoFresnel(world, normal);
                 float surface = _EchoSurfaceTint * lerp(1, 0.6 + luminance * 0.4, _RevealTexture);
-                float3 result = echo * (surface + fresnel * _EchoFresnelIntensity + grid * _EchoGridIntensity + edge * _EchoEdgeIntensity);
+                float floorVisibility = EchoFloorVisibility(world,normal);
+                float3 result = echo * (surface + fresnel * _EchoFresnelIntensity + grid * _EchoGridIntensity + edge * _EchoEdgeIntensity) * floorVisibility;
+                // Contact favors object boundaries and shape rather than a glowing patch on the floor.
+                float contactShape = 0.10 + edge * 2.5 + fresnel * 0.65;
+                result += contact * contactShape * lerp(1,0.08,EchoFloorMask(world,normal));
                 // Gentle exposure rolloff preserves color when several steps overlap.
                 result = 1 - exp(-result * _MasterBrightness * 2.2);
                 float vignette = 1 - smoothstep(0.25, 0.8, length(i.uv - 0.5)) * 0.28;

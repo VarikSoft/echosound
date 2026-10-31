@@ -237,6 +237,27 @@ namespace EchoSound.Editor.Tests
                     Require(brightness < initialBrightness + 0.01f, "Surface memory must fade back into darkness.");
                 }
             }
+            // Floor suppression must reduce the foreground without dimming the doorway.
+            Vector4 contactStyle = Shader.GetGlobalVector("_EchoContactStyle");
+            Shader.SetGlobalFloat("_EchoTime", pulseStart + 0.9f);
+            Shader.SetGlobalVector("_EchoContactStyle", new Vector4(1,1,contactStyle.z,contactStyle.w));
+            Color FloorSample(out Color wall)
+            {
+                camera.Render();
+                RenderTexture.active = target;
+                capture.ReadPixels(new Rect(0,0,1280,720),0,0);
+                capture.Apply();
+                wall = capture.GetPixel(470,330);
+                return capture.GetPixel(640,90);
+            }
+            Color fullFloor = FloorSample(out Color fullWall);
+            Shader.SetGlobalVector("_EchoContactStyle", contactStyle);
+            Color dimFloor = FloorSample(out Color dimWall);
+            Require(fullFloor.maxColorComponent > 0.01f && dimFloor.maxColorComponent < fullFloor.maxColorComponent * 0.75f,
+                "Foreground floor must be dimmer than the unsuppressed surface response.");
+            Require(Math.Abs(fullWall.maxColorComponent-dimWall.maxColorComponent) < 0.03f,
+                "Floor suppression must preserve wall visibility.");
+            File.WriteAllBytes("Logs/AcousticChecks/surface-memory.png", capture.EncodeToPNG());
             // Render the same surface under pure red, pure blue, and overlapping spheres.
             var mixOrigins = Shader.GetGlobalVectorArray("_EchoPulseOrigins");
             var mixParams = Shader.GetGlobalVectorArray("_EchoPulseParams");

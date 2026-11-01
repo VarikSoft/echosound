@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9e866d7d3beea7498ae0c50638e30d0, type: 3}
   m_Name: DefaultRooms
   m_EditorClassIdentifier: EchoSound.Rooms::EchoSound.Rooms.RoomCatalog
-  roomSize: 12
+  roomSize: 18
   rooms:
   - prefab: {fileID: 5000635682997369569, guid: 316c1e74c04e593488e798429c1682d9, type: 3}
     weight: 1
@@ -55,4 +55,16 @@ MonoBehaviour:
     allowRotation: 1
   - prefab: {fileID: 4305258178692981818, guid: f46f88716436bf14ba3826d6a8af3d70, type: 3}
     weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 4534433204552257364, guid: 0d3bf59c3c9474f4a8b5128665934d1f, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 8446146364569667564, guid: 6783e506055cf3b44a04573ad624d92b, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 2569609403334436807, guid: 6c646a438cc685d4dbcf51deacc454c2, type: 3}
+    weight: 4
+    allowRotation: 1
+  - prefab: {fileID: 5156989762135776626, guid: 91c65283b7052674d9e0702a618dd284, type: 3}
+    weight: 4
     allowRotation: 1

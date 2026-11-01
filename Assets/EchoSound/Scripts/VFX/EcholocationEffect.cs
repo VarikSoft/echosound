@@ -18,16 +18,17 @@ namespace EchoSound.VFX
         [Header("Tuning Overrides")]
         [Tooltip("Master brightness multiplier for echolocation illumination.")]
         [Range(0.1f, 3f)]
-        public float masterBrightness = 0.85f;
+        public float masterBrightness = 0.6f;
 
         [Tooltip("Subtle material detail under the source-colored emissive scan.")]
         [Range(0f, 1f)]
         public float revealOriginalTexture = 0.1f;
 
-        [Range(0f, 1f)] public float bloomStrength = 0.3f;
+        [Range(0f, 1f)] public float bloomStrength = 0.12f;
 
         private Material material;
         private Camera targetCamera;
+        private AcousticSurfaceBuffer surfaceBuffer;
 
         private static readonly int PropFrustumCornersWS = Shader.PropertyToID("_FrustumCornersWS");
         private static readonly int PropCameraWS = Shader.PropertyToID("_CameraWS");
@@ -42,10 +43,15 @@ namespace EchoSound.VFX
                 targetCamera.depthTextureMode |= DepthTextureMode.Depth | DepthTextureMode.DepthNormals;
             }
             EnsureMaterial();
+            surfaceBuffer = new AcousticSurfaceBuffer(targetCamera);
         }
+
+        private void OnPreRender() => surfaceBuffer?.Prepare();
 
         private void OnDisable()
         {
+            surfaceBuffer?.Dispose();
+            surfaceBuffer = null;
             if (material != null)
             {
                 DestroyImmediate(material);
@@ -107,6 +113,7 @@ namespace EchoSound.VFX
             material.SetVector(PropCameraWS, targetCamera.transform.position);
             material.SetFloat(PropMasterBrightness, masterBrightness);
             material.SetFloat(PropRevealTexture, revealOriginalTexture);
+            material.SetTexture("_EchoAcousticMap", surfaceBuffer != null ? surfaceBuffer.Texture : Texture2D.whiteTexture);
 
             if (bloomStrength <= 0f)
             {

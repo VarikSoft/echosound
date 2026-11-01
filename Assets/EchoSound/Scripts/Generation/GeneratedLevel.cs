@@ -9,12 +9,14 @@ namespace EchoSound.Generation
     {
         public readonly RoomGraph Graph;
         public readonly IReadOnlyList<RoomTemplate> Rooms;
+        public readonly IReadOnlyList<RoomTemplate> Corridors;
         public Vector3 Spawn => Rooms[0].AnchorPosition;
 
-        public GeneratedLevel(RoomGraph graph, List<RoomTemplate> rooms)
+        public GeneratedLevel(RoomGraph graph, List<RoomTemplate> rooms, List<RoomTemplate> corridors = null)
         {
             Graph = graph;
             Rooms = rooms;
+            Corridors = corridors ?? new List<RoomTemplate>();
         }
     }
 }

@@ -23,7 +23,8 @@ namespace EchoSound.Sound
             nextImpact = Time.time + cooldown;
             float strength = Mathf.InverseLerp(minimumSpeed, Mathf.Max(minimumSpeed + 0.1f, fullStrengthSpeed), speed);
             SoundBus.Emit(contact.point + contact.normal * 0.03f,
-                Mathf.Lerp(3f, maximumRadius, strength), Mathf.Lerp(0.25f, 1.8f, strength), SoundType.Impact, gameObject);
+                Mathf.Lerp(3f, maximumRadius, strength), Mathf.Lerp(0.25f, 1.8f, strength) * AcousticSurface.ContactGain(collision.collider),
+                SoundType.Impact, gameObject);
         }
     }
 }

@@ -1,6 +1,16 @@
 {
   "name": "EchoSound.Editor",
   "rootNamespace": "EchoSound.Editor",
-  "references": ["EchoSound.Rooms", "EchoSound.Generation", "EchoSound.Player", "EchoSound.Testing", "EchoSound.Sound", "EchoSound.VFX"],
-  "includePlatforms": ["Editor"]
+  "references": [
+    "EchoSound.Rooms",
+    "EchoSound.Generation",
+    "EchoSound.Player",
+    "EchoSound.Testing",
+    "EchoSound.Sound",
+    "EchoSound.VFX",
+    "EchoSound.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
 }

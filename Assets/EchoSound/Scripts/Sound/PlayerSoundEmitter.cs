@@ -72,7 +72,7 @@ namespace EchoSound.Sound
             // Detect Jump Takeoff (space pressed while on ground)
             if (isGrounded && Input.GetKeyDown(KeyCode.Space))
             {
-                SoundBus.Emit(transform.position, jumpRadius, 1f, SoundType.Jump, gameObject);
+                EmitContact(jumpRadius, 1f, SoundType.Jump);
             }
 
             // Detect Landing
@@ -81,7 +81,7 @@ namespace EchoSound.Sound
                 if (Mathf.Abs(peakVerticalVelocity) >= minimumLandVelocity)
                 {
                     float intensity = Mathf.Clamp01(Mathf.Abs(peakVerticalVelocity) / 10f);
-                    SoundBus.Emit(transform.position, landRadius * Mathf.Max(0.5f, intensity), intensity, SoundType.Land, gameObject);
+                    EmitContact(landRadius * Mathf.Max(0.5f, intensity), intensity, SoundType.Land);
                 }
                 peakVerticalVelocity = 0f;
             }
@@ -119,7 +119,7 @@ namespace EchoSound.Sound
                         SoundType type = isRunning ? SoundType.FootstepRun : SoundType.FootstepWalk;
                         float intensity = isRunning ? 1.0f : 0.6f;
 
-                        SoundBus.Emit(transform.position, radius, intensity, type, gameObject);
+                        EmitContact(radius, intensity, type);
                     }
                 }
             }
@@ -127,6 +127,28 @@ namespace EchoSound.Sound
             lastPosition = transform.position;
             wasGrounded = isGrounded;
             wasMoving = movedThisFrame;
+        }
+
+        private readonly RaycastHit[] groundHits = new RaycastHit[16];
+
+        private void EmitContact(float radius, float intensity, SoundType type)
+        {
+            float gain = 1;
+            float nearest = float.MaxValue;
+            Vector3 feet = controller.bounds.center - Vector3.up * controller.bounds.extents.y;
+            int count = Physics.RaycastNonAlloc(feet + Vector3.up * 0.25f, Vector3.down, groundHits,
+                0.8f, SoundBus.ObstacleMask, QueryTriggerInteraction.Ignore);
+            if (count < groundHits.Length)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var hit = groundHits[i];
+                    if (hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                    nearest = hit.distance;
+                    gain = AcousticSurface.ContactGain(hit.collider);
+                }
+            }
+            SoundBus.Emit(transform.position, radius, intensity * gain, type, gameObject);
         }
     }
 }

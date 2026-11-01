@@ -17,6 +17,8 @@ namespace EchoSound.Sound
             public SoundEvent Sound;
             public AcousticField Field;
             public ISoundListener[] Targets;
+            public ISoundListener[] ReflectionTargets;
+            public AcousticReflections Reflections;
         }
 
         public static int ListenerCount => listeners.Count;
@@ -28,8 +30,13 @@ namespace EchoSound.Sound
         {
             listeners.Remove(listener);
             foreach (var wave in waves)
+            {
                 for (int i = 0; i < wave.Targets.Length; i++)
                     if (ReferenceEquals(wave.Targets[i], listener)) wave.Targets[i] = null;
+                if (wave.ReflectionTargets == null) continue;
+                for (int i = 0; i < wave.ReflectionTargets.Length; i++)
+                    if (ReferenceEquals(wave.ReflectionTargets[i], listener)) wave.ReflectionTargets[i] = null;
+            }
         }
 
         public static void Emit(in SoundEvent soundEvent)
@@ -50,7 +57,9 @@ namespace EchoSound.Sound
             if (listeners.Count > 0)
             {
                 if (waves.Count >= 64) waves.RemoveAt(0);
-                waves.Add(new Wave { Sound = soundEvent, Field = field, Targets = listeners.ToArray() });
+                var reflections = new AcousticReflections(soundEvent, field, ObstacleMask);
+                waves.Add(new Wave { Sound = soundEvent, Field = field, Targets = listeners.ToArray(), Reflections = reflections,
+                    ReflectionTargets = reflections.Count > 0 ? listeners.ToArray() : null });
             }
             // One failing observer cannot starve the remaining subscribers.
             if (OnSoundEmitted != null)
@@ -86,6 +95,23 @@ namespace EchoSound.Sound
                     float threshold = AcousticField.Pressure(wave.Sound.Radius, wave.Sound.Radius);
                     if (distance <= wave.Sound.Radius * sensitivity && received * sensitivity >= threshold)
                         deliveries.Add((listener, wave.Sound.WithIntensity(received), distance));
+                }
+                if (wave.ReflectionTargets != null)
+                {
+                    for (int i = 0; i < wave.ReflectionTargets.Length; i++)
+                    {
+                        var listener = wave.ReflectionTargets[i];
+                        if (listener == null || (listener is UnityEngine.Object obj && obj == null)) continue;
+                        if (!wave.Reflections.TryGetEcho(listener.ListenerPosition, out float distance, out float pressure))
+                        { wave.ReflectionTargets[i] = null; continue; }
+                        if (distance > travelled) { pending = true; continue; }
+                        wave.ReflectionTargets[i] = null;
+                        float sensitivity = Mathf.Max(0, listener.HearingSensitivity);
+                        float received = wave.Sound.Intensity * pressure;
+                        float threshold = AcousticField.Pressure(wave.Sound.Radius, wave.Sound.Radius);
+                        if (distance <= wave.Sound.Radius * sensitivity && received * sensitivity >= threshold)
+                            deliveries.Add((listener, wave.Sound.WithReflection(received), distance));
+                    }
                 }
                 if (!pending || travelled > wave.Field.Range + AcousticField.SpeedOfSound * 0.1f) waves.RemoveAt(w);
             }

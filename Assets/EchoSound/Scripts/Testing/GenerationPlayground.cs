@@ -12,7 +12,7 @@ namespace EchoSound.Testing
         public LevelGenerator generator;
         public FirstPersonPlayer player;
         [Tooltip("Falling this far below the level returns the player to the spawn point.")]
-        public float fallDepth = 6f;
+        public float fallDepth = 24f;
 
         private void OnEnable()
         {

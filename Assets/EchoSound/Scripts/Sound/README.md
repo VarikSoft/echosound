@@ -110,3 +110,7 @@ attenuation, unsubscribe, shader errors and produces `Logs/AcousticChecks/echo-p
 
 Physics references: [sound pressure distance law](https://www.bksv.com/downloads/svpockethandbook/index.html)
 and [geometric acoustic arrival fields](https://arxiv.org/abs/2208.13002).
+
+## Acoustic surface profiles
+
+See [Acoustic materials](ACOUSTIC_MATERIALS.md) for wall and floor profiles, first-bounce echoes, surface decay, contact loudness and the comparison scene.

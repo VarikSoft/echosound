@@ -22,7 +22,12 @@ namespace EchoSound.VFX
 
         [Tooltip("How long (in seconds) geometry remains dimly revealed behind the passing wave.")]
         [Range(0.2f, 4f)]
-        public float trailDecayDuration = 1.1f;
+        public float trailDecayDuration = 1.35f;
+
+        [Tooltip("Minimum visual reach of a footstep, enough to scan a 12m room from its entrance. Does not change hearing.")]
+        [Range(0f, 50f)] public float minimumFootstepVisualRadius = 32f;
+        [Tooltip("Minimum visual strength of a non-silent footstep. Contact acoustics and enemy hearing remain unchanged.")]
+        [Range(0f, 1f)] public float minimumFootstepVisualIntensity = 0.85f;
 
         [Header("Surface Detail & Outlines")]
         [Tooltip("Grid spacing in meters.")]
@@ -34,7 +39,7 @@ namespace EchoSound.VFX
         public float gridIntensity = 0f;
 
         [Tooltip("Emissive surface fill behind the front. Lower values emphasize contours and Fresnel.")]
-        [Range(0f, 1f)] public float surfaceTint = 0.18f;
+        [Range(0f, 1f)] public float surfaceTint = 0.4f;
         [Range(0f, 3f)] public float fresnelIntensity = 1.4f;
 
         [Tooltip("Edge detection strength on geometric corners and silhouettes.")]
@@ -46,6 +51,8 @@ namespace EchoSound.VFX
         [Range(0f, 1f)] public float floorVisibility = 0.45f;
         [Tooltip("Ground afterglow near the player's feet.")]
         [Range(0f, 1f)] public float nearFloorVisibility = 0.2f;
+        [Tooltip("Ceiling response relative to walls, including contours and contact flashes.")]
+        [Range(0f, 1f)] public float ceilingVisibility = 0.12f;
         [Tooltip("Short contour/shape response when the wave touches a surface.")]
         [Range(0f, 3f)] public float contactIntensity = 1.4f;
         [Tooltip("World-anchored variation of the contact response; does not alter the fading trail.")]

@@ -18,6 +18,7 @@ Shader "EchoSound/Echolocation"
             #include "UnityCG.cginc"
             #include "EcholocationCommon.cginc"
             sampler2D _MainTex;
+            sampler2D _EchoAcousticMap;
             float4 _MainTex_TexelSize;
             UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
             sampler2D _CameraDepthNormalsTexture;
@@ -45,10 +46,9 @@ Shader "EchoSound/Echolocation"
                 float depth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.depthUV));
                 if (depth >= _ProjectionParams.z * 0.99) return half4(0,0,0,1);
                 float3 world = _CameraWS.xyz + i.ray * depth;
-                float normalDepth;
-                float3 viewNormal;
-                DecodeDepthNormal(tex2D(_CameraDepthNormalsTexture, i.depthUV), normalDepth, viewNormal);
-                float3 normal = normalize(mul((float3x3)_EchoViewToWorld, viewNormal));
+                // Geometric normals keep normal-map microdetail from becoming emissive edges.
+                float3 normal = normalize(cross(ddy(world),ddx(world)));
+                if (dot(normal,_CameraWS.xyz-world) < 0) normal = -normal;
                 float2 texel = abs(_MainTex_TexelSize.xy);
                 float dr = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.depthUV + float2(texel.x,0)));
                 float dl = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.depthUV - float2(texel.x,0)));
@@ -58,7 +58,8 @@ Shader "EchoSound/Echolocation"
                 edge = max(edge, saturate(length(fwidth(normal)) * 2));
                 float3 echo;
                 float3 contact;
-                EvaluateEcho(world, normal, echo, contact);
+                float4 response = tex2D(_EchoAcousticMap, i.depthUV);
+                EvaluateEchoResponse(world, normal, response.xy, echo, contact);
                 float grid = EchoGrid(world, normal);
                 float3 scene = tex2D(_MainTex, i.uv).rgb;
                 float luminance = dot(scene, float3(0.2126, 0.7152, 0.0722));
@@ -70,6 +71,11 @@ Shader "EchoSound/Echolocation"
                 float contactShape = 0.10 + edge * 2.5 + fresnel * 0.65;
                 result += contact * contactShape * lerp(1,0.08,EchoFloorMask(world,normal));
                 // Gentle exposure rolloff preserves color when several steps overlap.
+                result = EchoMaterialCue(result,world,normal,response);
+                result *= EchoCeilingVisibility(world,normal);
+                // Negative material ID marks a smoothly fading shaft; multiply the complete response,
+                // including contours, so the depth fade cannot create a bright horizontal edge.
+                if (response.z < 0) result *= saturate(response.w);
                 result = 1 - exp(-result * _MasterBrightness * 2.2);
                 float vignette = 1 - smoothstep(0.25, 0.8, length(i.uv - 0.5)) * 0.28;
                 return half4(result * vignette, 1);

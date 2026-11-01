@@ -79,6 +79,7 @@ namespace EchoSound.VFX
             Shader.SetGlobalFloat("_EchoEdgeIntensity", config.edgeHighlightIntensity);
             Shader.SetGlobalFloat("_EchoSurfaceTint", config.surfaceTint);
             Shader.SetGlobalFloat("_EchoFresnelIntensity", config.fresnelIntensity);
+            Shader.SetGlobalFloat("_EchoCeilingVisibility", config.ceilingVisibility);
             Shader.SetGlobalVector("_EchoContactStyle", new Vector4(config.floorVisibility,config.nearFloorVisibility,
                 config.contactIntensity,config.contactVariation));
         }
@@ -87,12 +88,20 @@ namespace EchoSound.VFX
             if (sound.Intensity <= 0) return;
             EnsureConfig();
             var profile = config.GetProfile(sound.Type);
+            bool footstep = sound.Type == SoundType.FootstepWalk || sound.Type == SoundType.FootstepRun;
+            float radius = VisualRadius(sound.Radius, sound.Intensity) * (profile.rangeMultiplier > 0 ? profile.rangeMultiplier : 1f);
+            float intensity = sound.Intensity * profile.intensityMultiplier;
+            if (footstep)
+            {
+                radius = Mathf.Max(radius, config.minimumFootstepVisualRadius);
+                intensity = Mathf.Max(intensity, config.minimumFootstepVisualIntensity);
+            }
             pulses[next] = new Pulse
             {
                 Origin = sound.Position, Start = Now,
-                Radius = VisualRadius(sound.Radius, sound.Intensity) * (profile.rangeMultiplier > 0 ? profile.rangeMultiplier : 1f),
+                Radius = radius,
                 Speed = Mathf.Max(1, config.waveSpeed),
-                Intensity = sound.Intensity * profile.intensityMultiplier,
+                Intensity = intensity,
                 Decay = Mathf.Max(0.1f, config.trailDecayDuration * profile.decayMultiplier),
                 Width = Mathf.Max(0.05f, config.waveFrontWidth),
                 Color = profile.waveColor, Active = true
@@ -102,6 +111,30 @@ namespace EchoSound.VFX
         }
         public static float VisualRadius(float sourceRange, float loudness)
             => loudness <= 0 ? 0 : Mathf.Max(0.1f, sourceRange) * Mathf.Sqrt(Mathf.Clamp(loudness, 0f, 4f));
+
+        /// <summary>Checks current surface memory without revealing materials ahead of an arriving pulse.</summary>
+        public float SurfaceVisibility(Vector3 position, AcousticMaterial material, float sampleTime = -1)
+        {
+            if (material == null || !isActiveAndEnabled) return 0;
+            float now = sampleTime < 0 ? Now : sampleTime;
+            float visible = 0;
+            foreach (Pulse pulse in pulses)
+            {
+                if (!pulse.Active) continue;
+                float distance = Vector3.Distance(position, pulse.Origin);
+                if (distance >= pulse.Radius) continue;
+                float age = now - pulse.Start - distance / pulse.Speed;
+                float duration = pulse.Decay * Mathf.Clamp(material.echoPersistence, 0.35f, 1);
+                if (age <= 0 || age >= duration) continue;
+                float progress = age / duration;
+                float onset = Mathf.SmoothStep(0, 1, Mathf.Clamp01(age * pulse.Speed / (pulse.Width * 0.16f)));
+                float edge = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(pulse.Radius * 0.8f, pulse.Radius, distance));
+                float visualReflection = material.reflection <= 0 ? 0 : Mathf.Lerp(0.25f, 1, Mathf.Clamp01(material.reflection));
+                visible += pulse.Intensity * visualReflection * (1-progress) * (1-progress)
+                    * Mathf.Exp(-progress * 1.5f) * onset * edge;
+            }
+            return visible;
+        }
 
         public void ClearAllPulses()
         {

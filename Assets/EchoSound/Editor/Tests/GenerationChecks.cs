@@ -74,10 +74,12 @@ namespace EchoSound.Editor.Tests
 
         private static void CheckWalkways(RoomTemplate room, PhysicsScene physics)
         {
-            if (room.displayName == "Bridge" || room.displayName == "PitWalkways" || room.displayName == "Zigzag")
+            if (room.displayName == "Bridge" || room.displayName == "PitWalkways" || room.displayName == "Zigzag" ||
+                room.displayName == "BrokenWalkways" || room.displayName == "ObservationGallery")
             {
-                Vector3 pitProbe = room.displayName == "Bridge" ? new Vector3(3, 1, 0) : Vector3.up;
-                Require(physics.Raycast(pitProbe, Vector3.down, out RaycastHit hit, 20) && hit.point.y < -7,
+                Vector3 pitProbe = room.displayName == "Bridge" ? new Vector3(3, 1, 0) :
+                    room.displayName == "ObservationGallery" ? new Vector3(6, 1, 6) : Vector3.up;
+                Require(physics.Raycast(pitProbe, Vector3.down, out RaycastHit hit, 100) && hit.point.y < -60,
                     room.name + ": expected a physical pit below the walkways.");
             }
             const float spacing = 0.5f;

@@ -1,229 +1,251 @@
 # EchoSound
 
-A puzzle-extraction game set in total darkness, played together with an AI partner you talk to by voice. You can only see what sound reveals — but everything that hunts in the dark can hear it too.
+A puzzle-extraction game in total darkness, with an AI teammate you talk to by voice.
+Every sound reveals the world. Every sound can bring something closer.
 
-> University project — Unity + echolocation rendering + locally hosted LLM companion + voice control. Online co-op planned for a later phase.
+**University project** · Echolocation · Voice-driven AI · Unity
 
----
+[The game](#the-game) · [Your companion](#one-companion-three-roles) · [Architecture](#architecture) · [Roadmap](#roadmap) · [Development setup](#getting-started)
 
-## Concept
+## The game
 
-- The world is **pitch black**. Every sound — footsteps, voices, levers, impacts — emits an **echolocation wave** that briefly reveals walls, objects and characters.
-- The player ventures into zones, solves puzzles, collects artifacts and **extracts** before the dark catches them.
-- **Enemies are blind but react to sound.** Making noise lets you see and solve puzzles, but draws danger to you.
-- In the first phase the game is **single-player**: the player's only teammate is an **AI companion** controlled by a local LLM. The companion can take on any role a human teammate would: **operator** on the cameras, **guide** that scouts and gives directions, or **partner** that goes into the zone and presses buttons.
-- The game starts with **training zones** that teach the basics. As the player progresses, harder zones unlock, with puzzles that require two agents working together.
-- **Online co-op (2–3 players)** is planned for a later phase. Puzzles are designed for multiple agents from the start, so a human can later take any role the AI fills now.
+You are in a room you cannot see. A footstep sends a wave across the floor: walls, a doorway, something moving at the edge of the echo. Then darkness returns. Your teammate asks whether to move. Answering will make noise too.
 
-## Gameplay Loop
+**EchoSound is built around one dilemma: the sound that helps you survive also gives you away.** There is no permanent view of the level. Footsteps, voices, levers and impacts briefly reveal the world through echolocation, while blind enemies follow what they hear.
+
+Venture into dangerous zones, solve puzzles together, recover artifacts and find a way out. You decide when to stay quiet, when to reveal your surroundings and when to let your partner draw attention. Escape with your finds to unlock harder zones and new tools; get caught or run out of time and lose everything collected during that run.
+
+Your first teammate is a **local AI companion you speak to by voice**. It can explore beside you, scout ahead or guide you from a camera terminal. Later, online co-op for **2–3 players** will let humans take those roles.
+
+> EchoSound is in early development. The sections below describe the intended game; the current prototype and setup are documented [at the end](#getting-started).
+
+### The extraction loop
 
 ```mermaid
-flowchart LR
-    Hub["Hub"] --> Choose["Choose zone"]
-    Choose --> Role["Assign roles<br/>player & AI"]
-    Role --> Enter["Enter zone"]
-    Enter --> Play["Solve puzzles<br/>collect artifacts"]
-    Play --> Extract{"Extracted<br/>in time?"}
-    Extract -- Yes --> Keep["Keep artifacts"]
-    Extract -- No --> Lose["Lose run loot"]
-    Keep --> Progress["Progression:<br/>unlock zones & upgrades"]
-    Progress --> Hub
-    Lose --> Hub
+flowchart TB
+    accTitle: The extraction loop
+    accDescr: Prepare at the hub, explore a zone, solve puzzles and attempt extraction. Success keeps artifacts; failure loses run loot. Both return to the hub.
+    Hub["Prepare at the hub<br/>Choose a zone and assign roles"]
+    Explore["Enter the dark<br/>Reveal a route and manage noise"]
+    Solve["Work together<br/>Solve puzzles and collect artifacts"]
+    Exit{"Extracted in time?"}
+    Keep["Keep artifacts<br/>Unlock zones and upgrades"]
+    Lose["Lose the run's loot<br/>Caught or out of time"]
+
+    Hub --> Explore --> Solve --> Exit
+    Exit -->|Yes| Keep
+    Exit -->|No| Lose
+    Keep --> Return["Return to the hub<br/>Prepare the next run"]
+    Lose --> Return
 ```
 
-- **Successful extraction:** collected artifacts are kept and spent on progression.
-- **Failure** (caught by enemies or out of time): everything found during that run is lost.
+### Core mechanics
 
-### Progression
-- **Training zones** teach echolocation, stealth, puzzle interaction and how to command the companion.
-- Reaching a progression threshold unlocks **harder zones** with puzzles that require two agents.
-- **Upgrades**, for example: larger echo radius, quieter footsteps, throwable noise decoys, more camera power, new companion abilities.
+| System | How it plays | The tradeoff |
+| :--- | :--- | :--- |
+| **Echolocation** | Waves briefly reveal walls, objects and characters before fading into darkness | More visibility means more noise |
+| **Enemy hearing** | Blind enemies investigate footsteps, speech, mechanisms and camera pings | Every agent's actions can expose the team |
+| **AI teammate** | Talk to your partner to coordinate movement, mechanisms and distractions | The companion only knows what it can perceive |
+| **Camera terminals** | Dark camera feeds reveal only what echoes illuminate; speakers create remote pulses | Pings consume recharging power, and enemies can disable cameras |
 
-## Core Mechanics
+### One companion, three roles
 
-### Echolocation
-- Each sound emits a pulse: an expanding sphere whose edge glows as it passes over geometry, then fades.
-- Louder sounds create bigger, brighter pulses — and attract enemies from further away.
-- Geometry is highlighted with a world-space grid / edge effect, so simple primitives read clearly as walls and objects.
+“Wait here.” “Pull that lever.” “Is the corridor clear?” Cooperation happens through conversation. The companion responds aloud and acts on your instructions, but only knows what it can hear or what echoes and camera feeds reveal. You have to share information and work together.
 
-### Sound-reactive enemies
-- Enemies cannot see; they navigate toward the **sounds they hear**.
-- Every action has a noise level: walking, running, talking, using mechanisms, camera pings — for the player and the companion alike.
-- The player must balance seeing enough to make progress against staying quiet enough to survive.
+| Role | Position | Responsibility |
+| :--- | :--- | :--- |
+| **Operator** | At a camera terminal | Watch feeds, ping speakers, warn the player and give directions |
+| **Guide** | Ahead of the player | Scout, describe what it perceives and suggest a route |
+| **Partner** | Alongside the player | Follow, wait, press plates, pull levers and distract enemies |
 
-### AI companion
-The companion is the player's only teammate in single-player, and the core of the project.
+Roles can change before or during a zone. The **player can also act as operator**, directing the companion through the level. The companion follows the same sound rules as the player: its footsteps, actions and spoken replies can attract enemies.
 
-**Roles** — chosen before a zone or switched during it:
+### Cameras as a shared tool
 
-| Role | Where the AI is | What it does |
-|---|---|---|
-| **Operator** | At a camera terminal | Watches camera feeds, pings speakers to lure enemies, warns the player and tells them where to go |
-| **Guide** | In the zone, ahead of the player | Scouts, describes what it hears and sees, suggests a route |
-| **Partner** | In the zone, next to the player | Follows commands: press a plate, pull a lever, wait, distract an enemy |
-
-The roles can also be swapped: the **player** sits at the terminal as operator and directs the AI through the zone.
-
-**How it works:**
-- The player speaks; speech is transcribed locally (STT).
-- The LLM receives the transcript plus the **companion's current perception** and turns it into a command from a **fixed set**, for example:
-  ```json
-  { "action": "follow" }
-  { "action": "go_to", "target": "pressure_plate_2" }
-  { "action": "press", "target": "lever_east" }
-  { "action": "ping_camera", "target": "camera_3" }
-  { "action": "wait" }
-  ```
-- Commands are executed by standard game AI (NavMesh, behaviour tree), so the LLM never controls movement directly.
-- The companion answers and reports with a synthesized voice (TTS): *"Enemy in the east corridor, wait."*
-- **Fair perception:** the companion only knows what it can perceive — what echo pulses and camera feeds reveal and what it hears — not the full level state. This keeps it a teammate, not a cheat.
-- **The companion is bound by the same rules:** its steps, actions and spoken voice in the world make noise and can attract enemies.
-
-### Camera system
-Zones contain **security cameras** viewed from terminals, similar to the camera mechanic in security-office horror games — with a twist: cameras also have **speakers**.
-- **Watch:** switch between camera feeds to observe parts of the zone without being there. A feed is dark too: it only shows what echo pulses reveal.
-- **Ping:** trigger a camera's speaker to emit a sound at its location. The pulse reveals the surroundings on the feed — and attracts enemies to the camera instead of the team.
-- **Limits:** pings use a slowly recharging power budget, and enemies can disable a camera they reach, so cameras are a resource, not a free map.
-- Cameras are used by whoever is the **operator** — the AI companion or the player.
+An operator can use a camera's speaker to reveal a corridor and lure an enemy away from the team. Power limits and destructible cameras make each ping a decision.
 
 ```mermaid
 sequenceDiagram
-    participant AI as AI companion (operator)
+    accTitle: A camera ping opens a route
+    accDescr: The player asks the AI operator to check a corridor. A camera ping reveals and attracts an enemy, giving the player a chance to move.
+    participant Player as Player
+    participant AI as AI operator
     participant Cam as Camera 3
-    participant En as Enemy
-    participant P as Player (in zone)
-    P->>AI: "Is the corridor clear?" (voice)
+    participant Enemy as Enemy
+
+    Player->>AI: Is the corridor clear?
     AI->>Cam: Ping speaker
-    Cam-->>AI: Echo pulse reveals enemy on feed
-    Cam->>En: Sound heard
-    En->>Cam: Moves toward camera
-    AI->>P: "Enemy lured to camera 3, go now" (TTS)
+    Cam-->>AI: Echo reveals enemy on feed
+    Cam->>Enemy: Sound attracts attention
+    Enemy->>Cam: Moves toward the camera
+    AI-->>Player: Go now — the route is clear
 ```
 
-### Puzzles for two agents
-Puzzles are built around communication and sound, and work whether the second agent is the AI or (later) a human:
-- **One lights, one moves:** one agent makes noise to reveal a room (and draw enemies) while the other sneaks through in the dark.
-- **Asymmetric knowledge:** a code or diagram is visible only from one side or one camera, so it has to be described by voice.
-- **Synchronized actions:** pressure plates or levers in different parts of the zone that must be used at the same time.
-- **Decoy:** one agent lures an enemy away while the other works on a mechanism.
+### Puzzles built for two
 
-## Architecture (single-player)
+Puzzles depend on communication, timing and sound. The second agent can be your AI companion or, later, another player.
+
+- **One lights, one moves.** One agent reveals the room and draws attention while the other crosses it.
+- **Asymmetric knowledge.** A code or diagram is visible from only one position or camera and must be described to the other agent.
+- **Synchronized actions.** Agents activate distant plates or levers together.
+- **Decoy.** One agent lures an enemy away while the other works on a mechanism.
+
+### Progression
+
+Training zones introduce echolocation, stealth, puzzle interaction and companion commands. Progression unlocks harder zones and upgrades such as a larger echo radius, quieter footsteps, noise decoys, more camera power and new companion abilities.
+
+## Architecture
+
+The planned single-player architecture separates voice interpretation, action execution and world feedback. **The LLM chooses from a fixed command set; it never controls movement or edits the scene directly.**
 
 ```mermaid
-flowchart LR
-    subgraph Input["Player input"]
-        Mic["Microphone"]
-        Actions["Player actions<br/>steps, levers"]
-        Term["Camera terminal"]
-    end
+flowchart TB
+    accTitle: Planned voice companion architecture
+    accDescr: Local speech recognition and fair perception feed the LLM. Game AI executes commands and TTS speaks replies. Shared sound events drive echoes, enemy hearing and perception.
+    Voice["Player voice<br/>Microphone and local STT"]
+    LLM["Local LLM<br/>Interpret intent and choose a command"]
+    Actions["Game AI<br/>Behaviour tree and NavMesh"]
+    Speech["Spoken reply<br/>Local TTS"]
+    World["World interactions<br/>Puzzles, cameras and player actions"]
+    Sound["Shared sound events<br/>Position, time and loudness"]
+    Echo["Echolocation<br/>World and camera feeds"]
+    Hearing["Enemy hearing<br/>Investigate and chase"]
+    Perception["Fair perception<br/>Heard sounds and revealed objects"]
 
-    subgraph AI["AI companion"]
-        STT["STT (local)"]
-        Percept["Perception<br/>heard sounds, revealed objects,<br/>camera feeds"]
-        LLM["Local LLM<br/>intent → command JSON"]
-        BT["Behaviour tree<br/>+ NavMesh"]
-        TTS["TTS voice"]
-    end
-
-    subgraph World["Game world"]
-        Puzzles["Puzzle state"]
-        Cameras["Camera system<br/>power budget"]
-        Sound["Sound events<br/>position, time, loudness"]
-        Enemies["Enemy AI<br/>hearing"]
-        Render["Echo shader<br/>world + camera feeds"]
-        Loot["Loot & extraction"]
-    end
-
-    Mic --> STT -->|text| LLM
-    Percept --> LLM
-    LLM -->|command| BT
-    LLM -->|reply| TTS
-    BT --> Puzzles
-    BT --> Cameras
-    BT --> Sound
-    TTS --> Sound
-    Actions --> Puzzles
-    Actions --> Sound
-    Term --> Cameras --> Sound
-    Sound --> Enemies
-    Sound --> Render
-    Sound --> Percept
-    Puzzles --> Loot
+    Voice --> LLM
+    Perception -.-> LLM
+    LLM -->|Command| Actions
+    LLM -->|Reply| Speech
+    Actions --> World
+    World --> Sound
+    Speech --> Sound
+    Sound --> Echo
+    Sound --> Hearing
+    Sound --> Perception
+    Echo -.-> Perception
 ```
 
-- **Sound is a single shared event type** — `(position, time, loudness)` — used for rendering echo pulses, for enemy hearing, for camera pings and for the companion's perception.
-- **The LLM never touches the scene directly.** It reads a compact text description of what the companion perceives and returns a command; the behaviour tree executes it.
-- **Camera feeds** are Unity cameras rendering into a `RenderTexture` with the same echo shader.
+| Boundary | Contract |
+| :--- | :--- |
+| **Voice → intent** | Local STT supplies the transcript; the LLM also receives a compact description of the companion's perception |
+| **Intent → action** | A behaviour tree / NavMesh executes a command from the fixed set |
+| **Intent → speech** | TTS voices replies and reports, such as “Enemy in the east corridor, wait” |
+| **World → perception** | Only heard sounds, echo-revealed objects and accessible camera feeds are exposed to the companion |
+| **Sound → systems** | A shared event `(position, time, loudness)` drives echo rendering, enemy hearing and companion perception |
 
-### Echo shader (overview)
-- `EchoManager` (C#) keeps a fixed-size array of active pulses and uploads them every frame via `Shader.SetGlobalVectorArray`.
-- The shader computes, per pixel, the distance from its world position to each pulse origin, compares it with the pulse's current radius (`speed * (time - startTime)`), and outputs a glowing ring plus a fading trail.
-- Any gameplay system emits a sound with `EchoManager.Emit(position, loudness)`.
+<details>
+<summary><strong>Example command payloads</strong></summary>
 
-### Later: online co-op
-- A host becomes authoritative for puzzles, enemies, cameras, loot and the AI companion.
-- Sound events are synced as lightweight network events; each client renders pulses locally.
-- Players talk to each other over voice chat; any role the AI fills can be taken by a human.
-- Players can't hurt each other — only **hit each other as a joke**: no damage, but a loud noise enemies can hear.
+Each object below is a separate example response:
 
-## Tech Stack (planned)
+```json
+[
+  { "action": "follow" },
+  { "action": "go_to", "target": "pressure_plate_2" },
+  { "action": "press", "target": "lever_east" },
+  { "action": "ping_camera", "target": "camera_3" },
+  { "action": "wait" }
+]
+```
 
-| Area | Choice |
-|---|---|
-| Engine | Unity (URP, Shader Graph) |
-| LLM | Local model (7–8B class) via Ollama or llama.cpp server |
-| Speech-to-text | faster-whisper / whisper.cpp |
-| Text-to-speech | Piper |
-| Enemy & companion AI | NavMesh + behaviour tree / finite state machine |
-| Networking *(later)* | Netcode for GameObjects or FishNet *(TBD)* |
-| Voice chat *(later)* | Vivox or Dissonance *(TBD)* |
+</details>
+
+<details>
+<summary><strong>Planned echo rendering</strong></summary>
+
+- `EchoManager` keeps a fixed-size array of active pulses and uploads it every frame through `Shader.SetGlobalVectorArray`.
+- The shader compares each pixel's world-space distance from a pulse origin with `speed * (time - startTime)`, producing a glowing ring and fading trail.
+- Gameplay systems emit sounds through the proposed `EchoManager.Emit(position, loudness)` API.
+- Security cameras render into a `RenderTexture` using the same echo effect as the player's view.
+
+</details>
+
+<details>
+<summary><strong>Later: online co-op</strong></summary>
+
+- The host is authoritative for puzzles, enemies, cameras, loot and the AI companion.
+- Lightweight sound events are synchronized; each client renders pulses locally.
+- Voice chat lets humans take any role the companion fills in single-player.
+- Playful hits deal no player damage but emit noise that enemies can hear.
+
+</details>
+
+### Technology choices
+
+| Area | Choice | Status |
+| :--- | :--- | :--- |
+| Engine | Unity **6000.6.7f1**, C# | Current |
+| Rendering | URP / Shader Graph echolocation | Planned |
+| Language model | Local 7–8B model via Ollama or llama.cpp server | Planned |
+| Speech recognition | faster-whisper or whisper.cpp | Planned |
+| Speech synthesis | Piper | Planned |
+| Agent navigation | NavMesh + behaviour tree / finite state machine | Planned |
+| Networking | Netcode for GameObjects or FishNet | Later · undecided |
+| Voice chat | Vivox or Dissonance | Later · undecided |
+
+The current playground needs the Unity editor above. The planned voice companion will also need a microphone and hardware capable of hosting the chosen model locally; its hardware requirements are not yet validated. Headphones are recommended for voice play.
 
 ## Roadmap
 
-**Phase 1 — single-player with AI companion**
-- [ ] Prototype: one dark room, echolocation shader + `EchoManager`
-- [ ] Sound-reactive enemy (hearing + chase)
-- [ ] Companion basics: follow / go to / press, executed by behaviour tree
-- [ ] Voice commands: STT → LLM → command JSON
-- [ ] Companion perception and TTS replies
-- [ ] Camera system: terminals, feeds via `RenderTexture`, speaker pings, power budget
-- [ ] Companion roles: partner, guide, operator (and player-as-operator)
+### Phase 1 · single-player with an AI companion
+
+- [ ] Dark-room prototype: echolocation shader and `EchoManager`
+- [ ] Sound-reactive enemy: hearing and chase
+- [ ] Companion actions: follow, go to, press
+- [ ] Voice pipeline: STT → LLM → command JSON
+- [ ] Fair companion perception and TTS replies
+- [ ] Camera terminals, feeds, speaker pings and power budget
+- [ ] Partner, guide and operator roles, including player-as-operator
 - [ ] Training zone with 2–3 basic puzzles
-- [ ] Extraction loop: artifacts, extraction point, losing loot on failure
+- [ ] Artifacts, extraction point and loss of run loot on failure
 - [ ] Harder zones with two-agent puzzles
-- [ ] Progression: hub, zone unlocks, upgrades
+- [ ] Hub, zone unlocks and upgrades
 
-**Phase 2 — online co-op**
+### Phase 2 · online co-op
+
 - [ ] Host-authoritative networking for 2–3 players
-- [ ] Synced sound events, puzzle state, enemies and cameras
+- [ ] Synced sounds, puzzles, enemies and cameras
 - [ ] Voice chat between players
-- [ ] Playful non-damaging hits that emit noise
+- [ ] Non-damaging player hits that emit noise
 
-## Requirements
+## Getting started
 
-- Unity 6000.3
-- A GPU capable of running a 7–8B LLM locally
-- Microphone; headphones recommended
+The current prototype is a **room-generation playground** with 14 editable room prefabs, seeded layouts, a first-person controller and editor checks. Echolocation, enemies, the voice companion and extraction are still planned.
 
-## Getting Started
+1. Add this repository as a project in **Unity Hub** and open it with **Unity 6000.6.7f1**, the version recorded in [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt).
+2. Open **EchoSound → Open generation test**, or open [GenerationTest.unity](Assets/EchoSound/Scenes/GenerationTest.unity) directly.
+3. Press **Play** to explore a generated layout.
 
-### Room generation playground
+To preview layouts outside Play mode, select **Level Generator** and use **Generate Preview / Same Seed** or **Generate Next Seed** in the Inspector.
 
-Use **Unity 6000.6.7f1**. Open `Assets/EchoSound/Scenes/RoomShowcase.unity` to see 14 editable room prefabs, including bridges and pit walkways, secret alcoves, two-player puzzle layouts, ambush corners and a pillar room. Encounter markers describe future gameplay placements; puzzles and enemies are not implemented.
+### Controls
 
-Open `Assets/EchoSound/Scenes/GenerationTest.unity` to generate layouts in the Inspector or press Play to walk through them. The scene contains only room generation, scene lighting and a first-person player: no flashlight, artifacts, extraction, HUD or minimap.
+| Input | Action | Input | Action |
+| :--- | :--- | :--- | :--- |
+| `W` `A` `S` `D` | Move | Mouse | Look |
+| `Shift` | Run | `Space` | Jump |
+| `R` | Generate next layout with cursor captured | `T` | Respawn at the starting room |
+| `Esc` | Release cursor | Fall into a pit | Automatically return to the start |
 
-Select **Level Generator → Generate Preview / Same Seed** or **Generate Next Seed**. Add new **GameObject prefab assets** to `Assets/EchoSound/Settings/DefaultRooms.asset`; no generator changes are needed for compatible room variants.
+### Explore and author rooms
 
-**[Room authoring guide](ROOM_AUTHORING.md)** · **[Script reading guide](Assets/EchoSound/Scripts/README.md)**
+Open **EchoSound → Open room showcase**, or [RoomShowcase.unity](Assets/EchoSound/Scenes/RoomShowcase.unity), to inspect all 14 room prefabs: bridges, pit walkways, secret alcoves, two-agent puzzle layouts, ambush corners and a pillar room. Encounter markers describe future placements; they do not implement puzzles or enemies.
 
-Controls: WASD + mouse, Shift to run, Space to jump, Esc to release the cursor, R to regenerate, T to respawn. Falling into a pit returns the player to the starting room.
+Edit geometry in [room prefabs](Assets/EchoSound/Prefabs/Rooms) and add compatible **GameObject prefab assets** to [DefaultRooms.asset](Assets/EchoSound/Settings/DefaultRooms.asset). Compatible variants require no generator changes. For code navigation, start with the [script reading guide](Assets/EchoSound/Scripts/README.md).
 
-Separate modules handle room metadata/catalog, layout data and prefab placement, player controls, and test-scene wiring. All C# comments are in English. Editor checks cover 1000 layouts and physical routes from each room's safe anchor to its doorways.
+The generation scene contains room generation, scene lighting and a first-person player. Flashlight, artifacts, extraction, HUD and minimap are not included.
+
+### Editor checks
+
+Run these from the Unity menu:
+
+| Menu item | What it checks |
+| :--- | :--- |
+| **EchoSound → Checks → Validate 1000 layouts** | Connectivity, deterministic generation, matching doorways and prefab rotation |
+| **EchoSound → Checks → Validate prefab walkways** | Physical routes from each room's safe anchor to its doorways, including pit walkways |
 
 ## Team
 
-- Anton Liubetskyi
-- Mykhailo Kostenko
-- Leonid Krichevskyi
-- Mykyta Luchaninov
+Anton Liubetskyi · Mykhailo Kostenko · Leonid Krichevskyi · Mykyta Luchaninov
+
+Licensed under [MIT](LICENSE).

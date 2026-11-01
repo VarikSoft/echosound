@@ -29,6 +29,9 @@ namespace EchoSound.Sound
         /// <summary>Optional arbitrary context or metadata (e.g. surface material, camera identifier).</summary>
         public readonly object Tag;
 
+        /// <summary>True for the separately delayed first-bounce echo delivered to a listener.</summary>
+        public readonly bool IsReflection;
+
         public SoundEvent(
             Vector3 position,
             float radius,
@@ -44,9 +47,10 @@ namespace EchoSound.Sound
             Source = source;
             Timestamp = Time.time;
             Tag = tag;
+            IsReflection = false;
         }
 
-        private SoundEvent(in SoundEvent original, float intensity)
+        private SoundEvent(in SoundEvent original, float intensity, bool isReflection)
         {
             Position = original.Position;
             Radius = original.Radius;
@@ -55,10 +59,13 @@ namespace EchoSound.Sound
             Source = original.Source;
             Timestamp = original.Timestamp;
             Tag = original.Tag;
+            IsReflection = isReflection;
         }
 
         /// <summary>Preserves origin/time/context while reporting received pressure to a listener.</summary>
-        public SoundEvent WithIntensity(float intensity) => new SoundEvent(this, Mathf.Max(0f, intensity));
+        public SoundEvent WithIntensity(float intensity) => new SoundEvent(this, Mathf.Max(0f, intensity), IsReflection);
+
+        public SoundEvent WithReflection(float intensity) => new SoundEvent(this, Mathf.Max(0f, intensity), true);
 
         /// <summary>
         /// Checks whether a target point in world space is within hearing / illumination radius.

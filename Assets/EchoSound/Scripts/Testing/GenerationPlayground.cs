@@ -39,9 +39,7 @@ namespace EchoSound.Testing
             }
 
             bool fellIntoPit = player.transform.position.y < generator.transform.position.y - fallDepth;
-            // An unlocked cursor means the player is typing or using UI, so letters are not shortcuts.
-            bool respawnPressed = Cursor.lockState == CursorLockMode.Locked && Input.GetKeyDown(KeyCode.T);
-            if (fellIntoPit || respawnPressed)
+            if (fellIntoPit || Input.GetKeyDown(KeyCode.T))
             {
                 PlacePlayerAtStart(generator.Current);
             }

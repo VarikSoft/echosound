@@ -1,5 +1,0 @@
-{
-  "name": "EchoSound.Companion",
-  "rootNamespace": "EchoSound.Companion",
-  "references": ["EchoSound.Interaction"]
-}

@@ -244,14 +244,6 @@ Run these from the Unity menu:
 | **EchoSound → Checks → Validate 1000 layouts** | Connectivity, deterministic generation, matching doorways and prefab rotation |
 | **EchoSound → Checks → Validate prefab walkways** | Physical routes from each room's safe anchor to its doorways, including pit walkways |
 
-### AI companion playground
-
-1. Install [Ollama](https://ollama.com), run `ollama serve` and pull a model that supports tools, e.g. `ollama pull qwen3.5:9b`. The model name is set on the companion's `CompanionBrain` component.
-2. Select **EchoSound → Create companion test scene** once. This creates `Assets/EchoSound/Prefabs/Companion/AICompanion.prefab` and `Assets/EchoSound/Scenes/CompanionTest.unity`.
-3. Press Play. Press Enter to type an order to the companion, for example *"открой дверь передо мной"*, *"follow me"* or *"stop"*. Press E to use a door yourself.
-
-The LLM picks functions from a fixed set (`follow_curator`, `wait_here`, `go_to`, `open_door`, `close_door`). The companion walks there through the NavMesh first, then uses the object and reports back. Text chat stands in for speech-to-text for now.
-
 ## Team
 
 Anton Liubetskyi · Mykhailo Kostenko · Leonid Krichevskyi · Mykyta Luchaninov

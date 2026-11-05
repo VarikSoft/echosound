@@ -26,6 +26,8 @@ namespace EchoSound.Sound
         public CaptureState State { get; private set; }
         public bool IsRecording => recording != null;
         public float Level => activity.Level;
+        /// <summary>Whether the noise gate is open for the frame being delivered to PcmFrameCaptured.</summary>
+        public bool IsSpeaking => activity.IsSpeaking;
         public string Error { get; private set; }
 
         /// <summary>

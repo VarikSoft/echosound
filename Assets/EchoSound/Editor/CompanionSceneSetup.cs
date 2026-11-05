@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using EchoSound.Companion;
 using EchoSound.Generation;
 using EchoSound.Interaction;
+using EchoSound.Sound;
 using EchoSound.Testing;
 
 namespace EchoSound.Editor
@@ -58,18 +59,27 @@ namespace EchoSound.Editor
                 player.GetComponent<Interactor>().displayName = "Player";
             }
 
-            var controls = new GameObject("Companion Test Controls - Enter talk, E use door");
+            // FirstPersonPlayer keeps a microphone that already exists, so the scene can refer to it.
+            var microphone = player.GetComponent<PushToTalkVoice>();
+            if (microphone == null) microphone = Undo.AddComponent<PushToTalkVoice>(player.gameObject);
+
+            var controls = new GameObject("Companion Test Controls - V talk, E use door");
             var playground = controls.AddComponent<CompanionPlayground>();
             playground.generator = generator;
             playground.player = player;
             playground.companion = brain;
             playground.doorMaterial = AssetDatabase.LoadAssetAtPath<Material>(Materials + "Door.mat");
-            controls.AddComponent<CuratorChat>().companion = brain;
+            var voice = controls.AddComponent<CuratorVoice>();
+            voice.companion = brain;
+            voice.microphone = microphone;
+            var chat = controls.AddComponent<CuratorChat>();
+            chat.companion = brain;
+            chat.voice = voice;
 
             // Saving under a new path leaves GenerationTest unchanged.
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, TargetScene);
-            Debug.Log("Created " + TargetScene + ". Run Ollama, press Play, then press Enter to give an order.");
+            Debug.Log("Created " + TargetScene + ". Run Ollama and whisper-server, press Play, then hold V and speak.");
         }
 
         private static GameObject CreateCompanionPrefab()

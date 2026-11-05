@@ -69,8 +69,9 @@ contact spam. Player footsteps, jumping, landing and V microphone input are conn
 Hold **V** in focused gameplay to capture the default Windows microphone. Release V,
 unlock the cursor, pause, disable the player or switch away from the application to stop.
 `FirstPersonPlayer` installs `PushToTalkVoice` and assigns the camera as the mouth position.
-No microphone is opened before a press. Audio is neither saved nor sent over a network,
-and there is no speaker loopback. This is the local voice prototype, not multiplayer chat.
+No microphone is opened before a press. Audio is not saved and there is no speaker loopback.
+This is the local voice prototype, not multiplayer chat. In the companion test scene,
+`CuratorVoice` sends each finished phrase to the `whisper-server` on this computer.
 
 The bottom-left indicator shows connection/listening/speaking state and the input level.
 No-device/access errors are shown there; check Windows microphone permissions and input
@@ -81,10 +82,10 @@ The detector processes 20 ms PCM frames, rejects DC and quiet input, uses a hyst
 noise gate and a short release envelope. `noiseGateDb` defaults to -48 dBFS and
 `fullLevelDb` to -18 dBFS. Speech emits at most one sound per 0.35 seconds, ranging from
 10 to 26 m according to microphone level. These thresholds may need adjustment for your
-microphone gain. No speech recognition is involved.
+microphone gain. Speech that stays below the noise gate is not sent to speech recognition.
 
-`PcmFrameCaptured` provides reusable interleaved samples to future local consumers.
-Consumers must copy the data during the callback if retaining it. No transport is installed.
+`PcmFrameCaptured` provides reusable interleaved samples to local consumers such as `CuratorVoice`.
+Consumers must copy the data during the callback if retaining it.
 `VoiceActivity` can be checked with synthetic PCM without opening a real microphone.
 
 ## Limits and checks
@@ -103,7 +104,7 @@ field construction performs physics queries on the main thread; profile many
 simultaneous emitters before increasing these limits. No unbounded propagation cache is kept.
 
 Editor menu: **EchoSound → Checks → Validate acoustic propagation**, **Validate sound bus**,
-**Validate voice activity**, and **Validate echolocation VFX**. Run checks outside play
+**Validate voice activity**, **Validate voice orders** and **Validate echolocation VFX**. Run checks outside play
 mode; acoustic/bus checks reset bus subscriptions.
 Batch entry `EchoSound.Editor.Tests.AcousticChecks.RunBatch` checks geometry, arrival delay,
 attenuation, unsubscribe, shader errors and produces `Logs/AcousticChecks/echo-preview.png`.

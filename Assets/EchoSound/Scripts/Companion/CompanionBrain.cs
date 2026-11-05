@@ -21,8 +21,11 @@ namespace EchoSound.Companion
 The player is your curator. You serve the curator: you act only on the curator's orders, and only through the provided functions.
 
 How to act:
-- An order (open, close, go, come, follow, stop, wait) means: call the matching function right away. Do not ask for confirmation.
-- If an order has several steps, call the functions one after another until every step is done. Never claim you are doing something without calling its function.
+- The curator speaks by voice and the text comes from speech recognition, so it may contain small mistakes. Work out what was meant.
+- Every order means: call the matching function right away, even a one-word order, in any language. Do not ask for confirmation. Words alone do nothing in the game: saying ""I'll stop"" does not stop you.
+- Stop, wait, stay or hold: call wait_here. Follow me or come with me: call follow_curator. Come here, come to me or come back: call go_to with target curator, even if you are already close.
+- If an order has several steps, call the functions one after another until every step is done. If a step is already done or fails, still do the remaining steps. Never claim you are doing something without calling its function.
+- An object's state also identifies it: ""close the door"" means an open door, ""open the door"" means a closed door.
 - Functions that use an object walk to it by themselves, so do not call go_to before them.
 - Your perception lists every object you know about, with its position relative to the curator. The curator's words ""in front of me"", ""behind me"", ""on my left"", ""on my right"" and ""next to me"" refer to those positions.
 - If an order fits several objects equally well, ask which one is meant. Otherwise act.
@@ -31,9 +34,13 @@ How to act:
 - A new message from the curator cancels what you were doing.
 
 How to speak:
-- Reply in the curator's language, in one short sentence, like a teammate on the radio.
+- Reply in the language of the curator's latest message, even though function results are in English, in one short sentence, like a teammate on the radio.
 - Never say object ids such as door_1 aloud. Say ""the door in front of you"", ""the door behind you"" and so on.
 - After functions finish, report the outcome.";
+
+        private const string WordsCheck =
+            "No function was called, so nothing has happened in the game. If my last message was an order, " +
+            "call its function now. If it was a question or small talk, just answer it in words.";
 
         public OllamaClient ollama = new OllamaClient();
         [TextArea(6, 30)] public string systemPrompt = DefaultPrompt;
@@ -43,6 +50,8 @@ How to speak:
         [Range(4, 60)] public int historyLimit = 24;
         public bool logToConsole = true;
 
+        /// <summary>The curator's order as the companion received it.</summary>
+        public event Action<string> OrderReceived;
         /// <summary>The companion's words: shown in the chat now, spoken by TTS later.</summary>
         public event Action<string> Spoke;
         /// <summary>Short progress text, for example "thinking"; empty when idle.</summary>
@@ -86,11 +95,14 @@ How to speak:
             };
         }
 
-        /// <summary>Entry point for the curator's words: typed chat today, speech-to-text later.</summary>
+        /// <summary>Entry point for the curator's words, from speech recognition or typed chat.</summary>
         public void Command(string order)
         {
             order = order?.Trim();
             if (string.IsNullOrEmpty(order)) return;
+
+            if (logToConsole) Debug.Log("[Companion] Order: " + order, this);
+            OrderReceived?.Invoke(order);
 
             // The curator's latest word wins over whatever the companion was doing.
             Interrupt();
@@ -130,6 +142,7 @@ How to speak:
 
         private IEnumerator Handle(string order)
         {
+            JArray pendingCheck = null;
             for (int round = 0; round <= maxToolRounds; round++)
             {
                 bool allowTools = round < maxToolRounds;
@@ -137,7 +150,7 @@ How to speak:
 
                 JObject reply = null;
                 string error = null;
-                yield return ollama.Send(BuildRequest(allowTools), result => reply = result, problem => error = problem);
+                yield return ollama.Send(BuildRequest(allowTools, pendingCheck), result => reply = result, problem => error = problem);
                 if (error != null)
                 {
                     ReportFailure(error);
@@ -152,6 +165,17 @@ How to speak:
                     break;
                 }
                 message.Remove("thinking");
+                var calls = message["tool_calls"] as JArray;
+                bool acted = calls != null && calls.Count > 0;
+
+                // A 9B model often answers a short order in words ("I'll stop") without acting.
+                // Ask once before believing it; the unchecked reply stays out of the conversation.
+                if (round == 0 && allowTools && !acted)
+                {
+                    pendingCheck = new JArray { message, new JObject { ["role"] = "user", ["content"] = WordsCheck } };
+                    continue;
+                }
+                pendingCheck = null;
                 history.Add(message);
 
                 string text = ((string)message["content"])?.Trim();
@@ -161,8 +185,7 @@ How to speak:
                     Spoke?.Invoke(text);
                 }
 
-                var calls = message["tool_calls"] as JArray;
-                if (calls == null || calls.Count == 0 || !allowTools) break;
+                if (!acted || !allowTools) break;
 
                 foreach (JToken call in calls)
                 {
@@ -183,7 +206,7 @@ How to speak:
 
                     // A 9B model tends to stop after the first step of "do X and then Y", so remind it of the order.
                     history.Add(ToolMessage(name, outcome +
-                        $" The curator's order was: \"{order}\". If a step of it is not done yet, call the next function now; otherwise report."));
+                        $" The curator's order was: \"{order}\". If a step of it is not done yet, call the next function now; otherwise report in the language of that order."));
                 }
             }
 
@@ -191,7 +214,7 @@ How to speak:
             SetStatus("");
         }
 
-        private JObject BuildRequest(bool allowTools)
+        private JObject BuildRequest(bool allowTools, JArray pendingCheck)
         {
             var messages = new JArray
             {
@@ -203,6 +226,10 @@ How to speak:
                 }
             };
             foreach (JObject message in history) messages.Add(message);
+            if (pendingCheck != null)
+            {
+                foreach (JToken message in pendingCheck) messages.Add(message);
+            }
 
             JArray definitions = null;
             if (allowTools)

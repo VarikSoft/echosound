@@ -177,7 +177,7 @@ Each object below is a separate example response:
 | Engine | Unity **6000.6.7f1**, C# | Current |
 | Rendering | URP / Shader Graph echolocation | Planned |
 | Language model | Local 7–8B model via Ollama or llama.cpp server | Planned |
-| Speech recognition | faster-whisper or whisper.cpp | Planned |
+| Speech recognition | whisper.cpp server | Current (companion test scene) |
 | Speech synthesis | Piper | Planned |
 | Agent navigation | NavMesh + behaviour tree / finite state machine | Planned |
 | Networking | Netcode for GameObjects or FishNet | Later · undecided |
@@ -246,11 +246,23 @@ Run these from the Unity menu:
 
 ### AI companion playground
 
-1. Install [Ollama](https://ollama.com), run `ollama serve` and pull a model that supports tools, e.g. `ollama pull qwen3.5:9b`. The model name is set on the companion's `CompanionBrain` component.
-2. Select **EchoSound → Create companion test scene** once. This creates `Assets/EchoSound/Prefabs/Companion/AICompanion.prefab` and `Assets/EchoSound/Scenes/CompanionTest.unity`.
-3. Press Play. Press Enter to type an order to the companion, for example *"открой дверь передо мной"*, *"follow me"* or *"stop"*. Press E to use a door yourself.
+1. Install [Ollama](https://ollama.com) 0.22 or newer, start it and pull a model that supports tools, e.g. `ollama pull qwen3.5:9b`. The model name is set on the companion's `CompanionBrain` component.
+2. Install [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`brew install whisper.cpp` on macOS; prebuilt `whisper-server` on Windows) and download a speech model and a speech detector:
+   ```bash
+   mkdir -p ~/whisper-models && cd ~/whisper-models
+   curl -LO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+   curl -LO https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin
+   ```
+3. Start speech recognition and leave it running. `--vad` stops Whisper from inventing text for silence and noise, and `-nlp` makes each phrase about 0.6 s faster:
+   ```bash
+   whisper-server -m ~/whisper-models/ggml-large-v3-turbo-q5_0.bin --port 8178 --vad -vm ~/whisper-models/ggml-silero-v5.1.2.bin -vp 300 -nlp
+   ```
+4. Select **EchoSound → Create companion test scene** once. This creates `Assets/EchoSound/Prefabs/Companion/AICompanion.prefab` and `Assets/EchoSound/Scenes/CompanionTest.unity`.
+5. Press Play. Hold **V**, wait for `MIC · LISTENING`, say an order in Polish or English, such as *"otwórz drzwi przede mną"*, *"follow me"* or *"stop"*, then release V. Press E to use a door yourself.
 
-The LLM picks functions from a fixed set (`follow_curator`, `wait_here`, `go_to`, `open_door`, `close_door`). The companion walks there through the NavMesh first, then uses the object and reports back. Text chat stands in for speech-to-text for now.
+The phrase goes to the local `whisper-server`, and the text becomes the order. `CuratorVoice` holds the server address and the `Languages` list, main language first (`polish`, `english`); add another language's English name to use it. Tick `Allow Typing` on `CuratorChat` to type orders with Enter instead.
+
+The LLM picks functions from a fixed set (`follow_curator`, `wait_here`, `go_to`, `open_door`, `close_door`). The companion walks there through the NavMesh first, then uses the object and reports back.
 
 ## Team
 

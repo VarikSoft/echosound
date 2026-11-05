@@ -4,14 +4,17 @@ using UnityEngine;
 namespace EchoSound.Companion
 {
     /// <summary>
-    /// Temporary text channel from the curator to the companion: Enter to type, Enter to send, Esc to cancel.
-    /// Speech-to-text can later call CompanionBrain.Command in the same way.
+    /// Shows the conversation with the companion: heard orders, replies and problems. Orders arrive by voice
+    /// through CuratorVoice. With allowTyping: Enter to type, Enter to send, Esc to cancel.
     /// </summary>
     public sealed class CuratorChat : MonoBehaviour
     {
         private const string InputName = "CuratorInput";
 
         public CompanionBrain companion;
+        public CuratorVoice voice;
+        [Tooltip("Typed orders, for testing without a microphone or a speech recognition server.")]
+        public bool allowTyping;
         [Min(1)] public int visibleLines = 8;
 
         private readonly List<string> lines = new List<string>();
@@ -25,7 +28,13 @@ namespace EchoSound.Companion
 
         private void OnEnable()
         {
+            if (voice != null)
+            {
+                voice.Failed += OnFailed;
+                voice.StatusChanged += OnStatusChanged;
+            }
             if (companion == null) return;
+            companion.OrderReceived += OnOrderReceived;
             companion.Spoke += OnSpoke;
             companion.Failed += OnFailed;
             companion.StatusChanged += OnStatusChanged;
@@ -33,12 +42,19 @@ namespace EchoSound.Companion
 
         private void OnDisable()
         {
+            if (voice != null)
+            {
+                voice.Failed -= OnFailed;
+                voice.StatusChanged -= OnStatusChanged;
+            }
             if (companion == null) return;
+            companion.OrderReceived -= OnOrderReceived;
             companion.Spoke -= OnSpoke;
             companion.Failed -= OnFailed;
             companion.StatusChanged -= OnStatusChanged;
         }
 
+        private void OnOrderReceived(string order) => AddLine("<b>Curator:</b> " + order);
         private void OnSpoke(string text) => AddLine("<b>Companion:</b> " + text);
         private void OnFailed(string error) => AddLine("<color=#ff8866>" + error + "</color>");
         private void OnStatusChanged(string text) => status = text;
@@ -54,7 +70,7 @@ namespace EchoSound.Companion
             // Keys are read here, not in Update: the text field consumes them while it has focus.
             // After a state change, skip drawing: this event's layout was measured for the old state.
             Event current = Event.current;
-            if (current.type == EventType.KeyDown)
+            if (allowTyping && current.type == EventType.KeyDown)
             {
                 if (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter)
                 {
@@ -74,7 +90,8 @@ namespace EchoSound.Companion
             if (lineStyle == null) lineStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, richText = true };
 
             float width = Mathf.Min(620, Screen.width - 32);
-            GUILayout.BeginArea(new Rect(16, Screen.height - 336, width, 320));
+            // Ends above the push-to-talk indicator in the bottom-left corner.
+            GUILayout.BeginArea(new Rect(16, Screen.height - 390, width, 320));
             GUILayout.FlexibleSpace();
             GUILayout.BeginVertical(GUI.skin.box);
             foreach (string line in lines) GUILayout.Label(line, lineStyle);
@@ -92,7 +109,9 @@ namespace EchoSound.Companion
             }
             else
             {
-                GUILayout.Label("<i>Enter: give an order to the companion</i>", lineStyle);
+                GUILayout.Label(allowTyping
+                    ? "<i>Hold V and speak, or press Enter to type an order</i>"
+                    : "<i>Hold V and speak to give the companion an order</i>", lineStyle);
             }
             GUILayout.EndVertical();
             GUILayout.EndArea();
@@ -113,7 +132,6 @@ namespace EchoSound.Companion
             string order = draft.Trim();
             Close();
             if (order.Length == 0 || companion == null) return;
-            AddLine("<b>Curator:</b> " + order);
             companion.Command(order);
         }
 

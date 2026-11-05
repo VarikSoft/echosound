@@ -17,7 +17,7 @@ namespace EchoSound.Rooms
             public bool allowRotation = true;
         }
 
-        [Min(4)] public float roomSize = 12;
+        [Min(4)] public float roomSize = 18;
         public List<Entry> rooms = new List<Entry>();
 
         public readonly struct Match

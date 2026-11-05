@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8419604707029320415}
   - component: {fileID: 8004322684627568444}
   - component: {fileID: 1959644114990387763}
+  - component: {fileID: 5306830979034441978}
   m_Layer: 0
   m_Name: Player camera
   m_TagString: Untagged
@@ -92,6 +93,21 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 719223381248007810}
   m_Enabled: 1
+--- !u!114 &5306830979034441978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 719223381248007810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d0dfb2bc6db4259a77734eebe23e965, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.AcousticMaterialReadout
+  readDistance: 5
+  visibilityThreshold: 0.002
+  showMaterialName: 1
 --- !u!1 &8450935133214359365
 GameObject:
   m_ObjectHideFlags: 0
@@ -103,6 +119,7 @@ GameObject:
   - component: {fileID: 7164471943854130890}
   - component: {fileID: 7720524864324910147}
   - component: {fileID: 596351268840142405}
+  - component: {fileID: 1483615776902823761}
   m_Layer: 0
   m_Name: FirstPersonPlayer
   m_TagString: Untagged
@@ -161,10 +178,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c37286882f8ad8540b59bc80c4cc7002, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: EchoSound.Player::EchoSound.FirstPersonPlayer
   walkSpeed: 4.5
   runSpeed: 7.5
   jumpSpeed: 5
   view: {fileID: 8004322684627568444}
   sensitivity: 2
+--- !u!114 &1483615776902823761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af972026e629ee74a90adf2616397d97, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: EchoSound.Sound::EchoSound.Sound.PlayerSoundEmitter
+  walkRadius: 14
+  runRadius: 24
+  walkStepDistance: 2
+  runStepDistance: 2.4
+  jumpRadius: 16
+  landRadius: 22
+  minimumLandVelocity: 3

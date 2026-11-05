@@ -1,0 +1,7 @@
+{
+  "name": "EchoSound.VFX",
+  "rootNamespace": "EchoSound.VFX",
+  "references": [
+    "EchoSound.Sound"
+  ]
+}

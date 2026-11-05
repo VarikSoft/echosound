@@ -12,7 +12,7 @@ namespace EchoSound.Testing
         public LevelGenerator generator;
         public FirstPersonPlayer player;
         [Tooltip("Falling this far below the level returns the player to the spawn point.")]
-        public float fallDepth = 6f;
+        public float fallDepth = 24f;
 
         private void OnEnable()
         {
@@ -49,6 +49,8 @@ namespace EchoSound.Testing
 
         private void PlacePlayerAtStart(GeneratedLevel level)
         {
+            Sound.SoundBus.ClearPending();
+            if (VFX.EcholocationManager.Instance != null) VFX.EcholocationManager.Instance.ClearAllPulses();
             player.Teleport(level.Spawn + Vector3.up * 0.1f);
         }
     }

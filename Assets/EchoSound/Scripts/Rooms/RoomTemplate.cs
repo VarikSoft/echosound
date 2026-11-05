@@ -10,7 +10,8 @@ namespace EchoSound.Rooms
     public sealed class RoomTemplate : MonoBehaviour
     {
         public string displayName = "Room";
-        [Min(4)] public float footprint = 12;
+        [Min(4)] public float footprint = 18;
+        [Min(2)] public float roomHeight = 3.75f;
         [Tooltip("Place this on a safe walking surface, not above a pit.")]
         public Transform anchor;
 
@@ -82,7 +83,7 @@ namespace EchoSound.Rooms
         {
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = new Color(0.2f, 0.8f, 1);
-            Gizmos.DrawWireCube(new Vector3(0, 1.5f, 0), new Vector3(footprint, 3, footprint));
+            Gizmos.DrawWireCube(new Vector3(0, roomHeight * 0.5f, 0), new Vector3(footprint, roomHeight, footprint));
             Gizmos.matrix = Matrix4x4.identity;
             Gizmos.DrawWireSphere(AnchorPosition + Vector3.up * 0.2f, 0.3f);
         }

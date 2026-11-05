@@ -6,7 +6,8 @@ using EchoSound.Sound;
 namespace EchoSound.Editor.Tests
 {
     /// <summary>
-    /// Verification checks for SoundCue evaluation, AudioManager pooling, and cooldown logic.
+    /// Verification checks for SoundCue evaluation, AudioManager pooling, cooldown logic,
+    /// and SurfaceAudioProfile material routing.
     /// Accessible via EchoSound/Checks/Validate audio system.
     /// </summary>
     public static class AudioSystemChecks
@@ -17,6 +18,7 @@ namespace EchoSound.Editor.Tests
             TestSoundCueEvaluation();
             TestSoundCueCooldown();
             TestAudioManagerPooling();
+            TestSurfaceAudioProfileMapping();
             Debug.Log("AudioSystem checks: all tests passed successfully.");
         }
 
@@ -92,6 +94,50 @@ namespace EchoSound.Editor.Tests
             manager.ResetState();
             UnityEngine.Object.DestroyImmediate(dummyClip);
             UnityEngine.Object.DestroyImmediate(managerGo);
+        }
+
+        private static void TestSurfaceAudioProfileMapping()
+        {
+            var profile = ScriptableObject.CreateInstance<SurfaceAudioProfile>();
+
+            var defaultWalk = ScriptableObject.CreateInstance<SoundCue>();
+            var defaultRun = ScriptableObject.CreateInstance<SoundCue>();
+            var metalWalk = ScriptableObject.CreateInstance<SoundCue>();
+            var metalImpact = ScriptableObject.CreateInstance<SoundCue>();
+
+            profile.defaultWalkCue = defaultWalk;
+            profile.defaultRunCue = defaultRun;
+
+            profile.surfaceSets = new[]
+            {
+                new SurfaceAudioProfile.SurfaceSoundSet
+                {
+                    material = AcousticMaterialKind.Metal,
+                    walkCue = metalWalk,
+                    impactCue = metalImpact
+                }
+            };
+
+            // Test specific material mapping
+            Require(profile.GetFootstepCue(AcousticMaterialKind.Metal, false) == metalWalk,
+                "Metal walk should return metalWalk cue.");
+            // If run is null on metal, fallback to defaultRun
+            Require(profile.GetFootstepCue(AcousticMaterialKind.Metal, true) == defaultRun,
+                "Unset metal run should fallback to defaultRun cue.");
+            Require(profile.GetImpactCue(AcousticMaterialKind.Metal) == metalImpact,
+                "Metal impact should return metalImpact cue.");
+
+            // Test unmapped material fallback
+            Require(profile.GetFootstepCue(AcousticMaterialKind.Concrete, false) == defaultWalk,
+                "Unmapped Concrete walk should fallback to defaultWalk cue.");
+            Require(profile.GetFootstepCue(AcousticMaterialKind.Unmarked, true) == defaultRun,
+                "Unmarked run should fallback to defaultRun cue.");
+
+            UnityEngine.Object.DestroyImmediate(profile);
+            UnityEngine.Object.DestroyImmediate(defaultWalk);
+            UnityEngine.Object.DestroyImmediate(defaultRun);
+            UnityEngine.Object.DestroyImmediate(metalWalk);
+            UnityEngine.Object.DestroyImmediate(metalImpact);
         }
 
         private static void Require(bool condition, string message)

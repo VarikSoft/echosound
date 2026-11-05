@@ -5,6 +5,7 @@ namespace EchoSound.Sound
     /// <summary>
     /// Tracks player character movement (footsteps, jumping, landing) and emits sound events into SoundBus.
     /// Works with any CharacterController-based player movement.
+    /// Optionally plays audible sound cues mapped to the surface material via SurfaceAudioProfile.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [AddComponentMenu("EchoSound/Sound/Player Sound Emitter")]
@@ -32,6 +33,10 @@ namespace EchoSound.Sound
 
         [Tooltip("Minimum fall distance/speed required to trigger a landing sound.")]
         public float minimumLandVelocity = 3f;
+
+        [Header("Surface Audio (Optional)")]
+        [Tooltip("Surface audio profile mapping acoustic materials to footstep and jump/land sound cues.")]
+        public SurfaceAudioProfile surfaceAudio;
 
         private CharacterController controller;
         private Vector3 lastPosition;
@@ -135,6 +140,7 @@ namespace EchoSound.Sound
         {
             float gain = 1;
             float nearest = float.MaxValue;
+            Collider surfaceCollider = null;
             Vector3 feet = controller.bounds.center - Vector3.up * controller.bounds.extents.y;
             int count = Physics.RaycastNonAlloc(feet + Vector3.up * 0.25f, Vector3.down, groundHits,
                 0.8f, SoundBus.ObstacleMask, QueryTriggerInteraction.Ignore);
@@ -146,9 +152,41 @@ namespace EchoSound.Sound
                     if (hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
                     nearest = hit.distance;
                     gain = AcousticSurface.ContactGain(hit.collider);
+                    surfaceCollider = hit.collider;
                 }
             }
             SoundBus.Emit(transform.position, radius, intensity * gain, type, gameObject);
+            PlayContactAudio(type, surfaceCollider, feet);
+        }
+
+        private void PlayContactAudio(SoundType type, Collider hitCollider, Vector3 playPos)
+        {
+            if (surfaceAudio == null) return;
+
+            AcousticSurface surface = hitCollider != null ? AcousticSurface.Find(hitCollider) : null;
+            AcousticMaterialKind kind = surface != null && surface.profile != null ? surface.profile.kind : AcousticMaterialKind.Unmarked;
+
+            SoundCue cue = null;
+            switch (type)
+            {
+                case SoundType.FootstepWalk:
+                    cue = surfaceAudio.GetFootstepCue(kind, false);
+                    break;
+                case SoundType.FootstepRun:
+                    cue = surfaceAudio.GetFootstepCue(kind, true);
+                    break;
+                case SoundType.Jump:
+                    cue = surfaceAudio.GetJumpCue(kind);
+                    break;
+                case SoundType.Land:
+                    cue = surfaceAudio.GetLandCue(kind);
+                    break;
+            }
+
+            if (cue != null)
+            {
+                AudioManager.Instance.Play(cue, playPos, transform);
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using EchoSound.Sound;
 using EchoSound.VFX;
@@ -15,10 +16,14 @@ namespace EchoSound
         public float jumpSpeed = 5f;
 
         [Header("Input Options")]
-        [Tooltip("Allow movement input from connected joysticks/gamepads in addition to keyboard.")]
-        public bool enableGamepad = true;
+        [Tooltip("When enabled, uses WASD and Arrow keys exclusively, ignoring any connected CAD controllers (e.g. 3Dconnexion SpaceMouse) or virtual joysticks.")]
+        public bool useKeyboardOnly = true;
+
+        [Tooltip("Allow movement input from connected joysticks/gamepads if useKeyboardOnly is false.")]
+        public bool enableGamepad = false;
+
         [Tooltip("Deadzone threshold for joystick axis input to prevent controller drift.")]
-        [Range(0.05f, 0.5f)] public float joystickDeadzone = 0.25f;
+        [Range(0.05f, 0.5f)] public float joystickDeadzone = 0.35f;
 
         [Header("Camera")]
         public Camera view;
@@ -39,6 +44,26 @@ namespace EchoSound
                 Debug.LogError("Assign a camera to the player prefab.", this);
                 enabled = false;
                 return;
+            }
+
+            // Auto-detect 3Dconnexion / virtual joystick emulators that pollute axis 0 & 1
+            string[] joyNames = Input.GetJoystickNames();
+            if (joyNames != null)
+            {
+                foreach (string joy in joyNames)
+                {
+                    if (string.IsNullOrEmpty(joy)) continue;
+                    if (joy.IndexOf("SpaceMouse", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        joy.IndexOf("3Dconnexion", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        joy.IndexOf("3Dx", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        joy.IndexOf("vJoy", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        useKeyboardOnly = true;
+                        enableGamepad = false;
+                        Debug.Log($"[FirstPersonPlayer] Detected 3D device '{joy}'. Keyboard-only mode enforced to prevent drift.");
+                        break;
+                    }
+                }
             }
 
             var voice = GetComponent<PushToTalkVoice>();
@@ -101,14 +126,14 @@ namespace EchoSound
             float h = 0f;
             float v = 0f;
 
-            // Check digital keyboard input first
+            // Direct keyboard keys
             if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) h += 1f;
             if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) h -= 1f;
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) v += 1f;
             if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) v -= 1f;
 
-            // If no keyboard input was detected and gamepad input is enabled, query axes with deadzone filtering
-            if (Mathf.Approximately(h, 0f) && Mathf.Approximately(v, 0f) && enableGamepad)
+            // Only query joystick axes if keyboard is not active AND keyboard-only is false AND gamepad is enabled
+            if (!useKeyboardOnly && enableGamepad && Mathf.Approximately(h, 0f) && Mathf.Approximately(v, 0f))
             {
                 float rawH = Input.GetAxisRaw("Horizontal");
                 float rawV = Input.GetAxisRaw("Vertical");

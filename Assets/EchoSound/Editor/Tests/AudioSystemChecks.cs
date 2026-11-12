@@ -20,6 +20,7 @@ namespace EchoSound.Editor.Tests
             TestAudioManagerPooling();
             TestSurfaceAudioProfileMapping();
             TestVolumeAndDecibelConversions();
+            TestConfiguredFootstepAssets();
             Debug.Log("AudioSystem checks: all tests passed successfully.");
         }
 
@@ -165,6 +166,26 @@ namespace EchoSound.Editor.Tests
 
             mgr.ResetState();
             UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        private static void TestConfiguredFootstepAssets()
+        {
+            const string profilePath = "Assets/EchoSound/Settings/Audio/PlayerFootstepProfile.asset";
+            var profile = AssetDatabase.LoadAssetAtPath<SurfaceAudioProfile>(profilePath);
+            if (profile != null)
+            {
+                Require(profile.defaultWalkCue != null, "Profile must have defaultWalkCue.");
+                Require(profile.defaultRunCue != null, "Profile must have defaultRunCue.");
+                Require(profile.surfaceSets != null && profile.surfaceSets.Length >= 4, "Profile must cover at least 4 material sets.");
+
+                // Validate player prefab wiring
+                const string playerPrefabPath = "Assets/EchoSound/Prefabs/Player/FirstPersonPlayer.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefabPath);
+                Require(prefab != null, "FirstPersonPlayer prefab must exist.");
+                var emitter = prefab.GetComponent<PlayerSoundEmitter>();
+                Require(emitter != null, "PlayerSoundEmitter component must be present on FirstPersonPlayer prefab.");
+                Require(emitter.surfaceAudio != null, "PlayerSoundEmitter.surfaceAudio must be wired on FirstPersonPlayer prefab.");
+            }
         }
 
         private static void Require(bool condition, string message)

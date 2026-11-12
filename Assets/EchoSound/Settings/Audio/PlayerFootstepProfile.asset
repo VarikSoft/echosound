@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: baa1760c939c40ed9272cbfaaf98b345, type: 3}
+  m_Name: PlayerFootstepProfile
+  m_EditorClassIdentifier: EchoSound.Sound::EchoSound.Sound.SurfaceAudioProfile
+  surfaceSets:
+  - material: 1
+    walkCue: {fileID: 11400000, guid: a1010001000000000000000000000001, type: 2}
+    runCue: {fileID: 11400000, guid: a1010001000000000000000000000002, type: 2}
+    jumpCue: {fileID: 11400000, guid: a1010001000000000000000000000003, type: 2}
+    landCue: {fileID: 11400000, guid: a1010001000000000000000000000004, type: 2}
+    impactCue: {fileID: 11400000, guid: a1010001000000000000000000000005, type: 2}
+  - material: 2
+    walkCue: {fileID: 11400000, guid: a1010002000000000000000000000001, type: 2}
+    runCue: {fileID: 11400000, guid: a1010002000000000000000000000002, type: 2}
+    jumpCue: {fileID: 11400000, guid: a1010002000000000000000000000003, type: 2}
+    landCue: {fileID: 11400000, guid: a1010002000000000000000000000004, type: 2}
+    impactCue: {fileID: 11400000, guid: a1010002000000000000000000000005, type: 2}
+  - material: 3
+    walkCue: {fileID: 11400000, guid: a1010003000000000000000000000001, type: 2}
+    runCue: {fileID: 11400000, guid: a1010003000000000000000000000002, type: 2}
+    jumpCue: {fileID: 11400000, guid: a1010003000000000000000000000003, type: 2}
+    landCue: {fileID: 11400000, guid: a1010003000000000000000000000004, type: 2}
+    impactCue: {fileID: 11400000, guid: a1010003000000000000000000000005, type: 2}
+  - material: 4
+    walkCue: {fileID: 11400000, guid: a1010004000000000000000000000001, type: 2}
+    runCue: {fileID: 11400000, guid: a1010004000000000000000000000002, type: 2}
+    jumpCue: {fileID: 11400000, guid: a1010004000000000000000000000003, type: 2}
+    landCue: {fileID: 11400000, guid: a1010004000000000000000000000004, type: 2}
+    impactCue: {fileID: 11400000, guid: a1010004000000000000000000000005, type: 2}
+  defaultWalkCue: {fileID: 11400000, guid: a1010002000000000000000000000001, type: 2}
+  defaultRunCue: {fileID: 11400000, guid: a1010002000000000000000000000002, type: 2}
+  defaultJumpCue: {fileID: 11400000, guid: a1010002000000000000000000000003, type: 2}
+  defaultLandCue: {fileID: 11400000, guid: a1010004000000000000000000000004, type: 2}
+  defaultImpactCue: {fileID: 11400000, guid: a1010002000000000000000000000005, type: 2}

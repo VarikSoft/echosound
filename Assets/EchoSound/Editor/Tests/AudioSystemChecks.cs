@@ -7,7 +7,7 @@ namespace EchoSound.Editor.Tests
 {
     /// <summary>
     /// Verification checks for SoundCue evaluation, AudioManager pooling, cooldown logic,
-    /// and SurfaceAudioProfile material routing.
+    /// SurfaceAudioProfile material routing, and AudioMixer decibel conversions.
     /// Accessible via EchoSound/Checks/Validate audio system.
     /// </summary>
     public static class AudioSystemChecks
@@ -19,6 +19,7 @@ namespace EchoSound.Editor.Tests
             TestSoundCueCooldown();
             TestAudioManagerPooling();
             TestSurfaceAudioProfileMapping();
+            TestVolumeAndDecibelConversions();
             Debug.Log("AudioSystem checks: all tests passed successfully.");
         }
 
@@ -138,6 +139,32 @@ namespace EchoSound.Editor.Tests
             UnityEngine.Object.DestroyImmediate(defaultRun);
             UnityEngine.Object.DestroyImmediate(metalWalk);
             UnityEngine.Object.DestroyImmediate(metalImpact);
+        }
+
+        private static void TestVolumeAndDecibelConversions()
+        {
+            Require(Mathf.Approximately(AudioManager.LinearToDecibels(1.0f), 0f), "Linear 1.0 must be 0 dB.");
+            Require(Mathf.Approximately(AudioManager.LinearToDecibels(0.0f), -80f), "Linear 0.0 must be -80 dB.");
+            Require(Mathf.Abs(AudioManager.LinearToDecibels(0.5f) - (-6.02f)) < 0.1f, "Linear 0.5 must be approx -6 dB.");
+
+            Require(Mathf.Approximately(AudioManager.DecibelsToLinear(0f), 1.0f), "0 dB must be linear 1.0.");
+            Require(Mathf.Approximately(AudioManager.DecibelsToLinear(-80f), 0.0f), "-80 dB must be linear 0.0.");
+
+            var go = new GameObject("TestVolumeMgr");
+            var mgr = go.AddComponent<AudioManager>();
+
+            float lastSfxEvent = -1f;
+            mgr.OnSFXVolumeChanged += v => lastSfxEvent = v;
+
+            mgr.SetSFXVolume(0.75f);
+            Require(Mathf.Approximately(mgr.SFXVolume, 0.75f), "SFXVolume should be 0.75");
+            Require(Mathf.Approximately(lastSfxEvent, 0.75f), "OnSFXVolumeChanged should fire with 0.75");
+
+            mgr.SetMuted(true);
+            Require(mgr.IsMuted == true, "IsMuted should be true.");
+
+            mgr.ResetState();
+            UnityEngine.Object.DestroyImmediate(go);
         }
 
         private static void Require(bool condition, string message)

@@ -6,6 +6,9 @@
 # See: https://github.com/github/gitignore/tree/main/Global
 #
 .utmp/
+__pycache__/
+*.py[cod]
+/Runtime/AI/
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/

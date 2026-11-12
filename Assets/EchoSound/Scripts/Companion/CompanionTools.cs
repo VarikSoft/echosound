@@ -14,12 +14,14 @@ namespace EchoSound.Companion
 
         public override IEnumerator Run(CompanionBrain companion, JObject arguments, Action<string> report)
         {
+            Succeeded = false;
             if (companion.Body.curator == null)
             {
                 report("There is no curator to follow.");
                 yield break;
             }
             companion.Body.Follow();
+            Succeeded = true;
             report("Now following the curator.");
         }
     }
@@ -32,6 +34,7 @@ namespace EchoSound.Companion
         public override IEnumerator Run(CompanionBrain companion, JObject arguments, Action<string> report)
         {
             companion.Body.Halt();
+            Succeeded = true;
             report("Stopped. Waiting here.");
             yield break;
         }
@@ -55,6 +58,7 @@ namespace EchoSound.Companion
 
         public override IEnumerator Run(CompanionBrain companion, JObject arguments, Action<string> report)
         {
+            Succeeded = false;
             CompanionAgent body = companion.Body;
             string target = Target(arguments);
             Vector3 destination;
@@ -97,6 +101,7 @@ namespace EchoSound.Companion
             }
 
             body.Halt("waiting next to " + (target == Curator ? "the curator" : target));
+            Succeeded = true;
             report(target == Curator ? "Arrived next to the curator." : $"Arrived at {target}.");
         }
     }

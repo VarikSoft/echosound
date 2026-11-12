@@ -54,6 +54,7 @@ namespace EchoSound.Companion
 
         public override IEnumerator Run(CompanionBrain companion, JObject arguments, Action<string> report)
         {
+            Succeeded = false;
             CompanionAgent body = companion.Body;
             string target = Target(arguments);
             string verb = action.Verb();
@@ -103,6 +104,7 @@ namespace EchoSound.Companion
             yield return null;
 
             body.Halt("waiting next to " + target);
+            Succeeded = true;
             report($"{target} is now {item.State}.");
         }
     }

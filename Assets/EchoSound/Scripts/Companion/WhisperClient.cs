@@ -18,6 +18,7 @@ namespace EchoSound.Companion
     [Serializable]
     public sealed class WhisperClient
     {
+        public enum SpeechLanguage { System, Russian, Polish, English, Auto }
         private const int WhisperSampleRate = 16000;
 
         // Sound descriptions rather than speech, such as [BLANK_AUDIO], (music) or *coughs*.
@@ -25,16 +26,36 @@ namespace EchoSound.Companion
 
         [Tooltip("The server's address. Its model is chosen when starting whisper-server.")]
         public string url = "http://127.0.0.1:8178/inference";
-        [Tooltip("Languages the curator speaks, as lowercase English names, main language first. " +
-            "Short phrases get mistaken for a similar language, so anything else is read again in the main language.")]
-        public string[] languages = { "polish", "english" };
+        [Tooltip("Fixed language avoids language detection on each short order. Auto is available for mixed languages.")]
+        public SpeechLanguage language = SpeechLanguage.System;
+        [Tooltip("Legacy setting. A single language is preserved when Language is System; multi-language lists now use the system language.")]
+        public string[] languages = { "polish", "english", "russian" };
         [Min(5)] public int timeoutSeconds = 30;
 
         private UnityWebRequest pending;
+        public double LastTranscriptionSeconds { get; private set; }
+
+        public string RecognitionLanguage => ResolveLanguage(language, Application.systemLanguage, languages);
+
+        public static string ResolveLanguage(SpeechLanguage selected, SystemLanguage system, string[] legacy)
+        {
+            switch (selected)
+            {
+                case SpeechLanguage.Russian: return "russian";
+                case SpeechLanguage.Polish: return "polish";
+                case SpeechLanguage.English: return "english";
+                case SpeechLanguage.Auto: return "auto";
+            }
+            if (legacy != null && legacy.Length == 1 && !string.IsNullOrWhiteSpace(legacy[0])) return legacy[0];
+            if (system == SystemLanguage.Russian) return "russian";
+            if (system == SystemLanguage.Polish) return "polish";
+            return "english";
+        }
 
         public IEnumerator Transcribe(float[] mono, int sampleRate, Action<string> onText, Action<string> onError)
         {
             Cancel();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             byte[] wav = EncodeWav(Resample(mono, sampleRate, WhisperSampleRate), WhisperSampleRate);
 
             JObject reply = null;
@@ -42,13 +63,10 @@ namespace EchoSound.Companion
             Action<JObject> onReply = result => reply = result;
             Action<string> onProblem = problem => error = problem;
 
-            yield return Send(wav, languages.Length == 1 ? languages[0] : "auto", onReply, onProblem);
-            if (reply != null && languages.Length > 1 && !string.IsNullOrWhiteSpace((string)reply["text"])
-                && Array.IndexOf(languages, (string)reply["language"]) < 0)
-            {
-                reply = null;
-                yield return Send(wav, languages[0], onReply, onProblem);
-            }
+            string selected = RecognitionLanguage;
+            yield return Send(wav, selected, onReply, onProblem);
+            LastTranscriptionSeconds = timer.Elapsed.TotalSeconds;
+            Debug.Log($"[Voice timing] recognition={LastTranscriptionSeconds:0.000}s audio={(double)mono.Length / sampleRate:0.00}s language={selected} requests=1");
 
             if (error != null)
             {
@@ -69,8 +87,13 @@ namespace EchoSound.Companion
             var form = new List<IMultipartFormSection>
             {
                 new MultipartFormDataSection("language", language),
-                // Unlike plain json, it says which language Whisper heard.
-                new MultipartFormDataSection("response_format", "verbose_json"),
+                new MultipartFormDataSection("response_format", "json"),
+                new MultipartFormDataSection("temperature", "0"),
+                new MultipartFormDataSection("temperature_inc", "0"),
+                new MultipartFormDataSection("best_of", "1"),
+                new MultipartFormDataSection("beam_size", "1"),
+                new MultipartFormDataSection("no_timestamps", "true"),
+                new MultipartFormDataSection("token_timestamps", "false"),
                 new MultipartFormFileSection("file", wav, "phrase.wav", "audio/wav")
             };
             UnityWebRequest web = UnityWebRequest.Post(url, form);
@@ -176,8 +199,7 @@ namespace EchoSound.Companion
         {
             if (web.responseCode == 0)
             {
-                return $"Whisper is not reachable at {url} ({web.error}). " +
-                    "Start whisper-server with the command from the README.";
+                return "Voice recognition is unavailable. Press Enter to type an order.";
             }
             return $"Whisper error {web.responseCode}: {web.downloadHandler.text}";
         }

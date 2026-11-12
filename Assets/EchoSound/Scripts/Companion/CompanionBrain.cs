@@ -9,45 +9,36 @@ using EchoSound.Interaction;
 namespace EchoSound.Companion
 {
     /// <summary>
-    /// Listens to the curator and turns orders into function calls through a local LLM (Ollama).
-    /// Flow: order, LLM picks functions, functions run (walking first), results go back to the LLM,
-    /// repeat until it answers in words. A new order from the curator interrupts the current one.
+    /// Uses bundled local inference for conversation and exact shortcuts for common orders.
+    /// Flow: order, one constrained plan, validated actions (walking first), factual outcome.
+    /// A new order from the curator interrupts the current one.
     /// </summary>
     [RequireComponent(typeof(CompanionAgent), typeof(CompanionPerception), typeof(Interactor))]
     public sealed class CompanionBrain : MonoBehaviour
     {
         public const string DefaultPrompt =
-@"You are the AI companion, a game set in a pitch-dark facility where only sound reveals the surroundings.
-The player is your curator. You serve the curator: you act only on the curator's orders, and only through the provided functions.
+@"You are a teammate in a dark exploration game. The curator is the player.
+Interpret the player's latest words using only Current perception and the available actions.
 
-How to act:
-- The curator speaks by voice and the text comes from speech recognition, so it may contain small mistakes. Work out what was meant.
-- Every order means: call the matching function right away, even a one-word order, in any language. Do not ask for confirmation. Words alone do nothing in the game: saying ""I'll stop"" does not stop you.
-- Stop, wait, stay or hold: call wait_here. Follow me or come with me: call follow_curator. Come here, come to me or come back: call go_to with target curator, even if you are already close.
-- If an order has several steps, call the functions one after another until every step is done. If a step is already done or fails, still do the remaining steps. Never claim you are doing something without calling its function.
-- An object's state also identifies it: ""close the door"" means an open door, ""open the door"" means a closed door.
-- Functions that use an object walk to it by themselves, so do not call go_to before them.
-- Your perception lists every object you know about, with its position relative to the curator. The curator's words ""in front of me"", ""behind me"", ""on my left"", ""on my right"" and ""next to me"" refer to those positions.
-- If an order fits several objects equally well, ask which one is meant. Otherwise act.
-- Questions and small talk: answer in words, without functions.
-- Use only ids from your perception. Never invent objects or results.
-- A new message from the curator cancels what you were doing.
+Orders need actions. Never describe an action instead of selecting it.
+Stop/wait/stay means wait_here. Follow me means follow_curator (continuous following).
+Come here/return to me means go_to with target curator (walk once and stop).
+Object actions walk to their target automatically; do not add go_to before open_door or close_door.
+For multi-step orders, select the steps in order. After game results, do not repeat completed steps.
+Use only listed target ids. If several objects fit equally well, ask which one, with no actions.
+Directions (front, behind, left, right) are relative to the curator, not you.
 
-How to speak:
-- Reply in the language of the curator's latest message, even though function results are in English, in one short sentence, like a teammate on the radio.
-- Never say object ids such as door_1 aloud. Say ""the door in front of you"", ""the door behind you"" and so on.
-- After functions finish, report the outcome.";
+Questions about the world are not orders: answer from perception, with no actions.
+Example: ""Is the door behind me open?"" -> actions: [], reply describing that door's actual state.
+Example: ""Open the door behind me"" -> open_door on the listed door behind the curator.
+Respect negations: ""Don't open it, wait"" -> wait_here only.
+For small talk, answer briefly with no actions. Never invent objects or successful outcomes.
+Reply in the language of the latest player order, in one short sentence. Do not speak object ids.";
 
-        private const string WordsCheck =
-            "No function was called, so nothing has happened in the game. If my last message was an order, " +
-            "call its function now. If it was a question or small talk, just answer it in words.";
-
-        public OllamaClient ollama = new OllamaClient();
+        public LocalChatClient chat = new LocalChatClient();
         [TextArea(6, 30)] public string systemPrompt = DefaultPrompt;
-        [Tooltip("Function rounds per order; after the last one the LLM must answer in words.")]
-        [Range(1, 8)] public int maxToolRounds = 4;
         [Tooltip("Messages kept from earlier orders, so the companion remembers the conversation.")]
-        [Range(4, 60)] public int historyLimit = 24;
+        [Range(4, 60)] public int historyLimit = 8;
         public bool logToConsole = true;
 
         /// <summary>The curator's order as the companion received it.</summary>
@@ -64,12 +55,30 @@ How to speak:
         /// <summary>Uses objects through the same rules as the player's hands.</summary>
         public Interactor Hands { get; private set; }
         public bool IsBusy { get; private set; }
+        public string LastCommandRoute { get; private set; }
+        public bool FreeDialogue { get; private set; }
+        private const string DialoguePreference = "EchoSound.FreeDialogue";
+
+        public void SetFreeDialogue(bool enabled, bool remember = true)
+        {
+            if (!enabled)
+            {
+                if (LastCommandRoute != null && LastCommandRoute.StartsWith("model")) Interrupt();
+                LocalAiRuntime.Instance.StopChat();
+            }
+            FreeDialogue = enabled;
+            if (remember)
+            {
+                PlayerPrefs.SetInt(DialoguePreference, enabled ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
 
         private readonly List<JObject> history = new List<JObject>();
         private List<CompanionTool> fixedTools;
         // The functions offered in the latest request; the LLM's calls are looked up here.
         private readonly List<CompanionTool> offeredTools = new List<CompanionTool>();
-        private string runningTool;
+        private readonly List<JToken> pendingCalls = new List<JToken>();
 
         private void Awake()
         {
@@ -77,11 +86,12 @@ How to speak:
             Perception = GetComponent<CompanionPerception>();
             Hands = GetComponent<Interactor>();
             fixedTools = CreateFixedTools();
+            FreeDialogue = PlayerPrefs.GetInt(DialoguePreference, 0) == 1;
         }
 
         private void Start()
         {
-            StartCoroutine(ollama.Warmup(ReportFailure));
+            _ = LocalAiRuntime.Instance;
         }
 
         // Abilities that do not depend on objects. Object functions such as open_door come from UseObjectTool.
@@ -100,31 +110,154 @@ How to speak:
         {
             order = order?.Trim();
             if (string.IsNullOrEmpty(order)) return;
+            if (order.Length > 500) order = order.Substring(0, 500);
 
             if (logToConsole) Debug.Log("[Companion] Order: " + order, this);
             OrderReceived?.Invoke(order);
 
             // The curator's latest word wins over whatever the companion was doing.
             Interrupt();
-            history.Add(new JObject { ["role"] = "user", ["content"] = order });
+            bool split = QuickCompanionCommand.TrySplitFollowup(order, out string first, out string followup);
+            if (split && !FreeDialogue && !QuickDoorCommand.TryParse(first, out _)) split = false;
+            history.Add(new JObject { ["role"] = "user", ["content"] = split ? first : order });
             TrimHistory();
             IsBusy = true;
-            StartCoroutine(Handle(order));
+            LastCommandRoute = "direct";
+            if (split)
+            {
+                if (!QuickDoorCommand.TryParse(first, out _)) LastCommandRoute = "model+direct";
+                StartCoroutine(HandleFollowup(first, followup));
+            }
+            else if (QuickCompanionCommand.TryParse(order, out string action, out string reply))
+                StartCoroutine(HandleQuick(action, reply));
+            else if (QuickDoorCommand.TryParse(order, out var doorRequest)) StartCoroutine(HandleDoor(order, doorRequest));
+            else
+            {
+                if (FreeDialogue)
+                {
+                    LastCommandRoute = "model";
+                    StartCoroutine(Handle(order));
+                }
+                else
+                {
+                    LastCommandRoute = "clarify";
+                    string answer = LocalReply(order,
+                        "Please say: follow me, stop, come here, open or close the door. You can add left/right or in front/behind me.",
+                        "Powiedz: chodź za mną, stój, chodź tutaj, otwórz lub zamknij drzwi. Możesz dodać kierunek.",
+                        "Скажи: «за мной», «стой», «ко мне», «открой/закрой дверь». Можно уточнить: слева, справа, передо мной или за мной.");
+                    history.Add(new JObject { ["role"] = "assistant", ["content"] = answer });
+                    Spoke?.Invoke(answer);
+                    IsBusy = false;
+                    SetStatus("");
+                }
+            }
+        }
+
+        private IEnumerator HandleFollowup(string first, string followup)
+        {
+            if (QuickDoorCommand.TryParse(first, out var doorRequest)) yield return HandleDoor(first, doorRequest, false);
+            else yield return Handle(first, false);
+            history.Add(new JObject { ["role"] = "user", ["content"] = followup });
+            IsBusy = true;
+            QuickCompanionCommand.TryParse(followup, out string action, out string reply);
+            yield return HandleQuick(action, reply);
+        }
+
+        private IEnumerator HandleDoor(string order, QuickDoorCommand.Request request, bool finishOrder = true)
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            Transform player = Body.curator;
+            Door aimed = null;
+            if (player != null)
+            {
+                Camera camera = player.GetComponentInChildren<Camera>();
+                Vector3 origin = camera != null ? camera.transform.position : player.position + Vector3.up * 1.6f;
+                Vector3 forward = camera != null ? camera.transform.forward : player.forward;
+                if (Physics.Raycast(origin, forward, out RaycastHit hit, Perception.radius, ~0, QueryTriggerInteraction.Ignore))
+                    aimed = hit.collider.GetComponentInParent<Door>();
+            }
+            Door door = QuickDoorCommand.Resolve(Perception.Perceived(), player, request, aimed, out var resolution);
+            string report;
+            switch (resolution)
+            {
+                case QuickDoorCommand.Resolution.Ambiguous:
+                    report = LocalReply(order, "Which door? Look at it or say left/right.", "Które drzwi? Spójrz na nie lub powiedz lewo/prawo.", "Какую дверь? Посмотри на неё или уточни: слева или справа.");
+                    break;
+                case QuickDoorCommand.Resolution.Missing:
+                    report = LocalReply(order, "I don't know a door in that direction.", "Nie znam drzwi w tym kierunku.", "В этом направлении нет известной мне двери.");
+                    break;
+                case QuickDoorCommand.Resolution.NoPlayer:
+                    report = LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.", "Не вижу тебя и не могу определить нужную дверь.");
+                    break;
+                case QuickDoorCommand.Resolution.AlreadyDone:
+                    report = DoorStateReply(order, door);
+                    break;
+                default:
+                    string name = request.Action.Verb() + "_door";
+                    UseObjectTool tool = UseObjectTool.CreateFor(new[] { door }).Find(candidate => candidate.Name == name);
+                    SetStatus("acting");
+                    Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
+                    string outcome = null;
+                    if (logToConsole) Debug.Log($"[Door timing] dispatch={timer.Elapsed.TotalSeconds:0.000}s action={name} target={door.id} route=direct", this);
+                    yield return tool.Run(this, new JObject { ["target"] = door.id }, result => outcome = result);
+                    if (logToConsole) Debug.Log($"[Companion] {name} target={door.id} -> {outcome}", this);
+                    // Preserve the real object result for subsequent conversation, including failures.
+                    history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
+                    if (tool.Succeeded) report = LocalReply(order, "Done.", "Gotowe.", "Готово.");
+                    else if (outcome != null && outcome.Contains("standing in the doorway"))
+                        report = LocalReply(order, "The doorway is blocked. Move away so I can close it.", "Przejście jest zajęte. Odsuń się od drzwi.", "В проёме кто-то стоит. Отойди, чтобы я мог закрыть дверь.");
+                    else if (outcome != null && outcome.Contains("reach"))
+                        report = LocalReply(order, "I can't find a route to that door.", "Nie mogę dotrzeć do tych drzwi.", "Не могу добраться до этой двери.");
+                    else report = LocalReply(order, "I couldn't use that door.", "Nie udało się użyć tych drzwi.", "Не удалось открыть или закрыть эту дверь.");
+                    break;
+            }
+            if (logToConsole) Debug.Log($"[Companion] Door resolution={resolution}: {report}", this);
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
+            Spoke?.Invoke(report);
+            if (finishOrder) IsBusy = false;
+            SetStatus("");
+        }
+
+        private static string DoorStateReply(string order, Door door)
+        {
+            if (door.IsBusy) return door.IsOpen
+                ? LocalReply(order, "The door is already opening.", "Drzwi już się otwierają.", "Дверь уже открывается.")
+                : LocalReply(order, "The door is already closing.", "Drzwi już się zamykają.", "Дверь уже закрывается.");
+            return door.IsOpen
+                ? LocalReply(order, "The door is already open.", "Drzwi są już otwarte.", "Дверь уже открыта.")
+                : LocalReply(order, "The door is already closed.", "Drzwi są już zamknięte.", "Дверь уже закрыта.");
+        }
+
+        private IEnumerator HandleQuick(string action, string reply)
+        {
+            CompanionTool tool = fixedTools.Find(candidate => candidate.Name == action);
+            // A missing player must never produce a false "following" acknowledgement.
+            if (action != "wait_here" && Body.curator == null)
+            {
+                ReportFailure("There is no player to follow.");
+                IsBusy = false;
+                yield break;
+            }
+            Spoke?.Invoke(reply);
+            string outcome = null;
+            yield return tool.Run(this, new JObject { ["target"] = "curator" }, result => outcome = result);
+            if (action == "go_to" && outcome != "Arrived next to the curator.") Spoke?.Invoke(outcome);
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
+            IsBusy = false;
+            SetStatus("");
         }
 
         /// <summary>Stops the current order. Following the curator continues; a walk in progress stops.</summary>
         public void Interrupt()
         {
-            // When idle, the only coroutine may be the warm-up, which is worth keeping.
             if (!IsBusy) return;
             StopAllCoroutines();
-            ollama.Cancel();
+            chat.Cancel();
 
-            if (runningTool != null)
-            {
-                history.Add(ToolMessage(runningTool, "Interrupted by a new message from the curator."));
-                runningTool = null;
-            }
+            // Complete every outstanding call, including calls queued after the interrupted one.
+            foreach (JToken call in pendingCalls)
+                history.Add(ToolMessage((string)call["id"], (string)call["function"]?["name"], "Cancelled by a new order."));
+            pendingCalls.Clear();
             if (Body.IsWalking) Body.Halt("waiting (interrupted on the way: " + Body.Activity + ")");
             IsBusy = false;
             SetStatus("");
@@ -140,82 +273,68 @@ How to speak:
         [ContextMenu("Reset system prompt")]
         private void ResetPrompt() => systemPrompt = DefaultPrompt;
 
-        private IEnumerator Handle(string order)
+        private IEnumerator Handle(string order, bool finishOrder = true)
         {
-            JArray pendingCheck = null;
-            for (int round = 0; round <= maxToolRounds; round++)
+            SetStatus("thinking");
+            JObject reply = null;
+            string error = null;
+            yield return chat.Send(BuildRequest(true), result => reply = result, problem => error = problem);
+            if (error != null) ReportFailure(error);
+            else if (reply?["message"] is JObject message)
             {
-                bool allowTools = round < maxToolRounds;
-                SetStatus("thinking");
-
-                JObject reply = null;
-                string error = null;
-                yield return ollama.Send(BuildRequest(allowTools, pendingCheck), result => reply = result, problem => error = problem);
-                if (error != null)
-                {
-                    ReportFailure(error);
-                    break;
-                }
-                // The request was cancelled by a newer one.
-                if (reply == null) break;
-
-                if (!(reply["message"] is JObject message))
-                {
-                    ReportFailure("Ollama reply has no message: " + reply.ToString(Formatting.None));
-                    break;
-                }
-                message.Remove("thinking");
-                var calls = message["tool_calls"] as JArray;
-                bool acted = calls != null && calls.Count > 0;
-
-                // A 9B model often answers a short order in words ("I'll stop") without acting.
-                // Ask once before believing it; the unchecked reply stays out of the conversation.
-                if (round == 0 && allowTools && !acted)
-                {
-                    pendingCheck = new JArray { message, new JObject { ["role"] = "user", ["content"] = WordsCheck } };
-                    continue;
-                }
-                pendingCheck = null;
                 history.Add(message);
-
-                string text = ((string)message["content"])?.Trim();
-                if (!string.IsNullOrEmpty(text))
+                var calls = message["tool_calls"] as JArray;
+                if (calls == null || calls.Count == 0)
                 {
-                    if (logToConsole) Debug.Log("[Companion] " + text, this);
-                    Spoke?.Invoke(text);
+                    string text = ((string)message["content"])?.Trim();
+                    if (!string.IsNullOrEmpty(text)) Spoke?.Invoke(text);
                 }
-
-                if (!acted || !allowTools) break;
-
-                foreach (JToken call in calls)
+                else
                 {
-                    string name = (string)call["function"]?["name"] ?? "";
-                    JObject arguments = ReadArguments(call["function"]?["arguments"]);
-                    CompanionTool tool = offeredTools.Find(candidate => candidate.Name == name);
-                    string outcome = $"Unknown function '{name}'.";
-
-                    if (tool != null)
+                    pendingCalls.AddRange(calls);
+                    bool succeeded = true;
+                    // Execute exactly one bounded plan. Never ask the model to invent another
+                    // action after an outcome; that caused extra actions and delayed replies.
+                    Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
+                    foreach (JToken call in calls)
                     {
-                        SetStatus(name + " " + arguments.ToString(Formatting.None));
-                        runningTool = name;
-                        outcome = "Done.";
-                        yield return tool.Run(this, arguments, result => outcome = result);
-                        runningTool = null;
+                        string name = (string)call["function"]?["name"] ?? "";
+                        JObject arguments = ReadArguments(call["function"]?["arguments"]);
+                        CompanionTool tool = offeredTools.Find(candidate => candidate.Name == name);
+                        string outcome = "Invalid action or target.";
+                        bool done = false;
+                        if (tool != null && ValidArguments(tool.Parameters(this), arguments))
+                        {
+                            SetStatus("acting");
+                            yield return tool.Run(this, arguments, result => outcome = result);
+                            done = tool.Succeeded;
+                        }
+                        succeeded &= done;
+                        if (logToConsole) Debug.Log($"[Companion] {name} {arguments.ToString(Formatting.None)} -> {outcome}", this);
+                        history.Add(ToolMessage((string)call["id"], name, outcome));
+                        pendingCalls.Remove(call);
                     }
-                    if (logToConsole) Debug.Log($"[Companion] {name} {arguments.ToString(Formatting.None)} -> {outcome}", this);
-
-                    // A 9B model tends to stop after the first step of "do X and then Y", so remind it of the order.
-                    history.Add(ToolMessage(name, outcome +
-                        $" The curator's order was: \"{order}\". If a step of it is not done yet, call the next function now; otherwise report in the language of that order."));
+                    string report = succeeded
+                        ? LocalReply(order, "Done.", "Gotowe.", "Готово.")
+                        : LocalReply(order, "I couldn't complete every action.", "Nie udało mi się wykonać wszystkich poleceń.", "Не удалось выполнить все действия.");
+                    history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
+                    Spoke?.Invoke(report);
                 }
             }
-
-            IsBusy = false;
+            if (finishOrder) IsBusy = false;
             SetStatus("");
         }
 
-        private JObject BuildRequest(bool allowTools, JArray pendingCheck)
+        private static string LocalReply(string order, string english, string polish, string russian)
         {
+            foreach (char letter in order) if (letter >= '\u0400' && letter <= '\u04ff') return russian;
+            foreach (char letter in order) if ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ".IndexOf(letter) >= 0) return polish;
+            return english;
+        }
+
+        private JObject BuildRequest(bool allowTools)
+        {
+            TrimHistory();
             var messages = new JArray
             {
                 new JObject
@@ -226,10 +345,6 @@ How to speak:
                 }
             };
             foreach (JObject message in history) messages.Add(message);
-            if (pendingCheck != null)
-            {
-                foreach (JToken message in pendingCheck) messages.Add(message);
-            }
 
             JArray definitions = null;
             if (allowTools)
@@ -242,10 +357,10 @@ How to speak:
                 definitions = new JArray();
                 foreach (CompanionTool tool in offeredTools) definitions.Add(tool.Definition(this));
             }
-            return ollama.CreateRequest(messages, definitions);
+            return chat.CreateRequest(messages, definitions);
         }
 
-        // Ollama sends arguments as an object; some models put a JSON string there instead.
+        // OpenAI-compatible calls carry arguments as JSON strings.
         private static JObject ReadArguments(JToken token)
         {
             if (token is JObject arguments) return arguments;
@@ -262,20 +377,45 @@ How to speak:
             return new JObject();
         }
 
-        private static JObject ToolMessage(string name, string content)
+        public static bool ValidArguments(JObject schema, JObject arguments)
         {
-            return new JObject { ["role"] = "tool", ["tool_name"] = name, ["content"] = content };
+            if (schema["required"] is JArray required)
+                foreach (JToken key in required)
+                    if (arguments[(string)key] == null) return false;
+            foreach (JProperty argument in arguments.Properties())
+            {
+                JToken property = schema["properties"]?[argument.Name];
+                if (property == null || argument.Value.Type != JTokenType.String) return false;
+                if (property["enum"] is JArray allowed && !Contains(allowed, argument.Value)) return false;
+            }
+            return true;
         }
+
+        private static bool Contains(JArray values, JToken value)
+        {
+            foreach (JToken candidate in values) if (JToken.DeepEquals(candidate, value)) return true;
+            return false;
+        }
+
+        private static JObject ToolMessage(string id, string name, string content) =>
+            new JObject { ["role"] = "tool", ["tool_call_id"] = id, ["name"] = name, ["content"] = content };
 
         // Drops whole old orders, so a function result never loses the call it answers.
         private void TrimHistory()
         {
-            while (history.Count > historyLimit)
+            while (history.Count > historyLimit || HistoryCharacters() > 2500)
             {
                 int nextOrder = history.FindIndex(1, message => (string)message["role"] == "user");
                 if (nextOrder < 0) break;
                 history.RemoveRange(0, nextOrder);
             }
+        }
+
+        private int HistoryCharacters()
+        {
+            int count = 0;
+            foreach (JObject message in history) count += message.ToString(Formatting.None).Length;
+            return count;
         }
 
         private void SetStatus(string status) => StatusChanged?.Invoke(status);
@@ -289,7 +429,7 @@ How to speak:
         private void OnDisable()
         {
             Interrupt();
-            ollama.Cancel();
+            chat.Cancel();
         }
     }
 }

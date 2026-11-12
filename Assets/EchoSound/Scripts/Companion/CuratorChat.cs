@@ -13,8 +13,8 @@ namespace EchoSound.Companion
 
         public CompanionBrain companion;
         public CuratorVoice voice;
-        [Tooltip("Typed orders, for testing without a microphone or a speech recognition server.")]
-        public bool allowTyping;
+        [Tooltip("Typed orders are also always available if voice recognition is unavailable.")]
+        public bool allowTyping = true;
         [Min(1)] public int visibleLines = 8;
 
         private readonly List<string> lines = new List<string>();
@@ -67,10 +67,12 @@ namespace EchoSound.Companion
 
         private void OnGUI()
         {
+            LocalAiRuntime runtime = LocalAiRuntime.Instance;
+            bool canType = allowTyping || !runtime.SpeechReady;
             // Keys are read here, not in Update: the text field consumes them while it has focus.
             // After a state change, skip drawing: this event's layout was measured for the old state.
             Event current = Event.current;
-            if (allowTyping && current.type == EventType.KeyDown)
+            if (canType && current.type == EventType.KeyDown)
             {
                 if (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter)
                 {
@@ -94,6 +96,32 @@ namespace EchoSound.Companion
             GUILayout.BeginArea(new Rect(16, Screen.height - 390, width, 320));
             GUILayout.FlexibleSpace();
             GUILayout.BeginVertical(GUI.skin.box);
+            if (companion != null)
+            {
+                if (Cursor.lockState == CursorLockMode.Locked)
+                    GUILayout.Label(companion.FreeDialogue ? "Free dialogue · slower replies" : "Quick commands · Esc for dialogue settings");
+                else
+                {
+                    int mode = companion.FreeDialogue ? 1 : 0;
+                    int nextMode = GUILayout.Toolbar(mode, new[] { "Быстрые команды", "Свободный диалог (медленнее)" });
+                    if (nextMode != mode) companion.SetFreeDialogue(nextMode == 1);
+                }
+            }
+            if (voice != null)
+            {
+                string currentLanguage = voice.whisper.RecognitionLanguage;
+                string label = currentLanguage == "russian" ? "Русский" : currentLanguage == "polish" ? "Polski" : currentLanguage == "english" ? "English" : "Auto";
+                if (Cursor.lockState == CursorLockMode.Locked) GUILayout.Label("Voice: " + label + " · Esc to change");
+                else
+                {
+                    int selected = currentLanguage == "russian" ? 0 : currentLanguage == "polish" ? 1 : currentLanguage == "english" ? 2 : 3;
+                    int next = GUILayout.Toolbar(selected, new[] { "Русский", "Polski", "English", "Auto" });
+                    if (next != selected) voice.SetLanguage(next == 0 ? WhisperClient.SpeechLanguage.Russian : next == 1 ? WhisperClient.SpeechLanguage.Polish : next == 2 ? WhisperClient.SpeechLanguage.English : WhisperClient.SpeechLanguage.Auto);
+                }
+            }
+            if (runtime.ChatStarting || runtime.SpeechStarting) GUILayout.Label("Preparing your companion. Basic orders are available.");
+            else if (companion != null && companion.FreeDialogue && !string.IsNullOrEmpty(runtime.ChatError)) GUILayout.Label(runtime.ChatError, lineStyle);
+            if (!runtime.SpeechStarting && !runtime.SpeechReady) GUILayout.Label(runtime.SpeechError, lineStyle);
             foreach (string line in lines) GUILayout.Label(line, lineStyle);
             if (!string.IsNullOrEmpty(status)) GUILayout.Label("<i>Companion: " + status + "...</i>", lineStyle);
 
@@ -109,9 +137,17 @@ namespace EchoSound.Companion
             }
             else
             {
-                GUILayout.Label(allowTyping
+                GUILayout.Label(canType
                     ? "<i>Hold V and speak, or press Enter to type an order</i>"
                     : "<i>Hold V and speak to give the companion an order</i>", lineStyle);
+                if (Cursor.lockState != CursorLockMode.Locked && companion != null)
+                {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Follow me")) companion.Command("follow me");
+                    if (GUILayout.Button("Stop")) companion.Command("stop");
+                    if (GUILayout.Button("Come here")) companion.Command("come here");
+                    GUILayout.EndHorizontal();
+                }
             }
             GUILayout.EndVertical();
             GUILayout.EndArea();

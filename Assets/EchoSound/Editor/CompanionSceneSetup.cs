@@ -75,11 +75,12 @@ namespace EchoSound.Editor
             var chat = controls.AddComponent<CuratorChat>();
             chat.companion = brain;
             chat.voice = voice;
+            chat.allowTyping = true;
 
             // Saving under a new path leaves GenerationTest unchanged.
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, TargetScene);
-            Debug.Log("Created " + TargetScene + ". Run Ollama and whisper-server, press Play, then hold V and speak.");
+            Debug.Log("Created " + TargetScene + ". Press Play; bundled AI starts automatically. Hold V to speak or Enter to type.");
         }
 
         private static GameObject CreateCompanionPrefab()

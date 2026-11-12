@@ -1,0 +1,19 @@
+EchoSound bundled local AI
+
+llama.cpp b12291 - https://github.com/ggml-org/llama.cpp - MIT
+whisper.cpp v1.8.6 - https://github.com/ggml-org/whisper.cpp - MIT
+Qwen3 1.7B - https://huggingface.co/Qwen/Qwen3-1.7B - Apache-2.0
+Q4_K_M conversion by bartowski: https://huggingface.co/bartowski/Qwen_Qwen3-1.7B-GGUF
+Whisper base (multilingual, Q5_1) - https://github.com/openai/whisper - MIT
+Silero VAD 5.1.2 - https://github.com/snakers4/silero-vad - MIT
+LLVM OpenMP runtime: see windows-x64/llama/LICENSE-LLVM-OpenMP.
+Microsoft Visual C++ runtime libraries are distributed app-locally from the
+Visual Studio x64 Redist directory, under the Microsoft Visual Studio license.
+Copyright Microsoft Corporation. All rights reserved.
+Redistributable list: https://aka.ms/vs/18/redistribution
+Deployment: https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files
+
+Full upstream license texts accompany this notice. Model and runtime versions,
+file sizes and SHA-256 hashes are recorded in ../bundle-manifest.json.
+The models are used locally. Player voice and transcripts are sent only to
+processes running on this computer via the loopback interface.

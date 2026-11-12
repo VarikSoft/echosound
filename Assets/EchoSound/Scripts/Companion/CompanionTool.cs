@@ -17,6 +17,7 @@ namespace EchoSound.Companion
         public abstract string Name { get; }
         /// <summary>Tells the LLM when to use the function.</summary>
         public abstract string Description { get; }
+        public bool Succeeded { get; protected set; }
 
         /// <summary>JSON schema of the arguments. Rebuilt for every request, so id lists stay current.</summary>
         public virtual JObject Parameters(CompanionBrain companion)

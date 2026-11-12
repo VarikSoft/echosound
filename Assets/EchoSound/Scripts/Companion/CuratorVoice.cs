@@ -30,6 +30,23 @@ namespace EchoSound.Companion
         private bool wasRecording;
         private Coroutine transcription;
 
+        private const string LanguagePreference = "EchoSound.VoiceLanguage";
+        private void Awake()
+        {
+            if (PlayerPrefs.HasKey(LanguagePreference))
+            {
+                int saved = PlayerPrefs.GetInt(LanguagePreference);
+                if (Enum.IsDefined(typeof(WhisperClient.SpeechLanguage), saved)) whisper.language = (WhisperClient.SpeechLanguage)saved;
+            }
+        }
+
+        public void SetLanguage(WhisperClient.SpeechLanguage selected)
+        {
+            whisper.language = selected;
+            PlayerPrefs.SetInt(LanguagePreference, (int)selected);
+            PlayerPrefs.Save();
+        }
+
         private void OnEnable()
         {
             if (microphone != null) microphone.PcmFrameCaptured += OnFrame;
@@ -83,11 +100,24 @@ namespace EchoSound.Companion
         public void Submit(float[] mono, int sampleRate)
         {
             if (transcription != null) StopCoroutine(transcription);
+            whisper.Cancel();
             transcription = StartCoroutine(Transcribe(mono, sampleRate));
         }
 
         private IEnumerator Transcribe(float[] mono, int sampleRate)
         {
+            var latency = System.Diagnostics.Stopwatch.StartNew();
+            LocalAiRuntime runtime = LocalAiRuntime.Instance;
+            StatusChanged?.Invoke(runtime.SpeechStarting ? "preparing voice recognition" : "transcribing");
+            while (runtime.SpeechStarting) yield return null;
+            if (!runtime.SpeechReady)
+            {
+                transcription = null;
+                StatusChanged?.Invoke("");
+                Failed?.Invoke(runtime.SpeechError);
+                yield break;
+            }
+            whisper.url = runtime.SpeechUrl;
             StatusChanged?.Invoke("transcribing");
             string text = null;
             string error = null;
@@ -102,7 +132,11 @@ namespace EchoSound.Companion
                 yield break;
             }
             text = WhisperClient.CleanTranscript(text);
-            if (text.Length > 0 && companion != null) companion.Command(text);
+            if (text.Length > 0 && companion != null)
+            {
+                companion.Command(text);
+                Debug.Log($"[Voice timing] release-to-command={latency.Elapsed.TotalSeconds:0.000}s route={companion.LastCommandRoute}");
+            }
         }
 
         private void ClearPhrase()

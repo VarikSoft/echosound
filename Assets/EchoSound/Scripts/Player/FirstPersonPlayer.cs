@@ -102,6 +102,8 @@ namespace EchoSound
 
             if (soundEmitter == null) soundEmitter = GetComponent<PlayerSoundEmitter>();
             if (soundEmitter != null) soundEmitter.ResetTracking();
+            var avatar = GetComponentInChildren<ExplorerAvatar>();
+            if (avatar != null) avatar.ResetMotion();
         }
 
         private static void SetCursorLocked(bool locked)

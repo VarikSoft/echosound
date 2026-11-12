@@ -14,6 +14,12 @@ namespace EchoSound
         public float runSpeed = 7.5f;
         public float jumpSpeed = 5f;
 
+        [Header("Input Options")]
+        [Tooltip("Allow movement input from connected joysticks/gamepads in addition to keyboard.")]
+        public bool enableGamepad = true;
+        [Tooltip("Deadzone threshold for joystick axis input to prevent controller drift.")]
+        [Range(0.05f, 0.5f)] public float joystickDeadzone = 0.25f;
+
         [Header("Camera")]
         public Camera view;
         public float sensitivity = 2f;
@@ -78,8 +84,7 @@ namespace EchoSound
 
         private void UpdateMovement()
         {
-            Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-            input = Vector2.ClampMagnitude(input, 1);
+            Vector2 input = GetMovementInput();
             float speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
             Vector3 velocity = (transform.right * input.x + transform.forward * input.y) * speed;
 
@@ -89,6 +94,38 @@ namespace EchoSound
             verticalSpeed += Physics.gravity.y * Time.deltaTime;
             velocity.y = verticalSpeed;
             controller.Move(velocity * Time.deltaTime);
+        }
+
+        private Vector2 GetMovementInput()
+        {
+            float h = 0f;
+            float v = 0f;
+
+            // Check digital keyboard input first
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) h += 1f;
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) h -= 1f;
+            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) v += 1f;
+            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) v -= 1f;
+
+            // If no keyboard input was detected and gamepad input is enabled, query axes with deadzone filtering
+            if (Mathf.Approximately(h, 0f) && Mathf.Approximately(v, 0f) && enableGamepad)
+            {
+                float rawH = Input.GetAxisRaw("Horizontal");
+                float rawV = Input.GetAxisRaw("Vertical");
+
+                if (Mathf.Abs(rawH) > joystickDeadzone)
+                {
+                    h = Mathf.Sign(rawH) * Mathf.InverseLerp(joystickDeadzone, 1f, Mathf.Abs(rawH));
+                }
+
+                if (Mathf.Abs(rawV) > joystickDeadzone)
+                {
+                    v = Mathf.Sign(rawV) * Mathf.InverseLerp(joystickDeadzone, 1f, Mathf.Abs(rawV));
+                }
+            }
+
+            Vector2 result = new Vector2(h, v);
+            return Vector2.ClampMagnitude(result, 1f);
         }
 
         public void Teleport(Vector3 position)

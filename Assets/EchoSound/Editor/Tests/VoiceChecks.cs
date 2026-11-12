@@ -1,6 +1,8 @@
 using System;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
+using EchoSound.Companion;
 using EchoSound.Sound;
 
 namespace EchoSound.Editor.Tests
@@ -50,6 +52,32 @@ namespace EchoSound.Editor.Tests
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
             Debug.Log("Voice checks: all tests passed (synthetic PCM; microphone was not opened).");
+        }
+
+        [MenuItem("EchoSound/Checks/Validate voice orders")]
+        public static void ValidateOrders()
+        {
+            var level = new float[4800];
+            for (int i = 0; i < level.Length; i++) level[i] = 0.5f;
+            float[] down = WhisperClient.Resample(level, 48000, 16000);
+            Require(down.Length == 1600 && Mathf.Approximately(down[800], 0.5f), "Downsampling must keep the duration and level.");
+            Require(WhisperClient.Resample(new float[2400], 24000, 16000).Length == 1600, "A non-integer rate ratio must keep the duration.");
+            Require(WhisperClient.Resample(new float[800], 8000, 16000).Length == 1600, "Upsampling must keep the duration.");
+            Require(ReferenceEquals(WhisperClient.Resample(level, 16000, 16000), level), "A matching rate needs no resampling.");
+
+            byte[] wav = WhisperClient.EncodeWav(new[] { 0f, 1f, -1f, 2f }, 16000);
+            Require(wav.Length == 44 + 8, "A WAV file is a 44-byte header and two bytes per sample.");
+            Require(Encoding.ASCII.GetString(wav, 0, 4) == "RIFF" && Encoding.ASCII.GetString(wav, 8, 8) == "WAVEfmt ", "The WAV header must be valid.");
+            Require(BitConverter.ToInt32(wav, 4) == wav.Length - 8 && BitConverter.ToInt32(wav, 40) == 8, "The WAV sizes must match its contents.");
+            Require(BitConverter.ToInt16(wav, 22) == 1 && BitConverter.ToInt32(wav, 24) == 16000 && BitConverter.ToInt16(wav, 34) == 16, "The WAV format must be mono 16-bit at the given rate.");
+            Require(BitConverter.ToInt16(wav, 46) == short.MaxValue && BitConverter.ToInt16(wav, 50) == short.MaxValue, "Samples above full scale must clip.");
+
+            Require(WhisperClient.CleanTranscript(" Open the door.\n") == "Open the door.", "Speech must survive cleaning.");
+            Require(WhisperClient.CleanTranscript(" [BLANK_AUDIO]\n") == "", "Blank audio markers are not speech.");
+            Require(WhisperClient.CleanTranscript(" (music) *coughs* ") == "", "Sound descriptions are not speech.");
+            Require(WhisperClient.CleanTranscript(" ...\n") == "", "Punctuation alone is not speech.");
+            Require(WhisperClient.CleanTranscript(null) == "", "A missing transcript is empty.");
+            Debug.Log("Voice order checks: all tests passed (no microphone or server needed).");
         }
 
         private static void Fill(float[] pcm, float amplitude)

@@ -6,6 +6,8 @@
     "EchoSound.Generation",
     "EchoSound.Player",
     "EchoSound.Testing",
+    "EchoSound.Interaction",
+    "EchoSound.Companion",
     "EchoSound.Sound",
     "EchoSound.VFX",
     "EchoSound.UI"

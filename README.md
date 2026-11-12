@@ -176,8 +176,8 @@ Each object below is a separate example response:
 | :--- | :--- | :--- |
 | Engine | Unity **6000.6.7f1**, C# | Current |
 | Rendering | URP / Shader Graph echolocation | Planned |
-| Language model | Local 7–8B model via Ollama or llama.cpp server | Planned |
-| Speech recognition | faster-whisper or whisper.cpp | Planned |
+| Language model | Bundled Qwen3 1.7B Q4_K_M + llama.cpp, CPU | Current (companion test scene) |
+| Speech recognition | Bundled whisper.cpp + multilingual Whisper base Q5_1 + Silero VAD, CPU | Current (companion test scene) |
 | Speech synthesis | Piper | Planned |
 | Agent navigation | NavMesh + behaviour tree / finite state machine | Planned |
 | Networking | Netcode for GameObjects or FishNet | Later · undecided |
@@ -243,6 +243,124 @@ Run these from the Unity menu:
 | :--- | :--- |
 | **EchoSound → Checks → Validate 1000 layouts** | Connectivity, deterministic generation, matching doorways and prefab rotation |
 | **EchoSound → Checks → Validate prefab walkways** | Physical routes from each room's safe anchor to its doorways, including pit walkways |
+
+### AI companion playground
+
+**Players:** download/extract the complete Windows build folder and run `EchoSound.exe`.
+The build includes the language model, speech model and native engines. No Ollama,
+Python, model download, account, internet connection or dedicated GPU is required
+at runtime. Keep `EchoSound_Data` beside the executable. Wait for the companion to
+finish preparing, hold **V** to speak, or press **Enter** to type. **Esc** releases
+the mouse and exposes Follow / Stop / Come here buttons in the chat.
+
+**Developers / build machines:** prepare the redistributable files once:
+
+```powershell
+# Build machine only: hf CLI and Visual Studio C++ build tools/Redist files.
+./Tools/Prepare-LocalAI.ps1
+```
+
+The script downloads pinned CPU binaries and model revisions, verifies archive
+and model checksums, and includes upstream licenses. It copies app-local Visual
+C++ runtime DLLs from the build machine's Visual Studio Redist directory; players
+do not run a Visual C++ installer. Files live in `Runtime/AI`
+(ignored by Git), outside Unity's asset importer. Re-run the script on a fresh
+checkout or CI machine. To check a prepared bundle without network access:
+
+```powershell
+./Tools/Prepare-LocalAI.ps1 -VerifyOnly
+```
+
+1. In Unity, select **EchoSound → Create companion test scene**, then press Play.
+   Existing companion components also start the bundled engines automatically.
+2. For a distributable build, select **EchoSound → Build → Windows offline companion**.
+   Output: `Builds/Windows/EchoSound.exe`. This builds the companion playground;
+   it does not turn the rest of the planned game into a finished release.
+3. Distribute the **whole** `Builds/Windows` folder. Build hooks verify and copy the
+   AI bundle into `EchoSound_Data/StreamingAssets/AI`, including its licenses.
+   Missing/corrupt bundles fail the build instead of creating an unusable release.
+
+The baseline uses CPU inference with at most four threads per engine and a 4096-token
+LLM context. Fast LLM has a 24-token output cap; Free dialogue allows 192 tokens.
+It does not reserve dedicated VRAM for AI.
+RAM use, response latency and gameplay FPS still depend on hardware; minimum
+requirements have not been established by testing low-end computers. Windows x64
+is the currently packaged platform; other platforms require their own native bundles.
+
+The default **Fast LLM** mode interprets paraphrased movement and door commands using
+the same bundled Qwen3 1.7B. It warms a fixed prompt at startup, reuses its cached prefix,
+and emits at most two intent codes instead of a long tool plan. Game code resolves
+targets from current perception and validates interaction rules. It sends no conversation
+history or changing world description through this interpreter. A request has a 1.5-second
+inference deadline; timeout, invalid output and uncertainty request clarification without
+executing a partial plan. This is not a guarantee of total microphone-to-action latency:
+speech recognition, startup, walking and door animation take additional time.
+
+Press **Esc** to choose **Quick commands**, **Fast LLM**, or **Free dialogue (slower)**.
+Quick commands uses only exact shortcuts and does not load the language model.
+Fast LLM accepts non-exact game orders, but conservatively rejects negation, conditions,
+quoted instructions, requests concerning all doors, and unsupported continuous door-holding.
+It may ask to rephrase valid but ambiguous wording. Free dialogue retains the richer,
+slower interpreter and open-ended conversation. Switching to Quick commands cancels
+inference and unloads the language model. Speech recognition stays available in all modes.
+Direct shortcuts remain available while Fast LLM is preparing.
+
+In Free dialogue, the companion interprets free-form orders as constrained JSON plans, validates
+function names and object ids, then executes them through NavMesh and the shared
+interaction code. Exact standalone follow / stop / come-here phrases in English,
+Polish and Russian bypass generation. A recognised movement suffix after an explicit
+door order (such as "open the door and then follow me") is executed separately.
+Simple open/close door commands also bypass generation, including front/behind/left/right
+relative to the player. For an unspecified door, a perceived door under the player's
+crosshair takes priority; otherwise choose a door in front needing the requested change.
+Similarly close candidates trigger a clarification. An explicitly aimed door that is
+already open/closed is acknowledged without choosing another target. Door actions still
+use the shared navigation and interaction rules. Timing to begin an action excludes the
+time needed to walk to the door and animate its panel.
+Questions, conditions and unrecognised suffixes are left intact for interpretation.
+Each model request produces one bounded plan; execution results cannot start another
+model-driven action loop. This is a small model: unfamiliar wording can still
+produce the wrong intent. No fine-tuning has been performed.
+
+Speech defaults to the system language (Russian/Polish/English). Press **Esc** and
+choose **Русский / Polski / English / Auto** in the chat to change it; the choice
+is saved. A fixed language avoids re-detecting the language of each short command.
+Recognition uses one greedy pass without temperature retries or word timestamps.
+Auto remains available for mixed-language speech, without a second recognition
+pass. Existing single-language inspector settings are preserved. Replies currently
+appear as text; TTS remains planned.
+If speech recognition fails, text input remains available. If inference fails,
+the basic movement shortcuts remain available. Engine errors are recorded in the
+Unity/player log; the chat does not ask players to install developer tools.
+
+### Offline AI checks
+
+- **EchoSound → Checks → Validate local AI commands** checks shortcut boundaries,
+  rejected/unknown targets, structured output, voice encoding and bundle integrity.
+  It exports the actual client's test requests to `.utmp/ai-fixtures.json`.
+- `python Tools/Test-LocalAI.py` starts the bundled CPU servers, checks multilingual
+  actions, questions, negation, multi-step orders and silence, then closes its servers.
+  Optional `--audio path/to/jfk.wav` checks the public whisper.cpp JFK speech sample.
+  Reports/logs go to `.utmp`; this is a developer test, not a player prerequisite.
+- `python Tools/Test-FastLLM.py` checks the actual exported Fast LLM requests, conservative
+  guards and target-direction resolution on 41 Russian/English/Polish cases, including
+  held-out paraphrases. It reports warm inference latency separately from the cold prompt.
+  LocalAiChecks exports `.utmp/fast-llm-fixtures.json`; pass `--fixtures` to use another path.
+- `./Tools/Test-OfflineBuild.ps1` launches the built game headlessly, checks actual
+  navigation, conversation, actions and speech, then verifies the missing-model
+  fallback and process cleanup. It verifies direct door actions, immediate clarification,
+  and that Quick commands does not load the language model, before testing optional dialogue.
+  It temporarily renames the built LLM weights and
+  restores them in a `finally` block. Do not run it while playing that same build.
+- Optional `-VoiceFixtures path/to/folder` also sends `follow.wav`, `stop.wav`,
+  `follow2.wav`, `door.wav` and `fast-door.wav` through the actual game voice component.
+  The last file must say a non-shortcut phrase such as “Распахни дверь впереди” and must
+  execute through Fast LLM. Fixtures must be mono PCM16 WAVs with Russian commands. The player log
+  records recognition, release-to-command and model latency separately.
+- `python Tools/Benchmark-Voice.py path/to/folder --language russian` compares the
+  previous auto-language pipeline with the current single-pass pipeline on the same
+  local WAV files. It never captures a microphone. Synthetic fixtures measure latency
+  and regressions; they do not establish accuracy for real microphones or accents.
 
 ## Team
 

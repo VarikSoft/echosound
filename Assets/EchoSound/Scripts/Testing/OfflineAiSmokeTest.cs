@@ -132,6 +132,29 @@ namespace EchoSound.Testing
 
             if (!fallback)
             {
+                brain.SetMode(CompanionBrain.CompanionMode.FastLlm, false);
+                while (brain.FastStarting) yield return null;
+                if (!brain.FastReady) { Fail("Fast LLM did not warm up."); yield break; }
+                foreach (string phrase in new[] { "Держись рядом со мной", "Побудь здесь пока я осмотрюсь" })
+                {
+                    var intentWatch = System.Diagnostics.Stopwatch.StartNew();
+                    brain.Command(phrase);
+                    while (brain.IsBusy) yield return null;
+                    string expected = phrase.StartsWith("Держись") ? "following the curator" : "waiting";
+                    if (brain.LastCommandRoute != "fast-llm" || brain.Body.Activity != expected)
+                    { Fail("Fast LLM movement failed: " + phrase); yield break; }
+                    Debug.Log($"FAST LLM MOVEMENT PASSED: command-to-action={intentWatch.Elapsed.TotalSeconds:0.000}s");
+                }
+                brain.Command("Не закрывай дверь");
+                if (brain.IsBusy || brain.LastCommandRoute != "clarify") { Fail("Negated fast command was not rejected."); yield break; }
+                yield return CheckDoors(brain, Vector3.Distance(brain.transform.position, start) > 2 ? start : target,
+                    audioOption >= 0 && audioOption + 1 < args.Length ? args[audioOption + 1] : null, true);
+                brain.enabled = false;
+                brain.enabled = true;
+                while (brain.FastStarting) yield return null;
+                if (!brain.FastReady) { Fail("Fast LLM did not recover after re-enabling the companion."); yield break; }
+                Debug.Log("FAST LLM LIFECYCLE PASSED: re-enabled companion is ready.");
+                brain.ResetConversation();
                 brain.SetFreeDialogue(true, false);
                 string reply = null;
                 string problem = null;
@@ -155,7 +178,7 @@ namespace EchoSound.Testing
             Application.Quit(0);
         }
 
-        private IEnumerator CheckDoors(CompanionBrain brain, Vector3 doorPosition, string fixtures)
+        private IEnumerator CheckDoors(CompanionBrain brain, Vector3 doorPosition, string fixtures, bool semantic = false)
         {
             // Keep world geometry and navigation, but isolate target selection from generated doors.
             var originalDoors = FindObjectsByType<Door>(FindObjectsSortMode.None);
@@ -178,15 +201,16 @@ namespace EchoSound.Testing
                 yield return null;
                 Physics.SyncTransforms();
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                brain.Command("Открой дверь.");
+                brain.Command(semantic ? "Распахни дверь впереди" : "Открой дверь.");
                 while (!brain.Body.IsWalking && !target.IsOpen && brain.IsBusy && watch.Elapsed.TotalSeconds < 2) yield return null;
-                if (brain.LastCommandRoute != "direct" || (!brain.Body.IsWalking && !target.IsOpen))
+                string expectedRoute = semantic ? "fast-llm" : "direct";
+                if (brain.LastCommandRoute != expectedRoute || (!brain.Body.IsWalking && !target.IsOpen))
                 { Fail("Door command did not immediately start walking/opening."); yield break; }
-                Debug.Log($"DOOR LATENCY PASSED: text-to-action={watch.Elapsed.TotalSeconds:0.000}s, direct route");
+                Debug.Log($"DOOR LATENCY PASSED: text-to-action={watch.Elapsed.TotalSeconds:0.000}s, route={expectedRoute}");
                 while (brain.IsBusy) yield return null;
                 if (!target.IsOpen || !decoy.IsOpen) { Fail("Wrong door opened."); yield break; }
                 decoy.enabled = false;
-                brain.Command("Закрой дверь передо мной.");
+                brain.Command(semantic ? "Прикрой дверь передо мной" : "Закрой дверь передо мной.");
                 while (brain.IsBusy) yield return null;
                 if (target.IsOpen) { Fail("Door did not close."); yield break; }
 
@@ -194,7 +218,7 @@ namespace EchoSound.Testing
                 {
                     CuratorVoice voice = FindAnyObjectByType<CuratorVoice>();
                     voice.whisper.language = WhisperClient.SpeechLanguage.Russian;
-                    float[] audio = ReadWave(Path.Combine(fixtures, "door.wav"), out int rate);
+                    float[] audio = ReadWave(Path.Combine(fixtures, semantic ? "fast-door.wav" : "door.wav"), out int rate);
                     string heard = null;
                     Action<string> onHeard = text => heard = text;
                     brain.OrderReceived += onHeard;
@@ -203,23 +227,23 @@ namespace EchoSound.Testing
                     while (heard == null && watch.Elapsed.TotalSeconds < 15) yield return null;
                     brain.OrderReceived -= onHeard;
                     while (!target.IsOpen && brain.IsBusy) yield return null;
-                    if (heard == null || brain.LastCommandRoute != "direct" || !target.IsOpen)
+                    if (heard == null || brain.LastCommandRoute != expectedRoute || !target.IsOpen)
                     { Fail("Spoken door command missed direct execution: " + heard); yield break; }
-                    Debug.Log($"DOOR VOICE LATENCY PASSED: release-to-action={watch.Elapsed.TotalSeconds:0.000}s, direct route");
+                    Debug.Log($"DOOR VOICE LATENCY PASSED: release-to-action={watch.Elapsed.TotalSeconds:0.000}s, route={expectedRoute}");
                     while (brain.IsBusy) yield return null;
                 }
-                brain.Command("Закрой дверь передо мной а потом за мной");
+                brain.Command(semantic ? "Прикрой дверь впереди а потом держись рядом со мной" : "Закрой дверь передо мной а потом за мной");
                 while (brain.IsBusy) yield return null;
-                if (target.IsOpen || brain.LastCommandRoute != "direct" || brain.Body.Activity != "following the curator")
+                if (target.IsOpen || brain.LastCommandRoute != expectedRoute || brain.Body.Activity != "following the curator")
                 { Fail("Direct door plus follow sequence failed."); yield break; }
                 brain.Command("стой");
-                brain.Command("Открой дверь передо мной а потом за мной");
+                brain.Command(semantic ? "Распахни дверь впереди и потом держись рядом со мной" : "Открой дверь передо мной а потом за мной");
                 yield return null;
                 brain.Command("стой");
                 yield return new WaitForSecondsRealtime(2);
                 if (brain.IsBusy || brain.Body.Activity != "waiting")
                 { Fail("Stop did not cancel the queued follow after opening a door."); yield break; }
-                Debug.Log("DOOR COMMANDS PASSED: open, close, speech, chained follow, cancellation, no model required.");
+                Debug.Log("DOOR COMMANDS PASSED: open, close, speech, chained follow, cancellation; route=" + expectedRoute);
             }
             finally
             {

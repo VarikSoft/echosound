@@ -280,18 +280,30 @@ checkout or CI machine. To check a prepared bundle without network access:
    AI bundle into `EchoSound_Data/StreamingAssets/AI`, including its licenses.
    Missing/corrupt bundles fail the build instead of creating an unusable release.
 
-The baseline uses CPU inference with at most four threads per engine, a 4096-token
-LLM context and 192-token responses. It does not reserve dedicated VRAM for AI.
+The baseline uses CPU inference with at most four threads per engine and a 4096-token
+LLM context. Fast LLM has a 24-token output cap; Free dialogue allows 192 tokens.
+It does not reserve dedicated VRAM for AI.
 RAM use, response latency and gameplay FPS still depend on hardware; minimum
 requirements have not been established by testing low-end computers. Windows x64
 is the currently packaged platform; other platforms require their own native bundles.
 
-The default **Quick commands** mode handles movement and simple door orders locally.
-It never waits for the language model: unsupported phrases get an immediate request
-to rephrase. Press **Esc** to opt into **Free dialogue (slower)** for arbitrary wording
-and conversation. That mode loads the bundled language model on its first request;
-switching back to Quick commands cancels inference and unloads it. The speech model
-stays available in both modes. No minimum latency is guaranteed on untested hardware.
+The default **Fast LLM** mode interprets paraphrased movement and door commands using
+the same bundled Qwen3 1.7B. It warms a fixed prompt at startup, reuses its cached prefix,
+and emits at most two intent codes instead of a long tool plan. Game code resolves
+targets from current perception and validates interaction rules. It sends no conversation
+history or changing world description through this interpreter. A request has a 1.5-second
+inference deadline; timeout, invalid output and uncertainty request clarification without
+executing a partial plan. This is not a guarantee of total microphone-to-action latency:
+speech recognition, startup, walking and door animation take additional time.
+
+Press **Esc** to choose **Quick commands**, **Fast LLM**, or **Free dialogue (slower)**.
+Quick commands uses only exact shortcuts and does not load the language model.
+Fast LLM accepts non-exact game orders, but conservatively rejects negation, conditions,
+quoted instructions, requests concerning all doors, and unsupported continuous door-holding.
+It may ask to rephrase valid but ambiguous wording. Free dialogue retains the richer,
+slower interpreter and open-ended conversation. Switching to Quick commands cancels
+inference and unloads the language model. Speech recognition stays available in all modes.
+Direct shortcuts remain available while Fast LLM is preparing.
 
 In Free dialogue, the companion interprets free-form orders as constrained JSON plans, validates
 function names and object ids, then executes them through NavMesh and the shared
@@ -330,6 +342,10 @@ Unity/player log; the chat does not ask players to install developer tools.
   actions, questions, negation, multi-step orders and silence, then closes its servers.
   Optional `--audio path/to/jfk.wav` checks the public whisper.cpp JFK speech sample.
   Reports/logs go to `.utmp`; this is a developer test, not a player prerequisite.
+- `python Tools/Test-FastLLM.py` checks the actual exported Fast LLM requests, conservative
+  guards and target-direction resolution on 41 Russian/English/Polish cases, including
+  held-out paraphrases. It reports warm inference latency separately from the cold prompt.
+  LocalAiChecks exports `.utmp/fast-llm-fixtures.json`; pass `--fixtures` to use another path.
 - `./Tools/Test-OfflineBuild.ps1` launches the built game headlessly, checks actual
   navigation, conversation, actions and speech, then verifies the missing-model
   fallback and process cleanup. It verifies direct door actions, immediate clarification,
@@ -337,8 +353,9 @@ Unity/player log; the chat does not ask players to install developer tools.
   It temporarily renames the built LLM weights and
   restores them in a `finally` block. Do not run it while playing that same build.
 - Optional `-VoiceFixtures path/to/folder` also sends `follow.wav`, `stop.wav`,
-  `follow2.wav` and `door.wav` through the actual game voice component and checks that they execute
-  directly. Fixtures must be mono PCM16 WAVs with Russian commands. The player log
+  `follow2.wav`, `door.wav` and `fast-door.wav` through the actual game voice component.
+  The last file must say a non-shortcut phrase such as “Распахни дверь впереди” and must
+  execute through Fast LLM. Fixtures must be mono PCM16 WAVs with Russian commands. The player log
   records recognition, release-to-command and model latency separately.
 - `python Tools/Benchmark-Voice.py path/to/folder --language russian` compares the
   previous auto-language pipeline with the current single-pass pipeline on the same

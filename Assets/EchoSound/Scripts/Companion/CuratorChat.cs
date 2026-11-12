@@ -99,12 +99,12 @@ namespace EchoSound.Companion
             if (companion != null)
             {
                 if (Cursor.lockState == CursorLockMode.Locked)
-                    GUILayout.Label(companion.FreeDialogue ? "Free dialogue · slower replies" : "Quick commands · Esc for dialogue settings");
+                    GUILayout.Label(companion.FreeDialogue ? "Free dialogue · slower replies" : companion.Mode == CompanionBrain.CompanionMode.FastLlm ? "Fast LLM · Esc for dialogue settings" : "Quick commands · Esc for dialogue settings");
                 else
                 {
-                    int mode = companion.FreeDialogue ? 1 : 0;
-                    int nextMode = GUILayout.Toolbar(mode, new[] { "Быстрые команды", "Свободный диалог (медленнее)" });
-                    if (nextMode != mode) companion.SetFreeDialogue(nextMode == 1);
+                    int mode = (int)companion.Mode;
+                    int nextMode = GUILayout.Toolbar(mode, new[] { "Команды", "Быстрый LLM", "Диалог (медленнее)" });
+                    if (nextMode != mode) companion.SetMode((CompanionBrain.CompanionMode)nextMode);
                 }
             }
             if (voice != null)
@@ -119,8 +119,8 @@ namespace EchoSound.Companion
                     if (next != selected) voice.SetLanguage(next == 0 ? WhisperClient.SpeechLanguage.Russian : next == 1 ? WhisperClient.SpeechLanguage.Polish : next == 2 ? WhisperClient.SpeechLanguage.English : WhisperClient.SpeechLanguage.Auto);
                 }
             }
-            if (runtime.ChatStarting || runtime.SpeechStarting) GUILayout.Label("Preparing your companion. Basic orders are available.");
-            else if (companion != null && companion.FreeDialogue && !string.IsNullOrEmpty(runtime.ChatError)) GUILayout.Label(runtime.ChatError, lineStyle);
+            if (runtime.ChatStarting || runtime.SpeechStarting || (companion != null && companion.FastStarting)) GUILayout.Label("Preparing your companion. Basic orders are available.");
+            else if (companion != null && companion.Mode != CompanionBrain.CompanionMode.QuickCommands && !string.IsNullOrEmpty(runtime.ChatError)) GUILayout.Label(runtime.ChatError, lineStyle);
             if (!runtime.SpeechStarting && !runtime.SpeechReady) GUILayout.Label(runtime.SpeechError, lineStyle);
             foreach (string line in lines) GUILayout.Label(line, lineStyle);
             if (!string.IsNullOrEmpty(status)) GUILayout.Label("<i>Companion: " + status + "...</i>", lineStyle);

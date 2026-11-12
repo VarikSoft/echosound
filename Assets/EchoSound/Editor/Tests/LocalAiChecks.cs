@@ -13,6 +13,7 @@ namespace EchoSound.Editor.Tests
         public static void Validate()
         {
             QuickDoorChecks.Validate();
+            FastLlmChecks.Validate();
             Check(" STOP! ", "wait_here");
             Check("follow me", "follow_curator");
             Check("come here", "go_to");

@@ -56,20 +56,31 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         public Interactor Hands { get; private set; }
         public bool IsBusy { get; private set; }
         public string LastCommandRoute { get; private set; }
-        public bool FreeDialogue { get; private set; }
-        private const string DialoguePreference = "EchoSound.FreeDialogue";
+        public enum CompanionMode { QuickCommands, FastLlm, FreeDialogue }
+        public CompanionMode Mode { get; private set; }
+        public bool FreeDialogue => Mode == CompanionMode.FreeDialogue;
+        public bool FastReady { get; private set; }
+        public bool FastStarting { get; private set; }
+        private const string ModePreference = "EchoSound.CompanionMode";
+        private readonly FastIntentClient fast = new FastIntentClient();
+        private readonly FastIntentClient warmup = new FastIntentClient();
+        private Coroutine preparation;
+        private bool lastActionSucceeded;
+        private bool started;
 
         public void SetFreeDialogue(bool enabled, bool remember = true)
+            => SetMode(enabled ? CompanionMode.FreeDialogue : CompanionMode.QuickCommands, remember);
+
+        public void SetMode(CompanionMode mode, bool remember = true)
         {
-            if (!enabled)
-            {
-                if (LastCommandRoute != null && LastCommandRoute.StartsWith("model")) Interrupt();
-                LocalAiRuntime.Instance.StopChat();
-            }
-            FreeDialogue = enabled;
+            Interrupt();
+            StopPreparation();
+            Mode = mode;
+            if (mode == CompanionMode.QuickCommands) LocalAiRuntime.Instance.StopChat();
+            else if (mode == CompanionMode.FastLlm && isActiveAndEnabled) preparation = StartCoroutine(PrepareFast());
             if (remember)
             {
-                PlayerPrefs.SetInt(DialoguePreference, enabled ? 1 : 0);
+                PlayerPrefs.SetInt(ModePreference, (int)mode);
                 PlayerPrefs.Save();
             }
         }
@@ -86,12 +97,41 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             Perception = GetComponent<CompanionPerception>();
             Hands = GetComponent<Interactor>();
             fixedTools = CreateFixedTools();
-            FreeDialogue = PlayerPrefs.GetInt(DialoguePreference, 0) == 1;
+            int saved = PlayerPrefs.GetInt(ModePreference, PlayerPrefs.GetInt("EchoSound.FreeDialogue", 0) == 1 ? 2 : 1);
+            Mode = Enum.IsDefined(typeof(CompanionMode), saved) ? (CompanionMode)saved : CompanionMode.FastLlm;
         }
 
         private void Start()
         {
+            started = true;
             _ = LocalAiRuntime.Instance;
+            if (Mode == CompanionMode.FastLlm && !FastStarting) preparation = StartCoroutine(PrepareFast());
+        }
+
+        private void OnEnable()
+        {
+            if (started && Mode == CompanionMode.FastLlm) preparation = StartCoroutine(PrepareFast());
+        }
+
+        private IEnumerator PrepareFast()
+        {
+            FastReady = false;
+            FastStarting = true;
+            LocalAiRuntime runtime = LocalAiRuntime.Instance;
+            runtime.EnsureChatStarted();
+            while (runtime.ChatStarting) yield return null;
+            if (runtime.ChatReady)
+                yield return warmup.Send("Warm up", result => FastReady = true, error => Debug.LogWarning("[Fast LLM] " + error), true);
+            FastStarting = false;
+            preparation = null;
+        }
+
+        private void StopPreparation()
+        {
+            if (preparation != null) StopCoroutine(preparation);
+            preparation = null;
+            warmup.Cancel();
+            FastStarting = FastReady = false;
         }
 
         // Abilities that do not depend on objects. Object functions such as open_door come from UseObjectTool.
@@ -138,19 +178,65 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                     LastCommandRoute = "model";
                     StartCoroutine(Handle(order));
                 }
+                else if (Mode == CompanionMode.FastLlm && !FastIntentClient.NeedsClarification(order))
+                {
+                    LastCommandRoute = "fast-llm";
+                    StartCoroutine(HandleFast(order));
+                }
                 else
                 {
                     LastCommandRoute = "clarify";
-                    string answer = LocalReply(order,
-                        "Please say: follow me, stop, come here, open or close the door. You can add left/right or in front/behind me.",
-                        "Powiedz: chodź za mną, stój, chodź tutaj, otwórz lub zamknij drzwi. Możesz dodać kierunek.",
-                        "Скажи: «за мной», «стой», «ко мне», «открой/закрой дверь». Можно уточнить: слева, справа, передо мной или за мной.");
-                    history.Add(new JObject { ["role"] = "assistant", ["content"] = answer });
-                    Spoke?.Invoke(answer);
-                    IsBusy = false;
-                    SetStatus("");
+                    Clarify(order);
                 }
             }
+        }
+
+        private void Clarify(string order, string reason = null)
+        {
+            string answer = reason ?? LocalReply(order,
+                "Please give a direct movement or door command, with a direction if needed.",
+                "Podaj bezpośrednie polecenie ruchu lub otwarcia/zamknięcia drzwi i kierunek.",
+                "Уточни прямой командой: куда идти или какую дверь открыть/закрыть.");
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = answer });
+            Spoke?.Invoke(answer);
+            IsBusy = false;
+            SetStatus("");
+        }
+
+        private IEnumerator HandleFast(string order)
+        {
+            if (!FastReady || !LocalAiRuntime.Instance.ChatReady)
+            {
+                Clarify(order, FastStarting
+                    ? LocalReply(order, "Getting ready. For now use short commands: follow me, stop, open the door.", "Przygotowuję się. Na razie użyj krótkiego polecenia.", "Ещё готовлюсь. Пока скажи коротко: «за мной», «стой», «открой дверь».")
+                    : null);
+                yield break;
+            }
+            SetStatus("interpreting");
+            string[] plan = null;
+            string error = null;
+            yield return fast.Send(order, result => plan = result, problem => error = problem);
+            if (error != null || plan == null || Array.IndexOf(plan, "clarify") >= 0)
+            { Clarify(order); yield break; }
+            // Validate the entire plan before the first action; never execute a valid prefix of an invalid plan.
+            foreach (string code in plan)
+                if (code != "stop" && code != "follow" && code != "come" && !FastIntentClient.TryDoorRequest(code, order, out _))
+                { Clarify(order); yield break; }
+            foreach (string code in plan)
+            {
+                if (FastIntentClient.TryDoorRequest(code, order, out var request)) yield return HandleDoor(order, request, false);
+                else
+                {
+                    string action = code == "follow" ? "follow_curator" : code == "stop" ? "wait_here" : "go_to";
+                    string reply = code == "follow" ? LocalReply(order, "Following you.", "Idę za tobą.", "Иду за тобой.")
+                        : code == "stop" ? LocalReply(order, "Waiting here.", "Czekam tutaj.", "Жду здесь.")
+                        : LocalReply(order, "Coming to you.", "Idę do ciebie.", "Иду к тебе.");
+                    yield return HandleQuick(action, reply, false);
+                }
+                if (!lastActionSucceeded) break;
+            }
+            IsBusy = false;
+            SetStatus("");
         }
 
         private IEnumerator HandleFollowup(string first, string followup)
@@ -165,6 +251,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
 
         private IEnumerator HandleDoor(string order, QuickDoorCommand.Request request, bool finishOrder = true)
         {
+            lastActionSucceeded = false;
             var timer = System.Diagnostics.Stopwatch.StartNew();
             Transform player = Body.curator;
             Door aimed = null;
@@ -190,6 +277,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                     report = LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.", "Не вижу тебя и не могу определить нужную дверь.");
                     break;
                 case QuickDoorCommand.Resolution.AlreadyDone:
+                    lastActionSucceeded = true;
                     report = DoorStateReply(order, door);
                     break;
                 default:
@@ -200,6 +288,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                     string outcome = null;
                     if (logToConsole) Debug.Log($"[Door timing] dispatch={timer.Elapsed.TotalSeconds:0.000}s action={name} target={door.id} route=direct", this);
                     yield return tool.Run(this, new JObject { ["target"] = door.id }, result => outcome = result);
+                    lastActionSucceeded = tool.Succeeded;
                     if (logToConsole) Debug.Log($"[Companion] {name} target={door.id} -> {outcome}", this);
                     // Preserve the real object result for subsequent conversation, including failures.
                     history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
@@ -228,8 +317,9 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 : LocalReply(order, "The door is already closed.", "Drzwi są już zamknięte.", "Дверь уже закрыта.");
         }
 
-        private IEnumerator HandleQuick(string action, string reply)
+        private IEnumerator HandleQuick(string action, string reply, bool finishOrder = true)
         {
+            lastActionSucceeded = false;
             CompanionTool tool = fixedTools.Find(candidate => candidate.Name == action);
             // A missing player must never produce a false "following" acknowledgement.
             if (action != "wait_here" && Body.curator == null)
@@ -241,9 +331,10 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             Spoke?.Invoke(reply);
             string outcome = null;
             yield return tool.Run(this, new JObject { ["target"] = "curator" }, result => outcome = result);
+            lastActionSucceeded = tool.Succeeded;
             if (action == "go_to" && outcome != "Arrived next to the curator.") Spoke?.Invoke(outcome);
             history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
-            IsBusy = false;
+            if (finishOrder) IsBusy = false;
             SetStatus("");
         }
 
@@ -252,7 +343,11 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         {
             if (!IsBusy) return;
             StopAllCoroutines();
+            // PrepareFast is independent of orders. Restart a cancelled warmup after interrupting an order.
+            bool resumeWarmup = FastStarting && Mode == CompanionMode.FastLlm;
+            if (resumeWarmup) StopPreparation();
             chat.Cancel();
+            fast.Cancel();
 
             // Complete every outstanding call, including calls queued after the interrupted one.
             foreach (JToken call in pendingCalls)
@@ -261,6 +356,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             if (Body.IsWalking) Body.Halt("waiting (interrupted on the way: " + Body.Activity + ")");
             IsBusy = false;
             SetStatus("");
+            if (resumeWarmup && isActiveAndEnabled) preparation = StartCoroutine(PrepareFast());
         }
 
         /// <summary>Forgets the conversation, for example when a new level replaces every object.</summary>
@@ -429,7 +525,9 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         private void OnDisable()
         {
             Interrupt();
+            StopPreparation();
             chat.Cancel();
+            fast.Cancel();
         }
     }
 }

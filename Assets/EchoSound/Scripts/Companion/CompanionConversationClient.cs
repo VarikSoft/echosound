@@ -16,8 +16,7 @@ namespace EchoSound.Companion
 
         public static JObject CreateRequest(string order, JArray recent, string facts, bool detailed = false, string context = null)
         {
-            string language = Regex.IsMatch(order, @"[\u0400-\u04ff]") ? "Russian"
-                : Regex.IsMatch(order, @"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]|(?i)\b(czesc|dziekuje|dobrze|jestem|chcesz)\b") ? "Polish" : "English";
+            string language = CompanionLanguage.Name(CompanionLanguage.Detect(order));
             string prompt = "You are Echo, a friendly teammate in a co-op horror game. "
                 + $"Reply in {language}, " + (detailed ? "in one or two short sentences. " : "in one short sentence, about 5-8 words. ")
                 + "Answer the latest message specifically; use earlier turns for follow-ups. "

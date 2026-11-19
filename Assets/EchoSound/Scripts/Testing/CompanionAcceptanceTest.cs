@@ -18,7 +18,7 @@ namespace EchoSound.Testing
         [Serializable]
         public sealed class Case
         {
-            public string id, group, text, audio, language = "Russian", mode = "FastLlm";
+            public string id, group, text, audio, language = "Polish", mode = "FastLlm";
             public string expected = "preserve", contains, exact, expectedRoute;
             public bool reset, quiet, replaceWithStop, disableVoice, following, cancelWithStop, differentFromPrevious;
             public int doors = -1;
@@ -172,6 +172,8 @@ namespace EchoSound.Testing
         private IEnumerator Run(Case item)
         {
             voice.whisper.language = (WhisperClient.SpeechLanguage)Enum.Parse(typeof(WhisperClient.SpeechLanguage), item.language);
+            // Words without a language, such as "stop", are answered in the case's language.
+            CompanionLanguage.Preferred = item.language == "English" ? CompanionLanguage.Language.English : CompanionLanguage.Language.Polish;
             int initialDoors = DoorBits();
             var row = new Result { id = item.id, group = item.group, mode = item.mode, input = item.text,
                 audio = !string.IsNullOrEmpty(item.audio), before = brain.Body.Activity };
@@ -198,14 +200,14 @@ namespace EchoSound.Testing
                 if (item.cancelWithStop)
                 {
                     yield return new WaitForSecondsRealtime(0.05f);
-                    brain.Command("стой");
+                    brain.Command("stop");
                 }
                 if (item.disableVoice) voice.enabled = false;
                 if (item.replaceWithStop)
                 {
                     // Replace in-flight speech with a new audio order. Old text must never execute later.
                     yield return new WaitForSecondsRealtime(0.01f);
-                    float[] stop = ReadWave(Path.Combine(Path.GetDirectoryName(fixturePath), "ru-stop.wav"), out int rate);
+                    float[] stop = ReadWave(Path.Combine(Path.GetDirectoryName(fixturePath), "pl-stop.wav"), out int rate);
                     voice.Submit(stop, rate);
                 }
                 while (timer.Elapsed.TotalSeconds < (item.quiet || item.disableVoice ? 1 : 12))

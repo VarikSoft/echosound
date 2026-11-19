@@ -1,5 +1,5 @@
 """Compare previous auto-language recognition with single-pass speech on local WAV fixtures.
-Usage: python Tools/Benchmark-Voice.py .utmp/voice-latency --language russian
+Usage: python Tools/Benchmark-Voice.py .utmp/voice-latency --language polish
 Uses only loopback; does not capture a microphone or download audio.
 """
 import argparse
@@ -32,7 +32,7 @@ def transcribe(url, audio, language, fast):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('fixtures', type=pathlib.Path)
-    parser.add_argument('--language', default='russian')
+    parser.add_argument('--language', default='polish', choices=['polish', 'english'])
     args = parser.parse_args()
     results = []
     with runtime.server('whisper', runtime.free_port(), uuid.uuid4().hex) as url:
@@ -40,7 +40,7 @@ def main():
             for fast in [False, True]:
                 started=time.perf_counter(); requests=1
                 result=transcribe(url,path.read_bytes(),args.language if fast else 'auto',fast)
-                if not fast and result.get('text','').strip() and result.get('language') not in ['polish','english','russian']:
+                if not fast and result.get('text','').strip() and result.get('language') not in ['polish','english']:
                     result=transcribe(url,path.read_bytes(),'polish',False); requests+=1
                 row={'sample':path.name,'mode':'fixed-fast' if fast else 'previous-auto','seconds':round(time.perf_counter()-started,3),'requests':requests,'text':result.get('text','').strip()}
                 results.append(row); print(json.dumps(row,ensure_ascii=False),flush=True)

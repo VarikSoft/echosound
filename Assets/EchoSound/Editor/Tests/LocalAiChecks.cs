@@ -15,74 +15,94 @@ namespace EchoSound.Editor.Tests
             QuickDoorChecks.Validate();
             FastLlmChecks.Validate();
             ConversationChecks.Validate();
+            CompanionLanguageChecks.Validate();
             Check(" STOP! ", "wait_here");
             Check("follow me", "follow_curator");
             Check("come here", "go_to");
+            Check("Please stay where you are", "wait_here");
+            Check("Don't follow me.", "wait_here");
+            Check("don't move", "wait_here");
             Check("stój", "wait_here");
+            Check("stoj", "wait_here");
+            Check("Proszę, zaczekaj tutaj.", "wait_here");
+            Check("Nie idź za mną.", "wait_here");
             Check("idź za mną", "follow_curator");
+            Check("idz za mna", "follow_curator");
+            Check("Za mną!", "follow_curator");
             Check("Podejdź do mnie.", "go_to");
-            Check("стой", "wait_here");
-            Check("иди за мной", "follow_curator");
+            Check("Wróć do mnie", "go_to");
             const QuickCompanionCommand.FollowContext protection = QuickCompanionCommand.FollowContext.Protection;
-            const QuickCompanionCommand.FollowContext unclearDoor = QuickCompanionCommand.FollowContext.ClarifyDoors;
             const QuickCompanionCommand.FollowContext escortDoors = QuickCompanionCommand.FollowContext.OpenOnPath;
-            CheckFollowContext("Иди за мной. Короче, следи, чтобы враги меня не убили. Может, двери открываем меня. Не знаю.", protection | unclearDoor);
-            CheckFollowContext("Следуй за мной и прикрой меня. Может, откроем дверь?", protection | unclearDoor);
-            CheckFollowContext("Иди за мной, может, закроем двери.", unclearDoor);
-            CheckFollowContext("Иди за мной. Прикрой меня. И открывай все двери по дороге.", protection | escortDoors);
-            CheckFollowContext("Иди за мной. Открой все двери. Может, закроем двери?", unclearDoor);
+            CheckFollowContext("Follow me and cover me.", protection);
+            CheckFollowContext("Okay, follow me and watch my back.", protection);
+            CheckFollowContext("Idź za mną i osłaniaj mnie.", protection);
+            CheckFollowContext("Chodź za mną. Pilnuj moich pleców.", protection);
+            CheckFollowContext("Follow me. Cover me. And open all the doors on the way.", protection | escortDoors);
+            CheckFollowContext("Za mną, osłaniaj mnie i otwieraj wszystkie drzwi po drodze.", protection | escortDoors);
             foreach (string text in new[] {
-                "Если я скажу «иди за мной», прикрой меня.",
-                "Он сказал: иди за мной. Прикрой меня.",
-                "Иди за мной? Прикрой меня.",
-                "Не иди за мной. Прикрой меня.",
-                "Иди за мной. Прикрой меня, если услышишь шаги.",
-                "Иди за мной. Прикрой меня. Стой.",
-                "Иди за мной. Может, стой за дверью.",
-                "Иди за мной. Может, не открывай двери, пока я осмотрюсь."
+                "If I say \"follow me\", cover me.",
+                "If I say follow me, cover me.",
+                "He said: follow me. Cover me.",
+                "Follow me? Cover me.",
+                "Don't follow me. Cover me.",
+                "Follow me. Cover me if you hear footsteps.",
+                "Follow me. Cover me. Stop.",
+                "Follow me. Maybe close the doors.",
+                "Follow me. Cover me. Cover me.",
+                "Idź za mną. Osłaniaj mnie, jeśli usłyszysz kroki.",
+                "Idź za mną. Może zamknij drzwi.",
+                "Follow me."
             })
                 Require(!QuickCompanionCommand.TryParseFollowWithContext(text, out _), "Do not split a conditional, quoted or conflicting command: " + text);
             foreach (string text in new[] {
-                "Не иди за мной.",
-                "Перестань преследовать меня.",
-                "Пана, не иди за мной и не открываю больше две.",
-                "Эхо, не ходи больше за мной и не открывай двери."
+                "Don't follow me.",
+                "Stop following me.",
+                "Can you stop following me?",
+                "Nie idź za mną.",
+                "Nie idz za mna",
+                "Przestań za mną chodzić.",
+                "Echo, nie idź za mną i nie otwieraj już drzwi.",
+                "Don't follow me anymore and don't open any more doors."
             })
                 Require(QuickCompanionCommand.TryParseDismissal(text, out var waitAction) && waitAction == QuickCompanionCommand.DismissalAction.Wait,
                     "Stop following without operating doors: " + text);
             foreach (string text in new[] {
-                "А еще этот. Можешь не ходить больше не преследовать меня и где-то гулять и закрывать двери.",
-                "Можешь больше не ходить за мной, а пройтись и закрыть двери?",
-                "Не следуй за мной. Закрой ближайшие двери."
+                "Don't follow me and close all the doors.",
+                "Stop following me. Close the nearby doors.",
+                "Can you stop following me and close all the doors?",
+                "Nie idź za mną, a zamknij wszystkie drzwi.",
+                "Przestań za mną chodzić i pozamykaj drzwi."
             })
                 Require(QuickCompanionCommand.TryParseDismissal(text, out var closeAction) && closeAction == QuickCompanionCommand.DismissalAction.CloseNearbyDoors,
                     "Stop following and close nearby doors: " + text);
-            Require(QuickCompanionCommand.TryParseDismissal("Можешь больше не ходить за мной, а пройти связы к крык двери.", out var unclear)
-                && unclear == QuickCompanionCommand.DismissalAction.ClarifyDoors, "Stop safely even if the door clause is garbled.");
             foreach (string text in new[] {
-                "Если скажу не иди за мной, закрой двери.",
-                "Я сказал: не иди за мной.",
-                "«Не иди за мной», сказал игрок.",
-                "Не иди за мной?",
-                "Не иди за мной и открывай все двери.",
-                "Не иди за мной и не закрывай двери рядом с Сашей.",
-                "Не иди за мной и закрой двери слева.",
-                "Можешь не ходить за мной, а пройти если я открою двери?",
-                "Не открываю больше две."
+                "If I say don't follow me, close the doors.",
+                "I said: don't follow me.",
+                "\"Don't follow me,\" the player said.",
+                "Don't follow me?",
+                "Don't follow me and open all the doors.",
+                "Don't follow me and don't close the doors near Sam.",
+                "Don't follow me and close the door on the left.",
+                "Nie idź za mną i zamknij drzwi po lewej.",
+                "Jeśli powiem nie idź za mną, zamknij drzwi.",
+                "Don't open the doors.",
+                "Nie otwieraj drzwi.",
+                "Stop."
             })
                 Require(!QuickCompanionCommand.TryParseDismissal(text, out _), "Do not mistake a quote, condition or unsupported clause for a dismissal: " + text);
-            Require(!QuickCompanionCommand.TryParse("Следую за мной.", out _, out _), "A first-person transcript is not a movement order.");
-            Require(!QuickCompanionCommand.TryParse("«Стой»", out _, out _), "A quoted stop does not stop the companion.");
-            Check("ко мне", "go_to");
-            Check("Можешь подождать здесь, пока я немного осмотрюсь и попробую разобраться, куда нам дальше идти?", "wait_here");
-            foreach (string text in new[] { "Можешь подождать здесь, пока я осмотрюсь, и открой дверь", "Можешь подождать здесь, пока я посмотрю, а ты иди за мной", "Если можешь подождать здесь, пока я осмотрюсь" })
-                Require(!QuickCompanionCommand.TryParse(text, out _, out _), "A wait explanation cannot conceal another order or condition.");
+            Require(!QuickCompanionCommand.TryParse("Idę za tobą.", out _, out _) && !QuickCompanionCommand.TryParse("I'm following you.", out _, out _),
+                "A first-person statement is not a movement order.");
+            Require(!QuickCompanionCommand.TryParse("„Stój”", out _, out _) && !QuickCompanionCommand.TryParse("'stop'", out _, out _),
+                "A quoted stop does not stop the companion.");
             Require(QuickCompanionCommand.TrySplitFollowup("Open the door in front of me and then follow me.", out string first, out string tail)
                 && first == "Open the door in front of me" && tail == "follow me.", "Explicit movement suffix is separated.");
-            foreach (string text in new[] { "If I open the door then follow me", "Open the door if I wave and then follow me", "Don't open the door then follow me", "Open the door then follow me?", "Open the door and then close it" })
+            Require(QuickCompanionCommand.TrySplitFollowup("Otwórz drzwi przede mną, a potem chodź za mną.", out first, out tail)
+                && first == "Otwórz drzwi przede mną" && tail == "chodź za mną.", "Explicit Polish movement suffix is separated.");
+            foreach (string text in new[] { "If I open the door then follow me", "Open the door if I wave and then follow me", "Don't open the door then follow me",
+                "Open the door then follow me?", "Open the door and then close it", "Nie otwieraj drzwi, a potem chodź za mną", "Otwórz drzwi, kiedy powiem, a potem chodź za mną" })
                 Require(!QuickCompanionCommand.TrySplitFollowup(text, out _, out _), "Do not guess a conditional or unknown suffix.");
-            foreach (string text in new[] { "don't stop", "не стой", "nie czekaj", "should I stop?", "stop?",
-                "stop and open the door", "follow me then wait", "", "the word stop", "stop-go", "не следую за мной", "ни иди за мной", "следую за мной?" })
+            foreach (string text in new[] { "don't stop", "nie czekaj", "nie stój", "should I stop?", "stop?", "czy mam czekać?",
+                "stop and open the door", "czekaj i otwórz drzwi", "follow me then wait", "", "the word stop", "stop-go" })
                 Require(!QuickCompanionCommand.TryParse(text, out _, out _), "Not a standalone command: " + text);
 
             var schema = new JObject
@@ -96,11 +116,23 @@ namespace EchoSound.Editor.Tests
             Require(!CompanionBrain.ValidArguments(schema, new JObject { ["target"] = 1 }), "Non-string target rejected.");
             Require(!CompanionBrain.ValidArguments(schema, new JObject { ["target"] = "door_1", ["other"] = "x" }), "Unexpected parameter rejected.");
 
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Polish, new[] { "polish", "english" }) == "polish",
+                "A Polish system recognizes Polish without automatic detection.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.English, null) == "english", "An English system recognizes English.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Russian, null) == "english"
+                && WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.German, null) == "english",
+                "Any other system language falls back to English.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.Polish, SystemLanguage.English, null) == "polish", "Explicit language overrides the system.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.Auto, SystemLanguage.English, null) == "auto", "Mixed-language mode remains available.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Polish, new[] { "english" }) == "english", "Preserve an explicit legacy language.");
+            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Polish, new[] { "russian" }) == "polish", "Ignore an unsupported legacy language.");
+            Require(WhisperClient.IsSupported("polish") && WhisperClient.IsSupported("english") && !WhisperClient.IsSupported("russian")
+                && !WhisperClient.IsSupported("czech") && !WhisperClient.IsSupported(null), "Auto accepts only Polish and English transcripts.");
+            Require(!Enum.IsDefined(typeof(WhisperClient.SpeechLanguage), 1) && (int)WhisperClient.SpeechLanguage.Polish == 2
+                && (int)WhisperClient.SpeechLanguage.English == 3 && (int)WhisperClient.SpeechLanguage.Auto == 4,
+                "Saved languages keep their values; the removed Russian value falls back to the default.");
+
             var client = new LocalChatClient();
-            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Russian, new[] { "polish", "english", "russian" }) == "russian", "Short Russian orders should not trigger automatic detection.");
-            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.Polish, SystemLanguage.Russian, null) == "polish", "Explicit language overrides the system.");
-            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.Auto, SystemLanguage.Russian, null) == "auto", "Mixed-language mode remains available.");
-            Require(WhisperClient.ResolveLanguage(WhisperClient.SpeechLanguage.System, SystemLanguage.Russian, new[] { "english" }) == "english", "Preserve an explicit legacy language.");
             JObject request = client.CreateRequest(new JArray(new JObject { ["role"] = "user", ["content"] = "hello" }), new JArray());
             Require((int)request["max_tokens"] == 192, "Replies have a token budget.");
             Require((bool)request["chat_template_kwargs"]["enable_thinking"] == false, "Thinking disabled.");
@@ -146,7 +178,7 @@ namespace EchoSound.Editor.Tests
             foreach (var entry in new[] {
                 new[] { "Open the door in front of me.", "open_door", "door_front" },
                 new[] { "Zamknij drzwi za mną.", "close_door", "door_back" },
-                new[] { "Открой дверь передо мной.", "open_door", "door_front" },
+                new[] { "Otwórz drzwi przede mną.", "open_door", "door_front" },
                 new[] { "Please stay where you are.", "wait_here", "" },
                 new[] { "Podejdź do mnie.", "go_to", "curator" },
                 new[] { "Is the door behind me open?", "", "" },

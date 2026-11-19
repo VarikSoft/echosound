@@ -54,7 +54,7 @@ namespace EchoSound.Testing
             brain.Command("follow me");
             while (brain.IsBusy) yield return null;
             if (brain.Body.Activity != "following the curator") { Fail("Follow shortcut failed."); yield break; }
-            brain.Command("стой");
+            brain.Command("stój");
             while (brain.IsBusy) yield return null;
             if (brain.Body.Activity != "waiting") { Fail("Stop shortcut failed."); yield break; }
 
@@ -91,7 +91,7 @@ namespace EchoSound.Testing
             {
                 var voice = FindAnyObjectByType<CuratorVoice>();
                 if (voice == null) { Fail("No voice input component."); yield break; }
-                voice.whisper.language = WhisperClient.SpeechLanguage.Russian;
+                voice.whisper.language = WhisperClient.SpeechLanguage.Polish;
                 string heard = null;
                 Action<string> onHeard = value => heard = value;
                 brain.OrderReceived += onHeard;
@@ -120,7 +120,7 @@ namespace EchoSound.Testing
             Action<string> onClarification = text => clarification = text;
             brain.Spoke += onClarification;
             var clarificationTimer = System.Diagnostics.Stopwatch.StartNew();
-            brain.Command("Открой дверь только когда я разрешу");
+            brain.Command("Otwórz drzwi dopiero, kiedy pozwolę");
             brain.Spoke -= onClarification;
             if (brain.IsBusy || brain.LastCommandRoute != "clarify" || clarification == null || runtime.ChatReady || runtime.ChatStarting)
             { Fail("Unknown command must clarify immediately without loading the model."); yield break; }
@@ -135,26 +135,27 @@ namespace EchoSound.Testing
                 brain.SetMode(CompanionBrain.CompanionMode.FastLlm, false);
                 while (brain.FastStarting) yield return null;
                 if (!brain.FastReady) { Fail("Fast LLM did not warm up."); yield break; }
-                foreach (string phrase in new[] { "Держись рядом со мной", "Побудь здесь пока я осмотрюсь" })
+                // Paraphrases outside the direct phrase list, so the language model must interpret them.
+                foreach (string phrase in new[] { "Trzymaj się blisko mnie", "Poczekaj tutaj, aż się rozejrzę", "Stick with me for a while" })
                 {
                     var intentWatch = System.Diagnostics.Stopwatch.StartNew();
                     brain.Command(phrase);
                     while (brain.IsBusy) yield return null;
-                    string expected = phrase.StartsWith("Держись") ? "following the curator" : "waiting";
+                    string expected = phrase.StartsWith("Poczekaj") ? "waiting" : "following the curator";
                     if (brain.LastCommandRoute != "fast-llm" || brain.Body.Activity != expected)
                     { Fail("Fast LLM movement failed: " + phrase); yield break; }
                     Debug.Log($"FAST LLM MOVEMENT PASSED: command-to-action={intentWatch.Elapsed.TotalSeconds:0.000}s");
                 }
-                brain.Command("Не закрывай дверь");
+                brain.Command("Nie zamykaj drzwi");
                 if (brain.IsBusy || brain.LastCommandRoute != "clarify") { Fail("Negated fast command was not rejected."); yield break; }
-                brain.Command("за мной");
+                brain.Command("za mną");
                 while (brain.IsBusy) yield return null;
-                brain.Command("Мне тут немного жутко");
+                brain.Command("Trochę się boję");
                 while (brain.IsBusy) yield return null;
                 if (brain.LastCommandRoute != "game-chat" || brain.Body.Activity != "following the curator")
                 { Fail("Small talk should produce a reply without changing the previous action."); yield break; }
                 yield return CheckConversationSafety(brain);
-                brain.Command("стой");
+                brain.Command("stój");
                 while (brain.IsBusy) yield return null;
                 Debug.Log("FAST CHAT PASSED: social reply preserves the action already in progress.");
                 yield return CheckDoors(brain, Vector3.Distance(brain.transform.position, start) > 2 ? start : target,
@@ -192,28 +193,28 @@ namespace EchoSound.Testing
 
         private IEnumerator CheckConversationSafety(CompanionBrain brain)
         {
-            brain.Command("иди за мной");
+            brain.Command("idź za mną");
             while (brain.IsBusy) yield return null;
             string answer = "";
             void Capture(string text) => answer = text;
             brain.Spoke += Capture;
             try
             {
-                brain.Command("Меня зовут Лёня.");
-                brain.Command("У меня кот по кличке Плюш.");
-                brain.Command("Пока!");
-                brain.Command("Как меня зовут?");
-                if (answer != "Тебя зовут Лёня.") { Fail("Lost the player's name after other turns."); yield break; }
-                brain.Command("Как зовут моего кота?");
-                if (answer != "Твоего кота зовут Плюш.") { Fail("The player's cat was forgotten or assigned to the wrong speaker."); yield break; }
-                brain.Command("Ты идёшь за мной?");
-                if (answer != "Я иду за тобой." || brain.Body.Activity != "following the curator")
+                brain.Command("Mam na imię Łucja.");
+                brain.Command("Mam kota o imieniu Plusz.");
+                brain.Command("Do zobaczenia!");
+                brain.Command("Jak mam na imię?");
+                if (answer != "Masz na imię Łucja.") { Fail("Lost the player's name after other turns."); yield break; }
+                brain.Command("What's my cat's name?");
+                if (answer != "Your cat is called Plusz.") { Fail("The player's cat was forgotten or assigned to the wrong speaker."); yield break; }
+                brain.Command("Czy idziesz za mną?");
+                if (answer != "Idę za tobą." || brain.Body.Activity != "following the curator")
                 { Fail("Conversation or a farewell interrupted the companion's following order."); yield break; }
-                brain.Command("«Стой»");
+                brain.Command("„Stój”");
                 while (brain.IsBusy) yield return null;
                 if (brain.Body.Activity != "following the curator")
                 { Fail("The companion executed a quoted order."); yield break; }
-                brain.Command("стой");
+                brain.Command("stop");
                 while (brain.IsBusy) yield return null;
                 if (brain.Body.Activity != "waiting") { Fail("A real stop was ignored."); yield break; }
                 Debug.Log("DIALOGUE SAFETY PASSED: memory, quoted speech, farewell, and real order, mode=" + brain.Mode);
@@ -249,9 +250,9 @@ namespace EchoSound.Testing
                     string answer = null;
                     void CaptureAnswer(string text) => answer = text;
                     brain.Spoke += CaptureAnswer;
-                    brain.Command("Дверь впереди закрыта?");
+                    brain.Command("Czy drzwi z przodu są zamknięte?");
                     brain.Spoke -= CaptureAnswer;
-                    if (brain.LastCommandRoute != "door-status" || answer != "Дверь уже открыта."
+                    if (brain.LastCommandRoute != "door-status" || answer != "Drzwi są już otwarte."
                         || target.IsOpen || !decoy.IsOpen)
                     {
                         Fail("Door status must report the nearer open door without operating either door.");
@@ -260,7 +261,7 @@ namespace EchoSound.Testing
                     Debug.Log($"DOOR STATUS PASSED: transcript-to-reply={watch.Elapsed.TotalSeconds:0.000}s, route=door-status");
                     watch.Restart();
                 }
-                brain.Command(semantic ? "Распахни дверь впереди" : "Открой дверь.");
+                brain.Command(semantic ? "Uchyl drzwi z przodu" : "Otwórz drzwi.");
                 while (!brain.Body.IsWalking && !target.IsOpen && brain.IsBusy && watch.Elapsed.TotalSeconds < 2) yield return null;
                 string expectedRoute = semantic ? "fast-llm" : "direct";
                 if (brain.LastCommandRoute != expectedRoute || (!brain.Body.IsWalking && !target.IsOpen))
@@ -268,7 +269,7 @@ namespace EchoSound.Testing
                 Debug.Log($"DOOR LATENCY PASSED: text-to-action={watch.Elapsed.TotalSeconds:0.000}s, route={expectedRoute}");
                 if (!semantic)
                 {
-                    brain.Command("Дверь впереди открыта?");
+                    brain.Command("Is the door ahead open?");
                     if (!brain.IsBusy)
                     {
                         Fail("Door status interrupted the action already in progress.");
@@ -278,14 +279,14 @@ namespace EchoSound.Testing
                 while (brain.IsBusy) yield return null;
                 if (!target.IsOpen || !decoy.IsOpen) { Fail("Wrong door opened."); yield break; }
                 decoy.enabled = false;
-                brain.Command(semantic ? "Прикрой дверь передо мной" : "Закрой дверь передо мной.");
+                brain.Command(semantic ? "Przymknij drzwi przede mną" : "Zamknij drzwi przede mną.");
                 while (brain.IsBusy) yield return null;
                 if (target.IsOpen) { Fail("Door did not close."); yield break; }
 
                 if (fixtures != null)
                 {
                     CuratorVoice voice = FindAnyObjectByType<CuratorVoice>();
-                    voice.whisper.language = WhisperClient.SpeechLanguage.Russian;
+                    voice.whisper.language = WhisperClient.SpeechLanguage.Polish;
                     float[] audio = ReadWave(Path.Combine(fixtures, semantic ? "fast-door.wav" : "door.wav"), out int rate);
                     string heard = null;
                     Action<string> onHeard = text => heard = text;
@@ -300,14 +301,14 @@ namespace EchoSound.Testing
                     Debug.Log($"DOOR VOICE LATENCY PASSED: release-to-action={watch.Elapsed.TotalSeconds:0.000}s, route={expectedRoute}");
                     while (brain.IsBusy) yield return null;
                 }
-                brain.Command(semantic ? "Прикрой дверь впереди а потом держись рядом со мной" : "Закрой дверь передо мной а потом за мной");
+                brain.Command(semantic ? "Przymknij drzwi z przodu, a potem trzymaj się blisko mnie" : "Zamknij drzwi przede mną, a potem za mną");
                 while (brain.IsBusy) yield return null;
                 if (target.IsOpen || brain.LastCommandRoute != expectedRoute || brain.Body.Activity != "following the curator")
                 { Fail("Direct door plus follow sequence failed."); yield break; }
-                brain.Command("стой");
-                brain.Command(semantic ? "Распахни дверь впереди и потом держись рядом со мной" : "Открой дверь передо мной а потом за мной");
+                brain.Command("stój");
+                brain.Command(semantic ? "Uchyl drzwi z przodu, a potem trzymaj się blisko mnie" : "Open the door in front of me and then follow me");
                 yield return null;
-                brain.Command("стой");
+                brain.Command("stop");
                 yield return new WaitForSecondsRealtime(2);
                 if (brain.IsBusy || brain.Body.Activity != "waiting")
                 { Fail("Stop did not cancel the queued follow after opening a door."); yield break; }
@@ -328,22 +329,22 @@ namespace EchoSound.Testing
 
         private IEnumerator CheckDoorEscort(CompanionBrain brain, Transform viewer, Door target, Vector3 forward, string fixtures)
         {
-            brain.Command("Закрой дверь передо мной.");
+            brain.Command("Zamknij drzwi przede mną.");
             while (brain.IsBusy) yield return null;
             if (target.IsOpen) { Fail("Could not prepare the closed escort door."); yield break; }
             // Keep the fixture's line of sight away from the real player standing at the spawn.
             viewer.position = target.transform.position - forward * 0.9f;
             Physics.SyncTransforms();
             foreach (string phrase in new[] {
-                "Иди за мной и открой все двери",
-                "Короче, иди за мной. И открывай все двери передом ногей.",
-                "Иди за мной. Открывай все дверью передо мной.",
-                "Иди за мной. Прикрой меня. И открывай все двери по дороге."
+                "Idź za mną i otwórz wszystkie drzwi",
+                "Follow me. Open all the doors on the way.",
+                "Chodź za mną. Otwieraj drzwi po drodze.",
+                "Idź za mną. Osłaniaj mnie. I otwieraj wszystkie drzwi po drodze."
             })
                 yield return VerifyEscort(brain, target, phrase, null);
             if (fixtures != null)
             {
-                foreach (string name in new[] { "escort.wav", "ru-escort-casual.wav", "ru-escort-ahead.wav" })
+                foreach (string name in new[] { "escort.wav", "pl-escort.wav", "en-escort.wav" })
                 {
                     string wave = Path.Combine(fixtures, name);
                     if (File.Exists(wave)) yield return VerifyEscort(brain, target, null, wave);
@@ -352,37 +353,30 @@ namespace EchoSound.Testing
 
             Door second = Door.Create("smoke_bulk_second", target.transform.parent, target.transform.position + viewer.right * 1.3f,
                 viewer.rotation, 1, 2.6f, null, false);
-            brain.Command("Открой все двери");
+            brain.Command("Otwórz wszystkie drzwi");
             while (brain.IsBusy) yield return null;
             if (!target.IsOpen || !second.IsOpen) { Fail("Standalone bulk order did not open both doors."); yield break; }
             Debug.Log("DOOR ESCORT PASSED: open on path, resume follow, stop, and standalone bulk opening.");
 
-            yield return VerifyDismissal(brain, viewer, target, second,
-                "Пана, не иди за мной и не открываю больше две.", null, false);
-            yield return VerifyDismissal(brain, viewer, target, second,
-                "А еще этот. Можешь не ходить больше не преследовать меня и где-то гулять и закрывать двери.", null, true);
-            yield return VerifyDismissal(brain, viewer, target, second,
-                "Можешь больше не ходить за мной, а пройти связы к крык двери.", null, false, "Что сделать с дверями?");
+            yield return VerifyDismissal(brain, viewer, target, second, "Echo, nie idź za mną i nie otwieraj już drzwi.", null, false);
+            yield return VerifyDismissal(brain, viewer, target, second, "Don't follow me anymore and close all the doors.", null, true);
+            yield return VerifyDismissal(brain, viewer, target, second, "Przestań za mną chodzić, a potem pozamykaj drzwi.", null, true);
             if (fixtures != null)
             {
-                string stopWave = Path.Combine(fixtures, "ru-dismiss-escort.wav");
-                string closeWave = Path.Combine(fixtures, "ru-dismiss-close.wav");
-                string unclearWave = Path.Combine(fixtures, "ru-dismiss-unclear.wav");
+                string stopWave = Path.Combine(fixtures, "pl-dismiss.wav");
+                string closeWave = Path.Combine(fixtures, "en-dismiss-close.wav");
                 if (File.Exists(stopWave)) yield return VerifyDismissal(brain, viewer, target, second, null, stopWave, false);
                 if (File.Exists(closeWave)) yield return VerifyDismissal(brain, viewer, target, second, null, closeWave, true);
-                // A synthetic voice can produce a different transcript on another machine.
-                // The recorded ambiguous transcript is asserted above as a stable text fixture.
-                if (File.Exists(unclearWave)) yield return VerifyDismissal(brain, viewer, target, second, null, unclearWave, null);
             }
         }
 
         private IEnumerator VerifyDismissal(CompanionBrain brain, Transform viewer, Door target, Door second,
-            string phrase, string wave, bool? closeDoors, string expectedReply = null)
+            string phrase, string wave, bool closeDoors)
         {
-            brain.Command("Открой все двери");
+            brain.Command("Otwórz wszystkie drzwi");
             while (brain.IsBusy) yield return null;
             if (!target.IsOpen || !second.IsOpen) { Fail("Dismissal test requires two open doors."); yield break; }
-            brain.Command("Иди за мной. Открой все двери.");
+            brain.Command("Idź za mną. Otwórz wszystkie drzwi.");
             if (brain.Body.Activity != "following the curator") { Fail("Dismissal test requires active escort."); yield break; }
 
             float[] audio = null;
@@ -414,12 +408,9 @@ namespace EchoSound.Testing
             }
             bool bothOpen = target.IsOpen && second.IsOpen;
             bool bothClosed = !target.IsOpen && !second.IsOpen;
-            bool doorsMatch = closeDoors == true ? bothClosed : bothOpen;
-            if (!closeDoors.HasValue)
-                doorsMatch = bothClosed || (bothOpen && reply != null && reply.Contains("Что сделать с дверями?"));
+            bool doorsMatch = closeDoors ? bothClosed : bothOpen;
             if (heard == null || responseSeconds < 0 || brain.LastCommandRoute != "direct" || brain.IsBusy
-                || brain.Body.Activity != "waiting" || !doorsMatch
-                || (expectedReply != null && !reply.Contains(expectedReply)))
+                || brain.Body.Activity != "waiting" || !doorsMatch || string.IsNullOrEmpty(reply))
             {
                 Fail($"Dismissal did not take effect: {heard ?? phrase ?? wave}, activity={brain.Body.Activity}, doors={target.State}/{second.State}.");
                 yield break;
@@ -434,11 +425,11 @@ namespace EchoSound.Testing
             if (target.IsOpen || brain.Body.Activity != "waiting")
             { Fail("The old escort continued after dismissal."); yield break; }
 
-            brain.Command("Иди за мной.");
+            brain.Command("Follow me.");
             while (brain.IsBusy) yield return null;
             if (brain.Body.Activity != "following the curator" || brain.LastCommandRoute != "direct")
             { Fail("A new movement order must still work after dismissal."); yield break; }
-            brain.Command("стой");
+            brain.Command("stój");
             while (brain.IsBusy) yield return null;
             Debug.Log($"DISMISSAL PASSED: input={(wave == null ? "text" : Path.GetFileName(wave))}, reply={responseSeconds:0.000}s, transcript={heard}");
         }
@@ -482,8 +473,8 @@ namespace EchoSound.Testing
                 yield break;
             }
             Debug.Log($"ESCORT VARIANT PASSED: input={(wave == null ? "text" : Path.GetFileName(wave))}, reply={responseSeconds:0.000}s, transcript={heard}");
-            brain.Command("стой");
-            brain.Command("Закрой дверь передо мной.");
+            brain.Command("stop");
+            brain.Command("Close the door in front of me.");
             while (brain.IsBusy) yield return null;
             yield return new WaitForSeconds(0.4f);
             if (target.IsOpen || brain.Body.Activity == "following the curator") Fail("Cancelled escort continued following or reopened a door.");

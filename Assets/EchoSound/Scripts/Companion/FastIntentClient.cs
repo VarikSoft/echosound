@@ -1,12 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using static EchoSound.Companion.CompanionPhrases;
 
 namespace EchoSound.Companion
 {
@@ -14,39 +16,59 @@ namespace EchoSound.Companion
     public sealed class FastIntentClient
     {
         public const string Prompt = @"Classify the player's request as a JSON array of one or two actions in spoken order.
-follow = keep walking with the player, stay close (иди за мной, держись рядом, podążaj).
-stop = stay here and wait for the player (жди здесь, останься, zaczekaj).
-come = walk toward the player once (ко мне, подойди ближе, podejdź do mnie, wróć do mnie).
-open = open a door (открой, распахни, otwórz). close = close a door (закрой, прикрой, zamknij).
+follow = keep walking with the player, stay close (follow me, chodź za mną, trzymaj się blisko).
+stop = stay here and wait for the player (wait here, zostań tu, poczekaj).
+come = walk toward the player once (come here, podejdź do mnie, chodź tutaj).
+open = open a door (otwórz, uchyl). close = close a door (zamknij, przymknij, shut).
 The game handles door directions; output only the verb. Repeat a door action if asked to do it to two different doors. A sentence requesting the same movement in two ways is one action.
 Questions about the world, statements, negated or conditional orders, and unsupported actions (including breaking, holding, picking up) yield [""clarify""]. Polite requests are orders.
-Дождись меня здесь -> [""stop""]
+Poczekaj tu na mnie -> [""stop""]
 Keep up and stay close -> [""follow""]
-Можешь прикрыть дверь слева? -> [""close""]
-Распахни дверь слева, затем прикрой дверь справа -> [""open"",""close""]
+Czy możesz przymknąć drzwi po lewej? -> [""close""]
+Uchyl drzwi po lewej, potem zamknij drzwi po prawej -> [""open"",""close""]
 Come here and then open the door -> [""come"",""open""]
-Сломай дверь -> [""clarify""]";
+Wyważ drzwi -> [""clarify""]";
 
         public static readonly string[] Codes = { "follow", "stop", "come", "open", "close", "clarify" };
         private UnityWebRequest pending;
         private readonly CompanionConversationClient conversation = new CompanionConversationClient();
-        private static readonly Regex SequenceSeparator = new Regex(@"(?:\s*,\s*|\s+)\b(?:and then|then|и потом|а потом|и затем|затем|потом|a potem|i potem|potem)\b\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        private static readonly Regex DoorMention = new Regex(@"\b(?:двер[а-яё]*|doors?|drzwi)\b");
-        private static readonly Regex Opening = new Regex(@"\b(?:открой(?:те)?|открыть|распахни(?:те)?|приоткрой(?:те)?|open|otwórz|otworz)\b");
-        private static readonly Regex Closing = new Regex(@"\b(?:закрой(?:те)?|закрыть|прикрой(?:те)?|захлопни(?:те)?|close|shut|zamknij)\b");
-        private static readonly Regex PoliteRequest = new Regex(@"^(можешь|можете|мог бы ты|can you|could you|would you|czy możesz|czy mozesz)\s+");
-        private static readonly Regex Greeting = new Regex(@"^(привет|здравствуй|hey|hi|hello|hej|cześć)\s*[,.!]\s*");
-        private static readonly Regex Courtesy = new Regex(@"^(пожалуйста|плиз|please|proszę|prosze)\b[\s,.!]*");
-        private static readonly Regex Follow = new Regex(@"^(?:(?:иди|идти|ходи|следуй|следовать|двигайся|иди следом) за мной|держись рядом|держаться рядом|follow me|follow my lead|stick with me|stay close|keep up|keep following|trzymaj się blisko|(?:idź|chodź|podążaj) za mną)\b");
-        private static readonly Regex Stop = new Regex(@"^(?:стой|стоп|остановись|остановиться|жди|подожди|подождать|побудь|побыть|останься|остаться|дождись|stop|wait|remain (?:here|where you are|at your current position)|stay (?:here|put|where you are)|czekaj|poczekaj|zaczekaj|stój|zostań|zatrzymaj się)\b");
-        private static readonly Regex Come = new Regex(@"^(?:подойди|подойти|возвращайся|вернись|вернуться|приблизься|иди (?:ко мне|сюда)|come (?:here|closer|to me|back)|walk over to me|podejdź|podejdz|wróć|chodź (?:tu|tutaj|do mnie))\b");
-        private static readonly Regex UnsupportedOrder = new Regex(@"^(?:пожалуйста |please |proszę )?(?:подбери|подними|возьми|принеси|сломай|pick up|bring|break|podnieś|przynieś|złam)\b");
-        private static readonly Regex NegationOrCondition = new Regex(@"\b(не|ни|нет|если|когда|not|don't|dont|never|unless|if|when|nie|jeśli|jesli|jeżeli|jezeli|gdy)\b");
-        private static readonly Regex DeniedOrder = new Regex(@"^(?:(?:не|don't|dont|nie)\s+(?:иди|уходи|жди|открывай|закрывай|открой|закрой|open|close|follow|leave|wait|otwieraj|zamykaj|idź)\b|(?:если|if|jeśli|jeżeli)\b)", RegexOptions.CultureInvariant);
-        private static readonly Regex AnyDoor = new Regex(@"\b(?:все|всех|каждую)\s+двер|\b(?:all|every)\s+(?:the\s+)?doors?\b|\bwszystkie\s+drzwi\b");
-        private static readonly Regex HoldDoor = new Regex(@"\b(подержи|держи|удерживай|hold|trzymaj)\b.*(двер|door|drzwi)");
-        private static readonly Regex ReportedSpeech = new Regex(@"\b(?:сказал|сказала|говорит|говорил|повтори|repeat|said|powiedział|powiedziała|powtórz)\b");
-        private static readonly Regex RussianInfinitive = new Regex(@"^(?:идти|следовать|держаться|остановиться|подождать|побыть|остаться|подойти|вернуться|открыть|закрыть)\b");
+
+        private const RegexOptions Options = RegexOptions.CultureInvariant;
+        private static readonly Regex SequenceSeparator = new Regex(@"(?:\s*,\s*|\s+)\b" + Any(b => b.Then) + @"\b\s+", Options);
+        private static readonly Regex DoorMention = new Regex(@"\b" + Any(b => b.DoorMention) + @"\b", Options);
+        private static readonly Regex Opening = new Regex(@"\b" + Any(b => b.Open.Concat(b.OpenOpenings).Concat(b.RequestedOpen).ToArray()) + @"\b", Options);
+        private static readonly Regex Closing = new Regex(@"\b" + Any(b => b.Close.Concat(b.CloseOpenings).Concat(b.RequestedClose).ToArray()) + @"\b", Options);
+        private static readonly Regex PoliteRequest = new Regex("^" + Any(b => b.PoliteRequest) + @"\s+", Options);
+        private static readonly Regex Greeting = new Regex("^" + Any(b => b.Greeting) + @"\s*[,.!]\s*", Options);
+        private static readonly Regex Courtesy = new Regex("^" + Any(b => b.Please) + @"\b[\s,.!]*", Options);
+        private static readonly Regex UnsupportedOrder = new Regex("^(?:" + Any(b => b.Please) + " )?" + Any(b => b.Unsupported) + @"\b", Options);
+        private static readonly Regex NegationOrCondition = new Regex(@"\b" + Any(b => b.Negation.Concat(b.Condition).ToArray()) + @"\b", Options);
+        private static readonly Regex DeniedOrder = new Regex("^(?:" + Any(b => b.Negation) + @"\s+" + Any(b => b.OrderVerbs) + @"\b|" + Any(b => b.Condition) + @"\b)", Options);
+        private static readonly Regex AnyDoor = new Regex(@"\b" + Any(b => b.Quantifier) + @"\s+(?:" + Any(b => b.Determiner) + @"\s+)?" + Any(b => b.DoorMention) + @"\b", Options);
+        private static readonly Regex HoldDoor = new Regex(@"\b" + Any(b => b.HoldDoor) + @"\b", Options);
+        private static readonly Regex ReportedSpeech = new Regex(@"\b" + Any(b => b.Reported) + @"\b", Options);
+        private static readonly Regex FollowSuffix = new Regex(@"\s+(?:" + Any(b => b.And) + @")\s+(?=" + Any(b => b.FollowOpenings) + @"\b)", Options);
+        private static readonly Regex AllowedTail = new Regex("^(?:" + Any(b => b.Please) + "|now|teraz)$", Options);
+
+        // A plain order starts with an imperative. After a polite request, Polish uses the infinitive instead.
+        private sealed class Intent
+        {
+            private readonly Regex imperative, requested;
+
+            public Intent(Func<Phrasebook, string[]> openings, Func<Phrasebook, string[]> afterRequest)
+            {
+                imperative = new Regex("^" + Any(openings) + @"\b", Options);
+                requested = new Regex("^" + Any(book => openings(book).Concat(afterRequest(book)).ToArray()) + @"\b", Options);
+            }
+
+            public bool Starts(string head, bool polite) => (polite ? requested : imperative).IsMatch(head);
+        }
+
+        private static readonly Intent Follow = new Intent(b => b.FollowOpenings, b => b.RequestedFollow);
+        private static readonly Intent Stop = new Intent(b => b.StopOpenings, b => b.RequestedStop);
+        private static readonly Intent Come = new Intent(b => b.ComeOpenings, b => b.RequestedCome);
+        private static readonly Intent OpenDoor = new Intent(b => b.OpenOpenings, b => b.RequestedOpen);
+        private static readonly Intent CloseDoor = new Intent(b => b.CloseOpenings, b => b.RequestedClose);
 
         public sealed class Turn
         {
@@ -75,37 +97,33 @@ Come here and then open the door -> [""come"",""open""]
         {
             if (string.IsNullOrWhiteSpace(order) || order.Length > 220 || NeedsClarification(order)) return false;
             string text = StripGreeting(order);
-            if (text.IndexOfAny(new[] { '"', '«', '»', '“', '”' }) >= 0 || ReportedSpeech.IsMatch(text)) return false;
+            if (CompanionLanguage.HasQuote(text) || ReportedSpeech.IsMatch(text)) return false;
             foreach (string clause in SequenceSeparator.Split(text))
             {
-                string request = Courtesy.Replace(clause.Trim(), "");
-                bool politeRequest = PoliteRequest.IsMatch(request);
-                if (!politeRequest && (clause.Contains("?") || RussianInfinitive.IsMatch(request))) return false;
+                CommandHead(clause, out bool polite);
+                if (!polite && clause.Contains("?")) return false;
                 if (!HasCommandHead(clause)) return false;
             }
             return true;
         }
 
-        internal static string StripGreeting(string order) =>
-            Greeting.Replace(order.Trim().ToLowerInvariant().Replace('’', '\''), "");
+        /// <summary>Folded order without a leading greeting such as "hey," or "cześć,".</summary>
+        internal static string StripGreeting(string order) => Greeting.Replace(CompanionLanguage.Fold(order.Trim()), "");
 
-        private static string CommandHead(string text)
+        private static string CommandHead(string text, out bool polite)
         {
-            text = Courtesy.Replace(text.Trim(), "");
-            return Courtesy.Replace(PoliteRequest.Replace(text, ""), "");
+            string head = text.Trim();
+            bool courteous = Courtesy.IsMatch(head);
+            head = Courtesy.Replace(head, "");
+            polite = courteous || PoliteRequest.IsMatch(head);
+            return Courtesy.Replace(PoliteRequest.Replace(head, ""), "");
         }
 
         private static bool HasCommandHead(string text)
         {
-            string head = CommandHead(text);
-            return Follow.IsMatch(head) || Stop.IsMatch(head) || Come.IsMatch(head)
-                || (DoorMention.IsMatch(head) && (StartsWith(Opening, head) || StartsWith(Closing, head)));
-        }
-
-        private static bool StartsWith(Regex regex, string text)
-        {
-            Match match = regex.Match(text);
-            return match.Success && match.Index == 0;
+            string head = CommandHead(text, out bool polite);
+            return Follow.Starts(head, polite) || Stop.Starts(head, polite) || Come.Starts(head, polite)
+                || (DoorMention.IsMatch(head) && (OpenDoor.Starts(head, polite) || CloseDoor.Starts(head, polite)));
         }
 
         public static JObject CreateRequest(string order, JArray recent = null, string facts = null, bool forcePlan = false, bool detailed = false, string context = null)
@@ -177,10 +195,10 @@ Come here and then open the door -> [""come"",""open""]
             {
                 string code = plan[i];
                 string clause = clauses[i];
-                string head = CommandHead(clause);
-                if (code == "stop" && Stop.IsMatch(head) || code == "follow" && Follow.IsMatch(head)
-                    || code == "come" && Come.IsMatch(head)) continue;
-                if (code != "open" && code != "close" || !StartsWith(code == "open" ? Opening : Closing, head)) return false;
+                string head = CommandHead(clause, out bool polite);
+                if (code == "stop" && Stop.Starts(head, polite) || code == "follow" && Follow.Starts(head, polite)
+                    || code == "come" && Come.Starts(head, polite)) continue;
+                if (code != "open" && code != "close" || !(code == "open" ? OpenDoor : CloseDoor).Starts(head, polite)) return false;
                 if (!TryDoorRequest(code, clause, out var request)) return false;
                 if (i > 0 && code == plan[0] && resolved[0]?.Side == request.Side) return false;
                 resolved[i] = request;
@@ -193,7 +211,8 @@ Come here and then open the door -> [""come"",""open""]
         {
             request = default;
             if (!IsDoorCode(code)) return false;
-            clause = Regex.Split(clause.ToLowerInvariant(), @"\b(?:и следуй|и иди|and follow|i chodź|i idź)\b")[0];
+            // "Open the door and follow me": the movement clause is not part of the door's location.
+            clause = FollowSuffix.Split(CompanionLanguage.Fold(clause))[0];
             if (!DoorMention.IsMatch(clause)) return false;
             bool open = code == "open";
             if (open ? Closing.IsMatch(clause) : Opening.IsMatch(clause)) return false;
@@ -201,12 +220,7 @@ Come here and then open the door -> [""come"",""open""]
 
             // Directions come from this clause only. Without one, use the usual gaze-based selection.
             request.Side = QuickDoorCommand.Direction.Facing;
-            var sides = new List<QuickDoorCommand.Direction>();
-            if (Regex.IsMatch(clause, @"\b(передо мной|перед мной|впереди|in front|przede mną|przede mna)\b")) sides.Add(QuickDoorCommand.Direction.Front);
-            if (Regex.IsMatch(clause, @"\b(за мной|позади меня|сзади|behind me|za mną|za mna)\b")) sides.Add(QuickDoorCommand.Direction.Back);
-            if (Regex.IsMatch(clause, @"\b(слева|(?:on|to) (?:my|the) left|left door|po lewej)\b")) sides.Add(QuickDoorCommand.Direction.Left);
-            if (Regex.IsMatch(clause, @"\b(справа|(?:on|to) (?:my|the) right|right door|po prawej)\b")) sides.Add(QuickDoorCommand.Direction.Right);
-            if (Regex.IsMatch(clause, @"\b(ближайш[а-яё]*|nearest|closest|najbliższe|najblizsze)\b")) sides.Add(QuickDoorCommand.Direction.Nearest);
+            List<QuickDoorCommand.Direction> sides = QuickDoorCommand.SidesMentioned(clause);
             if (sides.Count > 1) return false;
             if (sides.Count == 1) request.Side = sides[0];
             else
@@ -214,7 +228,7 @@ Come here and then open the door -> [""come"",""open""]
                 Match mention = DoorMention.Match(clause);
                 string tail = clause.Substring(mention.Index + mention.Length).Trim(' ', ',', '.', '!', '?');
                 // An unfamiliar location must not silently turn into the door in front.
-                if (tail.Length > 0 && !Regex.IsMatch(tail, @"^(?:пожалуйста|сейчас|please|now|proszę|prosze)$")) return false;
+                if (tail.Length > 0 && !AllowedTail.IsMatch(tail)) return false;
             }
             return true;
         }

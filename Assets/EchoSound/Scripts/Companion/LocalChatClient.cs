@@ -24,15 +24,7 @@ namespace EchoSound.Companion
             string replyLanguage = "the same language as the player's latest order";
             foreach (JObject message in messages)
                 if ((string)message["role"] == "user")
-                {
-                    string order = (string)message["content"] ?? "";
-                    replyLanguage = "the same language as the player's latest order";
-                    foreach (char letter in order)
-                    {
-                        if (letter >= '\u0400' && letter <= '\u04ff') { replyLanguage = "Russian"; break; }
-                        if ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ".IndexOf(letter) >= 0) replyLanguage = "Polish";
-                    }
-                }
+                    replyLanguage = CompanionLanguage.Name(CompanionLanguage.Detect((string)message["content"] ?? ""));
             foreach (JObject message in messages)
             {
                 string role = (string)message["role"];
@@ -47,9 +39,9 @@ namespace EchoSound.Companion
                 }
                 if (role == "system") content += "\nReturn a JSON plan with reply and actions. For an order, actions must contain the function(s); text alone does nothing. " +
                     "For a question or chat, actions is empty. For completed actions, report the game results without repeating them. " +
-                    "Come here / podejdź do mnie / ко мне means go_to curator, not following. " +
-                    "Direction glossary relative to the curator: przede mną / передо мной = in front; za mną / позади меня = behind; " +
-                    "po lewej / слева = on the left; po prawej / справа = on the right. " +
+                    "Come here / podejdź do mnie means go_to curator, not following. " +
+                    "Direction glossary relative to the curator: przede mną / z przodu = in front; za mną / z tyłu = behind; " +
+                    "po lewej = on the left; po prawej = on the right. " +
                     "The reply field must be in " + replyLanguage + ". Available actions: " + (tools?.ToString(Formatting.None) ?? "none");
                 wireMessages.Add(new JObject { ["role"] = role, ["content"] = content });
             }

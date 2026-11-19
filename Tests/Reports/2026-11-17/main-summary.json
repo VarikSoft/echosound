@@ -1,0 +1,190 @@
+{
+  "cases": 302,
+  "correct": 297,
+  "correct_and_under_one_second": 277,
+  "cold_start_seconds": 3.0006451999999997,
+  "overall": {
+    "count": 296,
+    "median": 0.22916119999999998,
+    "p95": 0.9839785999999999,
+    "maximum": 4.1317544999999996,
+    "within_one_second": 281
+  },
+  "groups": {
+    "boundaries": {
+      "correct": 36,
+      "cases": 36,
+      "latency": {
+        "count": 36,
+        "median": 0.0001152,
+        "p95": 0.7704658,
+        "maximum": 1.1881294999999998,
+        "within_one_second": 35
+      }
+    },
+    "cancellation": {
+      "correct": 2,
+      "cases": 2,
+      "latency": {
+        "count": 1,
+        "median": 0.41498219999999997,
+        "p95": 0.41498219999999997,
+        "maximum": 0.41498219999999997,
+        "within_one_second": 1
+      }
+    },
+    "commands": {
+      "correct": 11,
+      "cases": 11,
+      "latency": {
+        "count": 11,
+        "median": 0.2261027,
+        "p95": 0.2508433,
+        "maximum": 0.2508433,
+        "within_one_second": 11
+      }
+    },
+    "conversation": {
+      "correct": 14,
+      "cases": 14,
+      "latency": {
+        "count": 14,
+        "median": 1.3494712,
+        "p95": 4.1317544999999996,
+        "maximum": 4.1317544999999996,
+        "within_one_second": 5
+      }
+    },
+    "doors": {
+      "correct": 8,
+      "cases": 8,
+      "latency": {
+        "count": 8,
+        "median": 0.0007314999999999999,
+        "p95": 0.5249531,
+        "maximum": 0.5249531,
+        "within_one_second": 8
+      }
+    },
+    "escort": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.00010449999999999999,
+        "p95": 0.0006381,
+        "maximum": 0.0006381,
+        "within_one_second": 3
+      }
+    },
+    "invalid": {
+      "correct": 3,
+      "cases": 3,
+      "latency": null
+    },
+    "memory-FastLlm-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 9.43e-05,
+        "p95": 0.000127,
+        "maximum": 0.000127,
+        "within_one_second": 9
+      }
+    },
+    "memory-FastLlm-Саша": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 9.34e-05,
+        "p95": 0.0002715,
+        "maximum": 0.0002715,
+        "within_one_second": 9
+      }
+    },
+    "memory-FreeDialogue-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.0001007,
+        "p95": 0.0001726,
+        "maximum": 0.0001726,
+        "within_one_second": 9
+      }
+    },
+    "memory-FreeDialogue-Саша": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 9.07e-05,
+        "p95": 0.0001271,
+        "maximum": 0.0001271,
+        "within_one_second": 9
+      }
+    },
+    "non-speech": {
+      "correct": 2,
+      "cases": 2,
+      "latency": null
+    },
+    "voice-clean": {
+      "correct": 46,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.23732099999999998,
+        "p95": 1.1110385999999999,
+        "maximum": 1.32964,
+        "within_one_second": 42
+      }
+    },
+    "voice-doors": {
+      "correct": 2,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.2507241,
+        "p95": 0.5327198,
+        "maximum": 0.5327198,
+        "within_one_second": 2
+      }
+    },
+    "voice-noise20": {
+      "correct": 44,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.23676149999999999,
+        "p95": 0.8159012999999999,
+        "maximum": 0.8469318,
+        "within_one_second": 46
+      }
+    },
+    "voice-padded": {
+      "correct": 46,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.24030169999999998,
+        "p95": 0.8465725,
+        "maximum": 0.8630209,
+        "within_one_second": 46
+      }
+    },
+    "voice-quiet": {
+      "correct": 44,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.23256949999999998,
+        "p95": 0.8046224,
+        "maximum": 0.8652076,
+        "within_one_second": 46
+      }
+    }
+  }
+}

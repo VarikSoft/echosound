@@ -59,7 +59,7 @@ namespace EchoSound.Companion
         protected static string Target(JObject arguments) => (string)arguments["target"] ?? "";
 
         /// <summary>The nearest stand point the companion can walk to, by route length.</summary>
-        protected static bool TryChooseStandPoint(CompanionAgent body, Interactable item, out Vector3 point)
+        protected internal static bool TryChooseStandPoint(CompanionAgent body, Interactable item, out Vector3 point)
         {
             point = default;
             float shortest = float.MaxValue;

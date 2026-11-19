@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -45,6 +46,8 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         public event Action<string> OrderReceived;
         /// <summary>The companion's words: shown in the chat now, spoken by TTS later.</summary>
         public event Action<string> Spoke;
+        /// <summary>Actual generated text while the current reply is being written; empty clears it.</summary>
+        public event Action<string> ReplyProgress;
         /// <summary>Short progress text, for example "thinking"; empty when idle.</summary>
         public event Action<string> StatusChanged;
         /// <summary>Connection or model problems the player should see.</summary>
@@ -54,7 +57,12 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         public CompanionPerception Perception { get; private set; }
         /// <summary>Uses objects through the same rules as the player's hands.</summary>
         public Interactor Hands { get; private set; }
-        public bool IsBusy { get; private set; }
+        public bool IsBusy => orderInProgress || interpreting;
+        private bool orderInProgress;
+        private bool interpreting;
+        private Coroutine activeOrder;
+        private Coroutine input;
+        private Coroutine doorEscort;
         public string LastCommandRoute { get; private set; }
         public enum CompanionMode { QuickCommands, FastLlm, FreeDialogue }
         public CompanionMode Mode { get; private set; }
@@ -77,7 +85,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             StopPreparation();
             Mode = mode;
             if (mode == CompanionMode.QuickCommands) LocalAiRuntime.Instance.StopChat();
-            else if (mode == CompanionMode.FastLlm && isActiveAndEnabled) preparation = StartCoroutine(PrepareFast());
+            else if (isActiveAndEnabled) preparation = StartCoroutine(PrepareFast());
             if (remember)
             {
                 PlayerPrefs.SetInt(ModePreference, (int)mode);
@@ -86,10 +94,8 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         }
 
         private readonly List<JObject> history = new List<JObject>();
+        private readonly CompanionDialogue dialogue = new CompanionDialogue();
         private List<CompanionTool> fixedTools;
-        // The functions offered in the latest request; the LLM's calls are looked up here.
-        private readonly List<CompanionTool> offeredTools = new List<CompanionTool>();
-        private readonly List<JToken> pendingCalls = new List<JToken>();
 
         private void Awake()
         {
@@ -105,12 +111,12 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         {
             started = true;
             _ = LocalAiRuntime.Instance;
-            if (Mode == CompanionMode.FastLlm && !FastStarting) preparation = StartCoroutine(PrepareFast());
+            if (Mode != CompanionMode.QuickCommands && !FastStarting) preparation = StartCoroutine(PrepareFast());
         }
 
         private void OnEnable()
         {
-            if (started && Mode == CompanionMode.FastLlm) preparation = StartCoroutine(PrepareFast());
+            if (started && Mode != CompanionMode.QuickCommands) preparation = StartCoroutine(PrepareFast());
         }
 
         private IEnumerator PrepareFast()
@@ -121,7 +127,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             runtime.EnsureChatStarted();
             while (runtime.ChatStarting) yield return null;
             if (runtime.ChatReady)
-                yield return warmup.Send("Warm up", result => FastReady = true, error => Debug.LogWarning("[Fast LLM] " + error), true);
+                yield return warmup.Send("Warm up", null, null, result => FastReady = true, error => Debug.LogWarning("[Fast LLM] " + error), true);
             FastStarting = false;
             preparation = null;
         }
@@ -145,50 +151,113 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             };
         }
 
-        /// <summary>Entry point for the curator's words, from speech recognition or typed chat.</summary>
+        /// <summary>Only for direct player input from push-to-talk or chat. NPC speech and world audio are not orders.</summary>
         public void Command(string order)
         {
             order = order?.Trim();
             if (string.IsNullOrEmpty(order)) return;
-            if (order.Length > 500) order = order.Substring(0, 500);
+            if (order.Length > 500) { Clarify(order); return; }
 
             if (logToConsole) Debug.Log("[Companion] Order: " + order, this);
             OrderReceived?.Invoke(order);
+            CancelFastInput();
 
-            // The curator's latest word wins over whatever the companion was doing.
-            Interrupt();
-            bool split = QuickCompanionCommand.TrySplitFollowup(order, out string first, out string followup);
-            if (split && !FreeDialogue && !QuickDoorCommand.TryParse(first, out _)) split = false;
-            history.Add(new JObject { ["role"] = "user", ["content"] = split ? first : order });
-            TrimHistory();
-            IsBusy = true;
-            LastCommandRoute = "direct";
-            if (split)
+            if (QuickCompanionCommand.TryParseDismissal(order, out var dismissal))
             {
-                if (!QuickDoorCommand.TryParse(first, out _)) LastCommandRoute = "model+direct";
-                StartCoroutine(HandleFollowup(first, followup));
-            }
-            else if (QuickCompanionCommand.TryParse(order, out string action, out string reply))
-                StartCoroutine(HandleQuick(action, reply));
-            else if (QuickDoorCommand.TryParse(order, out var doorRequest)) StartCoroutine(HandleDoor(order, doorRequest));
-            else
-            {
-                if (FreeDialogue)
+                BeginOrder(order, "direct");
+                if (dismissal == QuickCompanionCommand.DismissalAction.CloseNearbyDoors)
                 {
-                    LastCommandRoute = "model";
-                    StartCoroutine(Handle(order));
-                }
-                else if (Mode == CompanionMode.FastLlm && !FastIntentClient.NeedsClarification(order))
-                {
-                    LastCommandRoute = "fast-llm";
-                    StartCoroutine(HandleFast(order));
+                    Body.Halt();
+                    activeOrder = StartCoroutine(UseNearbyDoors(order, InteractionAction.Close));
                 }
                 else
                 {
-                    LastCommandRoute = "clarify";
-                    Clarify(order);
+                    string reply = dismissal == QuickCompanionCommand.DismissalAction.ClarifyDoors
+                        ? "Останусь здесь. Что сделать с дверями?"
+                        : "Хорошо. Останусь здесь.";
+                    activeOrder = StartCoroutine(HandleQuick("wait_here", reply));
                 }
+                return;
             }
+
+            if (QuickDoorCommand.TryParseStatus(order, out var direction))
+            {
+                AnswerDoorStatus(order, direction);
+                return;
+            }
+            if (TryReplyLocally(order, out string grounded) || dialogue.TryReply(order, out grounded))
+            {
+                ReplyToConversation(order, grounded, "game-chat");
+                return;
+            }
+
+            bool split = QuickCompanionCommand.TrySplitFollowup(order, out string first, out string followup);
+            if (split && !QuickDoorCommand.TryParse(first, out _)) split = false;
+            if (QuickDoorCommand.TryParseOpenAll(order, out bool escort))
+            {
+                BeginOrder(order, "direct");
+                if (escort) StartDoorEscort(order);
+                else activeOrder = StartCoroutine(UseNearbyDoors(order, InteractionAction.Open));
+                return;
+            }
+            if (QuickCompanionCommand.TryParseFollowWithContext(order, out var followContext))
+            {
+                string note = (followContext & QuickCompanionCommand.FollowContext.Protection) != 0
+                    ? " В бою помочь не смогу." : "";
+                if ((followContext & QuickCompanionCommand.FollowContext.ClarifyDoors) != 0)
+                    note += " Что сделать с дверями?";
+                BeginOrder(order, "direct");
+                if ((followContext & QuickCompanionCommand.FollowContext.OpenOnPath) != 0)
+                    StartDoorEscort(order, note);
+                else
+                    activeOrder = StartCoroutine(HandleQuick("follow_curator", "Иду за тобой." + note));
+                return;
+            }
+            if (split)
+            {
+                BeginOrder(first, "direct");
+                activeOrder = StartCoroutine(HandleFollowup(first, followup));
+            }
+            else if (QuickCompanionCommand.TryParse(order, out string action, out string reply))
+            {
+                BeginOrder(order, "direct");
+                activeOrder = StartCoroutine(HandleQuick(action, reply));
+            }
+            else if (QuickDoorCommand.TryParse(order, out var doorRequest))
+            {
+                BeginOrder(order, "direct");
+                activeOrder = StartCoroutine(HandleDoor(order, doorRequest));
+            }
+            else if (Mode == CompanionMode.QuickCommands || FastIntentClient.NeedsClarification(order))
+            {
+                LastCommandRoute = "clarify";
+                Clarify(order);
+            }
+            else if (FreeDialogue && !FastIntentClient.CanPlan(order))
+            {
+                LastCommandRoute = "model-chat";
+                input = StartCoroutine(HandleFreeDialogue(order));
+            }
+            else
+            {
+                LastCommandRoute = FastIntentClient.CanPlan(order) ? "fast-llm" : "fast-chat";
+                input = StartCoroutine(HandleFast(order));
+            }
+        }
+
+        private void BeginOrder(string order, string route)
+        {
+            Interrupt();
+            dialogue.NoteCommand(order);
+            RecordUser(order);
+            orderInProgress = true;
+            LastCommandRoute = route;
+        }
+
+        private void RecordUser(string text)
+        {
+            history.Add(new JObject { ["role"] = "user", ["content"] = text });
+            TrimHistory();
         }
 
         private void Clarify(string order, string reason = null)
@@ -197,34 +266,99 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 "Please give a direct movement or door command, with a direction if needed.",
                 "Podaj bezpośrednie polecenie ruchu lub otwarcia/zamknięcia drzwi i kierunek.",
                 "Уточни прямой командой: куда идти или какую дверь открыть/закрыть.");
-            history.Add(new JObject { ["role"] = "assistant", ["content"] = answer });
             Spoke?.Invoke(answer);
-            IsBusy = false;
-            SetStatus("");
+        }
+
+        private void ReplyToConversation(string order, string reply, string route)
+        {
+            LastCommandRoute = route;
+            dialogue.Remember(order, reply);
+            if (!orderInProgress)
+            {
+                RecordUser(order);
+                history.Add(new JObject { ["role"] = "assistant", ["content"] = reply });
+            }
+            Spoke?.Invoke(reply);
+        }
+
+        private static readonly Regex PlayerDoorStatement = new Regex(@"^(?:я )?(?:сейчас )?(?:открою|закрою|открываю|закрываю) (?:эту )?дверь\b");
+        private static readonly Regex HeardSpeech = new Regex(@"^мне послыш[аи]лось\b");
+
+        private bool TryReplyLocally(string order, out string reply)
+        {
+            string text = order.ToLowerInvariant().TrimEnd('?', '!', '.').Trim();
+            reply = null;
+            if (text is "пока" or "до встречи" or "bye" or "see you" or "do zobaczenia")
+                reply = LocalReply(order, "See you.", "Do zobaczenia.", "До встречи.");
+            else if (text is "привет, как дела" or "привет как дела" or "привет" or "hi" or "hello" or "cześć")
+                reply = LocalReply(order, "Hey. How are you holding up?", "Cześć. Jak się trzymasz?", "Привет. Как ты держишься?");
+            else if (text is "спасибо" or "спасибо, что ты рядом" or "спасибо что ты рядом"
+                or "thanks" or "thank you" or "dzięki" or "dziękuję")
+                reply = LocalReply(order, "Anytime.", "Nie ma sprawy.", "Не за что.");
+            else if (text is "мне тут немного жутко" or "мне здесь не по себе" or "мне страшно" or "i'm scared" or "boję się" or "trochę się boję")
+                reply = LocalReply(order, "Let's stick together.", "Trzymajmy się razem.", "Давай держаться вместе.");
+            else if (HeardSpeech.IsMatch(text) || ((text.StartsWith("я слышал ") || text.StartsWith("я слышала "))
+                && (text.Contains('«') || text.Contains('"'))))
+                reply = "Понял. Продолжаю делать то, о чём договорились.";
+            else if (PlayerDoorStatement.IsMatch(text))
+                reply = "Хорошо, скажи, если нужна помощь.";
+            else if (text is "что ты сейчас делаешь" or "что ты делаешь" or "ты сейчас идёшь за мной" or "ты сейчас идешь за мной"
+                or "ты идёшь за мной" or "ты идешь за мной" or "what are you doing" or "are you following me" or "co robisz")
+            {
+                if (Body.IsWalking)
+                    reply = LocalReply(order, "I'm heading to the target.", "Idę do celu.", "Иду к цели.");
+                else if (Body.Activity == "following the curator")
+                    reply = LocalReply(order, "I'm following you.", "Idę za tobą.", "Я иду за тобой.");
+                else
+                    reply = LocalReply(order, "I'm waiting here.", "Czekam tutaj.", "Я жду здесь.");
+            }
+            return reply != null;
         }
 
         private IEnumerator HandleFast(string order)
         {
             if (!FastReady || !LocalAiRuntime.Instance.ChatReady)
             {
-                Clarify(order, FastStarting
-                    ? LocalReply(order, "Getting ready. For now use short commands: follow me, stop, open the door.", "Przygotowuję się. Na razie użyj krótkiego polecenia.", "Ещё готовлюсь. Пока скажи коротко: «за мной», «стой», «открой дверь».")
+                if (FastIntentClient.CanPlan(order)) Clarify(order, FastStarting
+                    ? LocalReply(order, "Give me a second. Short commands still work.", "Daj mi chwilę. Krótkie polecenia działają.", "Дай мне секунду. Короткие команды уже работают.")
                     : null);
+                else AskToRepeat(order);
                 yield break;
             }
-            SetStatus("interpreting");
-            string[] plan = null;
-            string error = null;
-            yield return fast.Send(order, result => plan = result, problem => error = problem);
-            if (error != null || plan == null || Array.IndexOf(plan, "clarify") >= 0)
-            { Clarify(order); yield break; }
-            // Validate the entire plan before the first action; never execute a valid prefix of an invalid plan.
-            foreach (string code in plan)
-                if (code != "stop" && code != "follow" && code != "come" && !FastIntentClient.TryDoorRequest(code, order, out _))
-                { Clarify(order); yield break; }
-            foreach (string code in plan)
+            interpreting = true;
+            if (!orderInProgress) SetStatus("interpreting");
+            FastIntentClient.Turn turn = null;
+            yield return fast.Send(order, dialogue.RecentMessages(), dialogue.Facts, result => turn = result, _ => { },
+                onProgress: text => ReplyProgress?.Invoke(text), context: ConversationContext(order));
+            FinishInput();
+            if (turn?.Reply is string reply)
             {
-                if (FastIntentClient.TryDoorRequest(code, order, out var request)) yield return HandleDoor(order, request, false);
+                ReplyToConversation(order, reply, "fast-chat");
+                yield break;
+            }
+            string[] plan = turn?.Actions;
+            if (plan == null && !FastIntentClient.CanPlan(order))
+            { AskToRepeat(order); yield break; }
+            if (plan == null || Array.IndexOf(plan, "clarify") >= 0)
+            { Clarify(order); yield break; }
+            if (!FastIntentClient.TryResolvePlan(plan, order, out var doors))
+            { Clarify(order); yield break; }
+            BeginOrder(order, "fast-llm");
+            activeOrder = StartCoroutine(ExecuteFastPlan(order, plan, doors));
+        }
+
+        private void AskToRepeat(string order)
+        {
+            LastCommandRoute = "chat-clarify";
+            Spoke?.Invoke(LocalReply(order, "Could you say that another way?", "Możesz powiedzieć to inaczej?", "Можешь сказать это другими словами?"));
+        }
+
+        private IEnumerator ExecuteFastPlan(string order, string[] plan, QuickDoorCommand.Request?[] doors)
+        {
+            for (int i = 0; i < plan.Length; i++)
+            {
+                string code = plan[i];
+                if (doors[i] is QuickDoorCommand.Request request) yield return HandleDoor(order, request, false);
                 else
                 {
                     string action = code == "follow" ? "follow_curator" : code == "stop" ? "wait_here" : "go_to";
@@ -235,27 +369,192 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 }
                 if (!lastActionSucceeded) break;
             }
-            IsBusy = false;
+            orderInProgress = false;
             SetStatus("");
         }
 
         private IEnumerator HandleFollowup(string first, string followup)
         {
-            if (QuickDoorCommand.TryParse(first, out var doorRequest)) yield return HandleDoor(first, doorRequest, false);
-            else yield return Handle(first, false);
+            QuickDoorCommand.TryParse(first, out var doorRequest);
+            yield return HandleDoor(first, doorRequest, false);
+            if (!lastActionSucceeded) { orderInProgress = false; yield break; }
             history.Add(new JObject { ["role"] = "user", ["content"] = followup });
-            IsBusy = true;
+            orderInProgress = true;
             QuickCompanionCommand.TryParse(followup, out string action, out string reply);
             yield return HandleQuick(action, reply);
+        }
+
+        private IEnumerator UseNearbyDoors(string order, InteractionAction action)
+        {
+            bool open = action == InteractionAction.Open;
+            var remaining = new List<Door>();
+            foreach (Interactable item in Perception.Perceived())
+                if (item is Door door && door.IsOpen != open) remaining.Add(door);
+            if (remaining.Count > 0)
+            {
+                SetStatus(open ? "opening nearby doors" : "closing nearby doors");
+                Spoke?.Invoke(open
+                    ? LocalReply(order, "I'll open the nearby doors.", "Otworzę pobliskie drzwi.", "Открою ближайшие двери.")
+                    : "Перестал идти за тобой. Закрою ближайшие открытые двери.");
+            }
+            var failed = new HashSet<Door>();
+            while (true)
+            {
+                remaining.RemoveAll(door => door != null && door.IsOpen == open);
+                Door next = remaining.Find(door => door != null && door.isActiveAndEnabled && !failed.Contains(door)
+                    && (door.IsInReach(Body.transform.position) || CompanionTool.TryChooseStandPoint(Body, door, out _)));
+                if (next == null) break;
+                yield return UseObjectTool.UseDoor(this, next, action);
+                if (next != null && next.IsOpen != open) failed.Add(next);
+            }
+            string reply;
+            if (open)
+                reply = remaining.Count == 0
+                    ? LocalReply(order, "The nearby doors are open.", "Pobliskie drzwi są otwarte.", "Ближайшие двери открыты.")
+                    : LocalReply(order, "Some nearby doors are out of reach.", "Do części drzwi nie mogę dotrzeć.", "До некоторых ближайших дверей не удалось добраться.");
+            else
+            {
+                Body.Halt();
+                reply = remaining.Count == 0 ? "Я остановился. Ближайшие двери закрыты." : "Часть ближайших дверей осталась открыта. Я остановился.";
+            }
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = reply });
+            Spoke?.Invoke(reply);
+            orderInProgress = false;
+            SetStatus("");
+        }
+
+        private void StartDoorEscort(string order, string note = "")
+        {
+            orderInProgress = false;
+            if (Body.curator == null)
+            {
+                Clarify(order, LocalReply(order, "I can't find you.", "Nie mogę cię znaleźć.", "Не могу тебя найти."));
+                return;
+            }
+            Body.Follow();
+            string reply = LocalReply(order, "I'm with you. I'll open doors on the way.", "Idę za tobą i otwieram drzwi po drodze.", "Я за тобой. Двери по пути буду открывать.") + note;
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = reply });
+            Spoke?.Invoke(reply);
+            doorEscort = StartCoroutine(FollowAndOpenDoors());
+        }
+
+        private IEnumerator FollowAndOpenDoors()
+        {
+            var interval = new WaitForSeconds(0.2f);
+            Door lastUnavailable = null;
+            float retryAt = 0;
+            while (Body.curator != null)
+            {
+                yield return interval;
+                if (!Body.IsPlaced || Body.curator == null) continue;
+                Door door = FindEscortDoor();
+                if (door == null || (door == lastUnavailable && Time.time < retryAt)) continue;
+                if (!door.IsInReach(Body.transform.position) && !CompanionTool.TryChooseStandPoint(Body, door, out _))
+                {
+                    lastUnavailable = door;
+                    retryAt = Time.time + 1;
+                    continue;
+                }
+                yield return UseObjectTool.UseDoor(this, door, InteractionAction.Open);
+                Body.Follow();
+                if (door != null && !door.IsOpen)
+                {
+                    lastUnavailable = door;
+                    retryAt = Time.time + 1;
+                }
+            }
+            doorEscort = null;
+        }
+
+        private Door FindEscortDoor()
+        {
+            Transform player = Body.curator;
+            Vector3 toPlayer = player.position - Body.transform.position;
+            float distance = toPlayer.magnitude;
+            if (distance > 0.01f)
+            {
+                Door between = ClosedDoorOnRay(Body.transform.position + Vector3.up, toPlayer / distance, Mathf.Min(distance, Perception.radius));
+                if (between != null) return between;
+            }
+            return distance <= Body.followDistance + 2
+                ? ClosedDoorOnRay(player.position + Vector3.up, player.forward, 3)
+                : null;
+        }
+
+        private Door ClosedDoorOnRay(Vector3 origin, Vector3 direction, float distance)
+        {
+            Collider closest = null;
+            float nearest = float.PositiveInfinity;
+            foreach (RaycastHit hit in Physics.RaycastAll(origin, direction, distance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.distance >= nearest || hit.transform.IsChildOf(Body.transform)
+                    || hit.transform.IsChildOf(Body.curator)) continue;
+                closest = hit.collider;
+                nearest = hit.distance;
+            }
+            Door door = closest == null ? null : closest.GetComponentInParent<Door>();
+            return door != null && door.isActiveAndEnabled && !door.IsOpen
+                && Vector3.Distance(door.transform.position, Body.transform.position) <= Perception.radius ? door : null;
         }
 
         private IEnumerator HandleDoor(string order, QuickDoorCommand.Request request, bool finishOrder = true)
         {
             lastActionSucceeded = false;
             var timer = System.Diagnostics.Stopwatch.StartNew();
+            Door door = ResolveDoor(request, false, out var resolution);
+            string report = DoorResolutionReply(order, resolution);
+            if (resolution == QuickDoorCommand.Resolution.AlreadyDone)
+            {
+                lastActionSucceeded = true;
+                report = DoorStateReply(order, door);
+            }
+            else if (resolution == QuickDoorCommand.Resolution.Found)
+            {
+                string name = request.Action.Verb() + "_door";
+                UseObjectTool tool = UseObjectTool.CreateFor(new[] { door }).Find(candidate => candidate.Name == name);
+                SetStatus("acting");
+                Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
+                string outcome = null;
+                if (logToConsole) Debug.Log($"[Door timing] dispatch={timer.Elapsed.TotalSeconds:0.000}s action={name} target={door.id} route={LastCommandRoute}", this);
+                yield return tool.Run(this, new JObject { ["target"] = door.id }, result => outcome = result);
+                lastActionSucceeded = tool.Succeeded;
+                if (logToConsole) Debug.Log($"[Companion] {name} target={door.id} -> {outcome}", this);
+                // Preserve the real object result for subsequent conversation, including failures.
+                history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
+                if (tool.Succeeded) report = LocalReply(order, "Done.", "Gotowe.", "Готово.");
+                else if (outcome != null && outcome.Contains("standing in the doorway"))
+                    report = LocalReply(order, "The doorway is blocked. Move away so I can close it.", "Przejście jest zajęte. Odsuń się od drzwi.", "В проёме кто-то стоит. Отойди, чтобы я мог закрыть дверь.");
+                else if (outcome != null && outcome.Contains("reach"))
+                    report = LocalReply(order, "I can't find a route to that door.", "Nie mogę dotrzeć do tych drzwi.", "Не могу добраться до этой двери.");
+                else report = LocalReply(order, "I couldn't use that door.", "Nie udało się użyć tych drzwi.", "Не удалось открыть или закрыть эту дверь.");
+            }
+            if (logToConsole) Debug.Log($"[Companion] Door resolution={resolution}: {report}", this);
+            history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
+            Spoke?.Invoke(report);
+            if (finishOrder) orderInProgress = false;
+            SetStatus("");
+        }
+
+        private void AnswerDoorStatus(string order, QuickDoorCommand.Direction direction)
+        {
+            Door door = ResolveDoor(new QuickDoorCommand.Request { Side = direction }, true, out var resolution);
+            string answer = door != null ? DoorStateReply(order, door) : DoorResolutionReply(order, resolution);
+            LastCommandRoute = "door-status";
+            // A read-only question doesn't interrupt an action or add messages mid-plan.
+            if (!IsBusy)
+            {
+                history.Add(new JObject { ["role"] = "user", ["content"] = order });
+                history.Add(new JObject { ["role"] = "assistant", ["content"] = answer });
+                TrimHistory();
+            }
+            Spoke?.Invoke(answer);
+        }
+
+        private Door ResolveDoor(QuickDoorCommand.Request request, bool readState, out QuickDoorCommand.Resolution resolution)
+        {
             Transform player = Body.curator;
             Door aimed = null;
-            if (player != null)
+            if (player != null && request.Side == QuickDoorCommand.Direction.Facing)
             {
                 Camera camera = player.GetComponentInChildren<Camera>();
                 Vector3 origin = camera != null ? camera.transform.position : player.position + Vector3.up * 1.6f;
@@ -263,48 +562,21 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 if (Physics.Raycast(origin, forward, out RaycastHit hit, Perception.radius, ~0, QueryTriggerInteraction.Ignore))
                     aimed = hit.collider.GetComponentInParent<Door>();
             }
-            Door door = QuickDoorCommand.Resolve(Perception.Perceived(), player, request, aimed, out var resolution);
-            string report;
+            return QuickDoorCommand.Resolve(Perception.Perceived(), player, request, aimed, out resolution, readState);
+        }
+
+        private static string DoorResolutionReply(string order, QuickDoorCommand.Resolution resolution)
+        {
             switch (resolution)
             {
                 case QuickDoorCommand.Resolution.Ambiguous:
-                    report = LocalReply(order, "Which door? Look at it or say left/right.", "Które drzwi? Spójrz na nie lub powiedz lewo/prawo.", "Какую дверь? Посмотри на неё или уточни: слева или справа.");
-                    break;
+                    return LocalReply(order, "Which door? Look at it or say left/right.", "Które drzwi? Spójrz na nie lub powiedz lewo/prawo.", "Какую дверь? Посмотри на неё или уточни: слева или справа.");
                 case QuickDoorCommand.Resolution.Missing:
-                    report = LocalReply(order, "I don't know a door in that direction.", "Nie znam drzwi w tym kierunku.", "В этом направлении нет известной мне двери.");
-                    break;
+                    return LocalReply(order, "I don't know a door in that direction.", "Nie znam drzwi w tym kierunku.", "В этом направлении нет известной мне двери.");
                 case QuickDoorCommand.Resolution.NoPlayer:
-                    report = LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.", "Не вижу тебя и не могу определить нужную дверь.");
-                    break;
-                case QuickDoorCommand.Resolution.AlreadyDone:
-                    lastActionSucceeded = true;
-                    report = DoorStateReply(order, door);
-                    break;
-                default:
-                    string name = request.Action.Verb() + "_door";
-                    UseObjectTool tool = UseObjectTool.CreateFor(new[] { door }).Find(candidate => candidate.Name == name);
-                    SetStatus("acting");
-                    Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
-                    string outcome = null;
-                    if (logToConsole) Debug.Log($"[Door timing] dispatch={timer.Elapsed.TotalSeconds:0.000}s action={name} target={door.id} route=direct", this);
-                    yield return tool.Run(this, new JObject { ["target"] = door.id }, result => outcome = result);
-                    lastActionSucceeded = tool.Succeeded;
-                    if (logToConsole) Debug.Log($"[Companion] {name} target={door.id} -> {outcome}", this);
-                    // Preserve the real object result for subsequent conversation, including failures.
-                    history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
-                    if (tool.Succeeded) report = LocalReply(order, "Done.", "Gotowe.", "Готово.");
-                    else if (outcome != null && outcome.Contains("standing in the doorway"))
-                        report = LocalReply(order, "The doorway is blocked. Move away so I can close it.", "Przejście jest zajęte. Odsuń się od drzwi.", "В проёме кто-то стоит. Отойди, чтобы я мог закрыть дверь.");
-                    else if (outcome != null && outcome.Contains("reach"))
-                        report = LocalReply(order, "I can't find a route to that door.", "Nie mogę dotrzeć do tych drzwi.", "Не могу добраться до этой двери.");
-                    else report = LocalReply(order, "I couldn't use that door.", "Nie udało się użyć tych drzwi.", "Не удалось открыть или закрыть эту дверь.");
-                    break;
+                    return LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.", "Не вижу тебя и не могу определить нужную дверь.");
+                default: return null;
             }
-            if (logToConsole) Debug.Log($"[Companion] Door resolution={resolution}: {report}", this);
-            history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
-            Spoke?.Invoke(report);
-            if (finishOrder) IsBusy = false;
-            SetStatus("");
         }
 
         private static string DoorStateReply(string order, Door door)
@@ -325,7 +597,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             if (action != "wait_here" && Body.curator == null)
             {
                 ReportFailure("There is no player to follow.");
-                IsBusy = false;
+                orderInProgress = false;
                 yield break;
             }
             Spoke?.Invoke(reply);
@@ -334,29 +606,43 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             lastActionSucceeded = tool.Succeeded;
             if (action == "go_to" && outcome != "Arrived next to the curator.") Spoke?.Invoke(outcome);
             history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
-            if (finishOrder) IsBusy = false;
+            if (finishOrder) orderInProgress = false;
             SetStatus("");
         }
 
-        /// <summary>Stops the current order. Following the curator continues; a walk in progress stops.</summary>
+        private void CancelFastInput()
+        {
+            if (input != null) StopCoroutine(input);
+            input = null;
+            if (!interpreting) return;
+            fast.Cancel();
+            chat.Cancel();
+            FinishInput();
+        }
+
+        private void FinishInput()
+        {
+            input = null;
+            interpreting = false;
+            ReplyProgress?.Invoke("");
+            if (!orderInProgress) SetStatus("");
+        }
+
+        /// <summary>Stops interpreting and cancels the current interaction or door escort.</summary>
         public void Interrupt()
         {
-            if (!IsBusy) return;
-            StopAllCoroutines();
-            // PrepareFast is independent of orders. Restart a cancelled warmup after interrupting an order.
-            bool resumeWarmup = FastStarting && Mode == CompanionMode.FastLlm;
-            if (resumeWarmup) StopPreparation();
+            CancelFastInput();
+            bool wasEscorting = doorEscort != null;
+            if (wasEscorting) StopCoroutine(doorEscort);
+            doorEscort = null;
+            if (!orderInProgress && !wasEscorting) return;
+            if (activeOrder != null) StopCoroutine(activeOrder);
+            activeOrder = null;
             chat.Cancel();
-            fast.Cancel();
 
-            // Complete every outstanding call, including calls queued after the interrupted one.
-            foreach (JToken call in pendingCalls)
-                history.Add(ToolMessage((string)call["id"], (string)call["function"]?["name"], "Cancelled by a new order."));
-            pendingCalls.Clear();
-            if (Body.IsWalking) Body.Halt("waiting (interrupted on the way: " + Body.Activity + ")");
-            IsBusy = false;
+            if (Body.IsWalking || wasEscorting) Body.Halt();
+            orderInProgress = false;
             SetStatus("");
-            if (resumeWarmup && isActiveAndEnabled) preparation = StartCoroutine(PrepareFast());
         }
 
         /// <summary>Forgets the conversation, for example when a new level replaces every object.</summary>
@@ -364,113 +650,37 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         {
             Interrupt();
             history.Clear();
+            dialogue.Reset();
         }
 
         [ContextMenu("Reset system prompt")]
         private void ResetPrompt() => systemPrompt = DefaultPrompt;
 
-        private IEnumerator Handle(string order, bool finishOrder = true)
+        private IEnumerator HandleFreeDialogue(string order)
         {
-            SetStatus("thinking");
-            JObject reply = null;
+            interpreting = true;
+            if (!orderInProgress) SetStatus("thinking");
+            FastIntentClient.Turn reply = null;
             string error = null;
-            yield return chat.Send(BuildRequest(true), result => reply = result, problem => error = problem);
+            yield return fast.Send(order, dialogue.RecentMessages(), dialogue.Facts, result => reply = result, problem => error = problem,
+                onProgress: text => ReplyProgress?.Invoke(text), detailed: true, context: ConversationContext(order));
+            FinishInput();
             if (error != null) ReportFailure(error);
-            else if (reply?["message"] is JObject message)
-            {
-                history.Add(message);
-                var calls = message["tool_calls"] as JArray;
-                if (calls == null || calls.Count == 0)
-                {
-                    string text = ((string)message["content"])?.Trim();
-                    if (!string.IsNullOrEmpty(text)) Spoke?.Invoke(text);
-                }
-                else
-                {
-                    pendingCalls.AddRange(calls);
-                    bool succeeded = true;
-                    // Execute exactly one bounded plan. Never ask the model to invent another
-                    // action after an outcome; that caused extra actions and delayed replies.
-                    Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
-                    foreach (JToken call in calls)
-                    {
-                        string name = (string)call["function"]?["name"] ?? "";
-                        JObject arguments = ReadArguments(call["function"]?["arguments"]);
-                        CompanionTool tool = offeredTools.Find(candidate => candidate.Name == name);
-                        string outcome = "Invalid action or target.";
-                        bool done = false;
-                        if (tool != null && ValidArguments(tool.Parameters(this), arguments))
-                        {
-                            SetStatus("acting");
-                            yield return tool.Run(this, arguments, result => outcome = result);
-                            done = tool.Succeeded;
-                        }
-                        succeeded &= done;
-                        if (logToConsole) Debug.Log($"[Companion] {name} {arguments.ToString(Formatting.None)} -> {outcome}", this);
-                        history.Add(ToolMessage((string)call["id"], name, outcome));
-                        pendingCalls.Remove(call);
-                    }
-                    string report = succeeded
-                        ? LocalReply(order, "Done.", "Gotowe.", "Готово.")
-                        : LocalReply(order, "I couldn't complete every action.", "Nie udało mi się wykonać wszystkich poleceń.", "Не удалось выполнить все действия.");
-                    history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
-                    Spoke?.Invoke(report);
-                }
-            }
-            if (finishOrder) IsBusy = false;
-            SetStatus("");
+            else if (!string.IsNullOrWhiteSpace(reply?.Reply)) ReplyToConversation(order, reply.Reply, "model-chat");
         }
 
-        private static string LocalReply(string order, string english, string polish, string russian)
+        internal static string LocalReply(string order, string english, string polish, string russian)
         {
             foreach (char letter in order) if (letter >= '\u0400' && letter <= '\u04ff') return russian;
             foreach (char letter in order) if ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ".IndexOf(letter) >= 0) return polish;
             return english;
         }
 
-        private JObject BuildRequest(bool allowTools)
+        private string ConversationContext(string order)
         {
-            TrimHistory();
-            var messages = new JArray
-            {
-                new JObject
-                {
-                    ["role"] = "system",
-                    // Perception is rebuilt for every request, so distances and states are never stale.
-                    ["content"] = systemPrompt + "\n\nCurrent perception:\n" + Perception.Describe()
-                }
-            };
-            foreach (JObject message in history) messages.Add(message);
-
-            JArray definitions = null;
-            if (allowTools)
-            {
-                // Object functions follow perception: no door nearby means no open_door to call.
-                offeredTools.Clear();
-                offeredTools.AddRange(fixedTools);
-                offeredTools.AddRange(UseObjectTool.CreateFor(Perception.Perceived()));
-
-                definitions = new JArray();
-                foreach (CompanionTool tool in offeredTools) definitions.Add(tool.Definition(this));
-            }
-            return chat.CreateRequest(messages, definitions);
-        }
-
-        // OpenAI-compatible calls carry arguments as JSON strings.
-        private static JObject ReadArguments(JToken token)
-        {
-            if (token is JObject arguments) return arguments;
-            if (token != null && token.Type == JTokenType.String)
-            {
-                try
-                {
-                    return JObject.Parse((string)token);
-                }
-                catch (JsonException)
-                {
-                }
-            }
-            return new JObject();
+            if (Regex.IsMatch(order, @"(?i)\b(двер[а-яё]*|видишь|вокруг|где|рядом|door|see|where|nearby|drzwi|widzisz|gdzie)\b"))
+                return Perception.DescribeForConversation();
+            return "Companion activity: " + Body.Activity + ". No other observations were supplied.";
         }
 
         public static bool ValidArguments(JObject schema, JObject arguments)
@@ -492,9 +702,6 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             foreach (JToken candidate in values) if (JToken.DeepEquals(candidate, value)) return true;
             return false;
         }
-
-        private static JObject ToolMessage(string id, string name, string content) =>
-            new JObject { ["role"] = "tool", ["tool_call_id"] = id, ["name"] = name, ["content"] = content };
 
         // Drops whole old orders, so a function result never loses the call it answers.
         private void TrimHistory()

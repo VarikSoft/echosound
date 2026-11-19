@@ -1,0 +1,256 @@
+{
+  "cases": 337,
+  "correct": 332,
+  "correct_and_under_one_second": 322,
+  "cold_start_seconds": 3.7910901,
+  "overall": {
+    "count": 331,
+    "median": 0.2652402,
+    "p95": 0.5834752999999999,
+    "maximum": 1.7671573999999999,
+    "within_one_second": 326
+  },
+  "streamed_first_text": {
+    "count": 21,
+    "median": 0.2058658,
+    "p95": 0.5926068999999999,
+    "maximum": 0.6191137,
+    "within_one_second": 21
+  },
+  "groups": {
+    "boundaries": {
+      "correct": 36,
+      "cases": 36,
+      "latency": {
+        "count": 36,
+        "median": 0.0001374,
+        "p95": 0.8411546999999999,
+        "maximum": 0.8914299,
+        "within_one_second": 36
+      },
+      "streamed_first_text": {
+        "count": 7,
+        "median": 0.1409105,
+        "p95": 0.5926068999999999,
+        "maximum": 0.5926068999999999,
+        "within_one_second": 7
+      }
+    },
+    "cancellation": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 2,
+        "median": 0.4576648,
+        "p95": 0.4576648,
+        "maximum": 0.4576648,
+        "within_one_second": 2
+      },
+      "streamed_first_text": null
+    },
+    "commands": {
+      "correct": 11,
+      "cases": 11,
+      "latency": {
+        "count": 11,
+        "median": 0.241855,
+        "p95": 0.2755576,
+        "maximum": 0.2755576,
+        "within_one_second": 11
+      },
+      "streamed_first_text": null
+    },
+    "conversation": {
+      "correct": 14,
+      "cases": 14,
+      "latency": {
+        "count": 14,
+        "median": 0.00014749999999999998,
+        "p95": 0.0002293,
+        "maximum": 0.0002293,
+        "within_one_second": 14
+      },
+      "streamed_first_text": null
+    },
+    "conversation-authored": {
+      "correct": 22,
+      "cases": 22,
+      "latency": {
+        "count": 22,
+        "median": 0.00012749999999999998,
+        "p95": 0.0001786,
+        "maximum": 0.00020559999999999998,
+        "within_one_second": 22
+      },
+      "streamed_first_text": null
+    },
+    "conversation-llm": {
+      "correct": 12,
+      "cases": 12,
+      "latency": {
+        "count": 12,
+        "median": 0.9487755,
+        "p95": 1.7671573999999999,
+        "maximum": 1.7671573999999999,
+        "within_one_second": 8
+      },
+      "streamed_first_text": {
+        "count": 12,
+        "median": 0.2058658,
+        "p95": 0.5921611999999999,
+        "maximum": 0.5921611999999999,
+        "within_one_second": 12
+      }
+    },
+    "doors": {
+      "correct": 8,
+      "cases": 8,
+      "latency": {
+        "count": 8,
+        "median": 0.000776,
+        "p95": 0.5250406,
+        "maximum": 0.5250406,
+        "within_one_second": 8
+      },
+      "streamed_first_text": null
+    },
+    "escort": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.0001851,
+        "p95": 0.0006973999999999999,
+        "maximum": 0.0006973999999999999,
+        "within_one_second": 3
+      },
+      "streamed_first_text": null
+    },
+    "invalid": {
+      "correct": 3,
+      "cases": 3,
+      "latency": null,
+      "streamed_first_text": null
+    },
+    "memory-FastLlm-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.0001113,
+        "p95": 0.0007478,
+        "maximum": 0.0007478,
+        "within_one_second": 9
+      },
+      "streamed_first_text": null
+    },
+    "memory-FastLlm-Саша": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.0001159,
+        "p95": 0.0003127,
+        "maximum": 0.0003127,
+        "within_one_second": 9
+      },
+      "streamed_first_text": null
+    },
+    "memory-FreeDialogue-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.00010619999999999999,
+        "p95": 0.00013089999999999998,
+        "maximum": 0.00013089999999999998,
+        "within_one_second": 9
+      },
+      "streamed_first_text": null
+    },
+    "memory-FreeDialogue-Саша": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.0001142,
+        "p95": 0.0001512,
+        "maximum": 0.0001512,
+        "within_one_second": 9
+      },
+      "streamed_first_text": null
+    },
+    "non-speech": {
+      "correct": 2,
+      "cases": 2,
+      "latency": null,
+      "streamed_first_text": null
+    },
+    "voice-clean": {
+      "correct": 46,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.2659601,
+        "p95": 0.41658419999999996,
+        "maximum": 0.8946168,
+        "within_one_second": 46
+      },
+      "streamed_first_text": {
+        "count": 2,
+        "median": 0.6191137,
+        "p95": 0.6191137,
+        "maximum": 0.6191137,
+        "within_one_second": 2
+      }
+    },
+    "voice-doors": {
+      "correct": 2,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.2823597,
+        "p95": 0.5573171,
+        "maximum": 0.5573171,
+        "within_one_second": 2
+      },
+      "streamed_first_text": null
+    },
+    "voice-noise20": {
+      "correct": 44,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.26586139999999997,
+        "p95": 0.2825756,
+        "maximum": 0.4233181,
+        "within_one_second": 46
+      },
+      "streamed_first_text": null
+    },
+    "voice-padded": {
+      "correct": 46,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.27310989999999996,
+        "p95": 0.2983572,
+        "maximum": 0.48371149999999996,
+        "within_one_second": 46
+      },
+      "streamed_first_text": null
+    },
+    "voice-quiet": {
+      "correct": 44,
+      "cases": 46,
+      "latency": {
+        "count": 46,
+        "median": 0.2663106,
+        "p95": 0.2820568,
+        "maximum": 0.4173686,
+        "within_one_second": 46
+      },
+      "streamed_first_text": null
+    }
+  }
+}

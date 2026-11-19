@@ -1,0 +1,606 @@
+{
+  "cases": [
+    {
+      "id": "text-000",
+      "group": "commands",
+      "text": "стой",
+      "reset": true,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "text-001",
+      "group": "commands",
+      "text": "иди за мной",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "text-002",
+      "group": "commands",
+      "text": "ко мне",
+      "reset": true,
+      "expected": "come"
+    },
+    {
+      "id": "text-003",
+      "group": "commands",
+      "text": "Привет, иди за мной.",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "text-004",
+      "group": "commands",
+      "text": "Можешь подойти ко мне?",
+      "reset": true,
+      "expected": "come"
+    },
+    {
+      "id": "text-005",
+      "group": "commands",
+      "text": "Please remain at your current position until I return.",
+      "reset": true,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "text-006",
+      "group": "commands",
+      "text": "Держись рядом со мной",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "text-007",
+      "group": "commands",
+      "text": "Побудь здесь пока я осмотрюсь",
+      "reset": true,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "text-008",
+      "group": "commands",
+      "text": "Idź za mną",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "text-009",
+      "group": "commands",
+      "text": "Podejdź do mnie",
+      "reset": true,
+      "expected": "come"
+    },
+    {
+      "id": "text-010",
+      "group": "commands",
+      "text": "Zaczekaj tutaj",
+      "reset": true,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "preserve-011",
+      "group": "boundaries",
+      "text": "follow me",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "boundary-012",
+      "group": "boundaries",
+      "text": "Пока!",
+      "reset": false,
+      "expected": "preserve"
+    },
+    {
+      "id": "preserve-013",
+      "group": "boundaries",
+      "text": "follow me",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "boundary-014",
+      "group": "boundaries",
+      "text": "Я сейчас открою дверь",
+      "reset": false,
+      "expected": "preserve"
+    },
+    {
+      "id": "door-0",
+      "group": "doors",
+      "text": "Открой дверь передо мной.",
+      "reset": true,
+      "doors": 1,
+      "expected": "door"
+    },
+    {
+      "id": "door-1",
+      "group": "doors",
+      "text": "Открой дверь слева.",
+      "reset": false,
+      "doors": 3,
+      "expected": "door"
+    },
+    {
+      "id": "door-2",
+      "group": "doors",
+      "text": "Открой дверь справа.",
+      "reset": false,
+      "doors": 7,
+      "expected": "door"
+    },
+    {
+      "id": "door-3",
+      "group": "doors",
+      "text": "Закрой дверь передо мной.",
+      "reset": false,
+      "doors": 6,
+      "expected": "door"
+    },
+    {
+      "id": "door-4",
+      "group": "doors",
+      "text": "Закрой дверь слева.",
+      "reset": false,
+      "doors": 4,
+      "expected": "door"
+    },
+    {
+      "id": "door-5",
+      "group": "doors",
+      "text": "Закрой дверь справа.",
+      "reset": false,
+      "doors": 0,
+      "expected": "door"
+    },
+    {
+      "id": "two-doors",
+      "group": "doors",
+      "text": "Распахни дверь слева, а потом прикрой дверь справа",
+      "reset": true,
+      "doors": 2,
+      "expected": "door"
+    },
+    {
+      "id": "all-doors",
+      "group": "doors",
+      "text": "Открой все двери",
+      "reset": true,
+      "doors": 7,
+      "expected": "door"
+    },
+    {
+      "id": "escort",
+      "group": "escort",
+      "text": "Иди за мной и открой все двери",
+      "reset": true,
+      "expected": "follow"
+    },
+    {
+      "id": "escort-social",
+      "group": "escort",
+      "text": "Мне страшно",
+      "reset": false,
+      "expected": "preserve",
+      "exact": "Давай держаться вместе."
+    },
+    {
+      "id": "escort-stop",
+      "group": "escort",
+      "text": "стой",
+      "reset": false,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "memory-FastLlm-Нина-follow",
+      "group": "memory-FastLlm-Нина",
+      "text": "иди за мной",
+      "reset": true,
+      "mode": "FastLlm",
+      "expected": "follow"
+    },
+    {
+      "id": "memory-FastLlm-Нина-intro",
+      "group": "memory-FastLlm-Нина",
+      "text": "Меня зовут Нина.",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "memory-FastLlm-Нина-cat",
+      "group": "memory-FastLlm-Нина",
+      "text": "У меня кот по кличке Плюш.",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "memory-FastLlm-Нина-thanks",
+      "group": "memory-FastLlm-Нина",
+      "text": "Спасибо.",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "memory-FastLlm-Нина-name",
+      "group": "memory-FastLlm-Нина",
+      "text": "Как меня зовут?",
+      "reset": false,
+      "mode": "FastLlm",
+      "exact": "Тебя зовут Нина."
+    },
+    {
+      "id": "memory-FastLlm-Нина-cat-recall",
+      "group": "memory-FastLlm-Нина",
+      "text": "Как зовут моего кота?",
+      "reset": false,
+      "mode": "FastLlm",
+      "exact": "Твоего кота зовут Плюш."
+    },
+    {
+      "id": "memory-FastLlm-Нина-correction",
+      "group": "memory-FastLlm-Нина",
+      "text": "На самом деле меня зовут Марк.",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "memory-FastLlm-Нина-corrected-name",
+      "group": "memory-FastLlm-Нина",
+      "text": "Как теперь ко мне обращаться?",
+      "reset": false,
+      "mode": "FastLlm",
+      "exact": "Тебя зовут Марк."
+    },
+    {
+      "id": "memory-FastLlm-Нина-stop",
+      "group": "memory-FastLlm-Нина",
+      "text": "Стой.",
+      "reset": false,
+      "mode": "FastLlm",
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "conversation-FastLlm-0",
+      "group": "conversation",
+      "text": "Привет, как дела?",
+      "reset": true,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-1",
+      "group": "conversation",
+      "text": "А у тебя как настроение?",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-2",
+      "group": "conversation",
+      "text": "Что думаешь об этой игре?",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-3",
+      "group": "conversation",
+      "text": "Почему так думаешь?",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-4",
+      "group": "conversation",
+      "text": "Можешь рассказать короткую шутку?",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-5",
+      "group": "conversation",
+      "text": "В чём шутка?",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "conversation-FastLlm-6",
+      "group": "conversation",
+      "text": "Ха-ха, неплохо.",
+      "reset": false,
+      "mode": "FastLlm"
+    },
+    {
+      "id": "ru-follow-clean-0",
+      "group": "voice-clean",
+      "text": "Иди за мной.",
+      "reset": true,
+      "audio": "../companion-tests/ru-follow-clean.wav",
+      "language": "Russian",
+      "following": false,
+      "expected": "follow"
+    },
+    {
+      "id": "ru-stop-clean-0",
+      "group": "voice-clean",
+      "text": "Стой.",
+      "reset": true,
+      "audio": "../companion-tests/ru-stop-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "stop"
+    },
+    {
+      "id": "ru-come-clean-0",
+      "group": "voice-clean",
+      "text": "Ко мне.",
+      "reset": true,
+      "audio": "../companion-tests/ru-come-clean.wav",
+      "language": "Russian",
+      "following": false,
+      "expected": "come"
+    },
+    {
+      "id": "ru-social-clean-0",
+      "group": "voice-clean",
+      "text": "А как у тебя дела?",
+      "reset": true,
+      "audio": "../companion-tests/ru-social-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-uneasy-clean-0",
+      "group": "voice-clean",
+      "text": "Мне тут немного жутко.",
+      "reset": true,
+      "audio": "../companion-tests/ru-uneasy-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-thanks-clean-0",
+      "group": "voice-clean",
+      "text": "Спасибо, что ты рядом.",
+      "reset": true,
+      "audio": "../companion-tests/ru-thanks-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-name-clean-0",
+      "group": "voice-clean",
+      "text": "Меня зовут Лёня.",
+      "reset": true,
+      "audio": "../companion-tests/ru-name-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve",
+      "contains": "Лёня"
+    },
+    {
+      "id": "ru-negative-clean-0",
+      "group": "voice-clean",
+      "text": "Не открывай дверь.",
+      "reset": true,
+      "audio": "../companion-tests/ru-negative-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-condition-clean-0",
+      "group": "voice-clean",
+      "text": "Если я скажу, открой дверь.",
+      "reset": true,
+      "audio": "../companion-tests/ru-condition-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-reported-clean-0",
+      "group": "voice-clean",
+      "text": "Мне послышалось слово стой.",
+      "reset": true,
+      "audio": "../companion-tests/ru-reported-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-firstperson-clean-0",
+      "group": "voice-clean",
+      "text": "Я сейчас открою дверь.",
+      "reset": true,
+      "audio": "../companion-tests/ru-firstperson-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-question-clean-0",
+      "group": "voice-clean",
+      "text": "Дверь передо мной открыта?",
+      "reset": true,
+      "audio": "../companion-tests/ru-question-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-long-clean-0",
+      "group": "voice-clean",
+      "text": "Можешь подождать здесь, пока я немного осмотрюсь и попробую разобраться, куда нам дальше идти?",
+      "reset": true,
+      "audio": "../companion-tests/ru-long-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "stop"
+    },
+    {
+      "id": "en-follow-clean-0",
+      "group": "voice-clean",
+      "text": "Follow me.",
+      "reset": true,
+      "audio": "../companion-tests/en-follow-clean.wav",
+      "language": "English",
+      "following": false,
+      "expected": "follow"
+    },
+    {
+      "id": "en-stop-clean-0",
+      "group": "voice-clean",
+      "text": "Stop.",
+      "reset": true,
+      "audio": "../companion-tests/en-stop-clean.wav",
+      "language": "English",
+      "following": true,
+      "expected": "stop"
+    },
+    {
+      "id": "en-come-clean-0",
+      "group": "voice-clean",
+      "text": "Come here.",
+      "reset": true,
+      "audio": "../companion-tests/en-come-clean.wav",
+      "language": "English",
+      "following": false,
+      "expected": "come"
+    },
+    {
+      "id": "en-social-clean-0",
+      "group": "voice-clean",
+      "text": "Hey, how are you doing?",
+      "reset": true,
+      "audio": "../companion-tests/en-social-clean.wav",
+      "language": "English",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "en-negative-clean-0",
+      "group": "voice-clean",
+      "text": "Don't open the door.",
+      "reset": true,
+      "audio": "../companion-tests/en-negative-clean.wav",
+      "language": "English",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "en-thanks-clean-0",
+      "group": "voice-clean",
+      "text": "Thank you.",
+      "reset": true,
+      "audio": "../companion-tests/en-thanks-clean.wav",
+      "language": "English",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-follow-male-clean-0",
+      "group": "voice-clean",
+      "text": "Иди за мной.",
+      "reset": true,
+      "audio": "../companion-tests/ru-follow-male-clean.wav",
+      "language": "Russian",
+      "following": false,
+      "expected": "follow"
+    },
+    {
+      "id": "ru-come-male-clean-0",
+      "group": "voice-clean",
+      "text": "Ко мне.",
+      "reset": true,
+      "audio": "../companion-tests/ru-come-male-clean.wav",
+      "language": "Russian",
+      "following": false,
+      "expected": "come"
+    },
+    {
+      "id": "ru-negative-male-clean-0",
+      "group": "voice-clean",
+      "text": "Не открывай дверь.",
+      "reset": true,
+      "audio": "../companion-tests/ru-negative-male-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "ru-reported-male-clean-0",
+      "group": "voice-clean",
+      "text": "Мне послышалось слово стой.",
+      "reset": true,
+      "audio": "../companion-tests/ru-reported-male-clean.wav",
+      "language": "Russian",
+      "following": true,
+      "expected": "preserve"
+    },
+    {
+      "id": "silence",
+      "group": "invalid",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/silence.wav",
+      "quiet": true
+    },
+    {
+      "id": "dc",
+      "group": "invalid",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/dc.wav",
+      "quiet": true
+    },
+    {
+      "id": "noise-only",
+      "group": "non-speech",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/noise-only.wav",
+      "quiet": true
+    },
+    {
+      "id": "tone-only",
+      "group": "non-speech",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/tone-only.wav",
+      "quiet": true
+    },
+    {
+      "id": "invalid-buffer",
+      "group": "invalid",
+      "text": "",
+      "reset": true,
+      "audio": "invalid"
+    },
+    {
+      "id": "newest-wins",
+      "group": "cancellation",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/ru-follow.wav",
+      "replaceWithStop": true,
+      "expected": "stop",
+      "following": true
+    },
+    {
+      "id": "voice-disabled",
+      "group": "cancellation",
+      "text": "",
+      "reset": true,
+      "audio": "../companion-tests/ru-follow.wav",
+      "disableVoice": true
+    }
+  ]
+}

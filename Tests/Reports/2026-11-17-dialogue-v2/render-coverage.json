@@ -1,0 +1,11 @@
+{
+  "synthetic": true,
+  "missing_audio": [],
+  "noise": "Gaussian samples sigma=160 PCM units, deterministic seed, not real background speech",
+  "unverified": [
+    "real human microphone, accents, speakers/echo",
+    "low-end hardware",
+    "spoken TTS output",
+    "every possible phrasing"
+  ]
+}

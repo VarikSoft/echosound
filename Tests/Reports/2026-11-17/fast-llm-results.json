@@ -1,0 +1,1128 @@
+[
+  {
+    "text": "Warm up",
+    "expected": null,
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.43,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 5,
+      "prompt_tokens": 318,
+      "total_tokens": 323,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  {
+    "text": "Побудь здесь пока я осмотрюсь",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.206,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 326,
+      "total_tokens": 330,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Держись рядом со мной",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.193,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 324,
+      "total_tokens": 328,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Подойди поближе ко мне",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.198,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 324,
+      "total_tokens": 328,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Можешь открыть дверь слева от меня?",
+    "expected": [
+      "open_left"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.239,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 330,
+      "total_tokens": 334,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Закрой за мной дверь пожалуйста",
+    "expected": [
+      "close_back"
+    ],
+    "actual": [
+      "close"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.22,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 331,
+      "total_tokens": 335,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Распахни дверь впереди",
+    "expected": [
+      "open_front"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.22,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 327,
+      "total_tokens": 331,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Открой дверь слива",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.196,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 324,
+      "total_tokens": 328,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Распахните дверь впереди, пожалуйста.",
+    "expected": [
+      "open_front"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.241,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 335,
+      "total_tokens": 339,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Прикрой дверь справа",
+    "expected": [
+      "close_right"
+    ],
+    "actual": [
+      "close"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.197,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 325,
+      "total_tokens": 329,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Не открывай дверь, жди здесь",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Не закрывай дверь",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Дверь передо мной закрыта?",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Да, но я не уверен, что это безопасно. Может, мы должны…"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.237,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 26,
+      "prompt_tokens": 98,
+      "total_tokens": 124,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  {
+    "text": "Если я скажу, открой дверь",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Я сейчас открою дверь",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Дверь открыта? Нужно проверить, не пропустил ли я чего-н"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.091,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 33,
+      "prompt_tokens": 95,
+      "total_tokens": 128,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Открой дверь впереди и потом иди за мной",
+    "expected": [
+      "open_front",
+      "follow"
+    ],
+    "actual": [
+      "open",
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.3,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 332,
+      "total_tokens": 338,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Could you stay where you are?",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.2,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 323,
+      "total_tokens": 327,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Please stick with me",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.182,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 320,
+      "total_tokens": 324,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Come closer please",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.188,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 319,
+      "total_tokens": 323,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Can you open the door on my right?",
+    "expected": [
+      "open_right"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.202,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 325,
+      "total_tokens": 329,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Is the door behind me open?",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Hmm, I don't see a door behind you. Maybe it's just a障眼法"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.17,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 27,
+      "prompt_tokens": 94,
+      "total_tokens": 121,
+      "prompt_tokens_details": {
+        "cached_tokens": 19
+      }
+    }
+  },
+  {
+    "text": "Poczekaj tutaj aż wrócę",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.23,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 327,
+      "total_tokens": 331,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Trzymaj się blisko mnie",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.177,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 323,
+      "total_tokens": 327,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Podejdź bliżej do mnie",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.197,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 325,
+      "total_tokens": 329,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Otwórz drzwi po lewej stronie",
+    "expected": [
+      "open_left"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.22,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 329,
+      "total_tokens": 333,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Nie otwieraj drzwi",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Привет как дела",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Хорошо, как дела? Надо проверить, что всё в порядке. Вды"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.979,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 29,
+      "prompt_tokens": 92,
+      "total_tokens": 121,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Я переживаю, что мы заблудимся.",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Проверь путь, может, я помню, как мы пришли сюда. Но нес"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.251,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 36,
+      "prompt_tokens": 101,
+      "total_tokens": 137,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Как у тебя настроение?",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Плохое, но я не боюсь тьмы. Надо идти вперед. Никаких шт"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.381,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 43,
+      "prompt_tokens": 94,
+      "total_tokens": 137,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Thanks, glad you're here.",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Thanks, glad you're here. Let's keep moving forward. I'm"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.001,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 29,
+      "prompt_tokens": 94,
+      "total_tokens": 123,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Miło cię widzieć, trochę się boję.",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Czyli się boję, ale nie z powodu ciebie. 😊"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.362,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 31,
+      "prompt_tokens": 100,
+      "total_tokens": 131,
+      "prompt_tokens_details": {
+        "cached_tokens": 19
+      }
+    }
+  },
+  {
+    "text": "Подбери ключ у стены",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Останься на этом месте",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.185,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 323,
+      "total_tokens": 327,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Подожди меня тут",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.19,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 322,
+      "total_tokens": 326,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Иди следом за мной",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.202,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 323,
+      "total_tokens": 327,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Возвращайся ко мне",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.189,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 322,
+      "total_tokens": 326,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Пожалуйста распахни ближайшую дверь",
+    "expected": [
+      "open_nearest"
+    ],
+    "actual": [
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.264,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 334,
+      "total_tokens": 338,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Прикрой дверь позади меня",
+    "expected": [
+      "close_back"
+    ],
+    "actual": [
+      "close"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.225,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 328,
+      "total_tokens": 332,
+      "prompt_tokens_details": {
+        "cached_tokens": 308
+      }
+    }
+  },
+  {
+    "text": "Подержи дверь открытой",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Сломай эту дверь",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Принеси аптечку",
+    "expected": [
+      "clarify"
+    ],
+    "actual": [
+      "clarify"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.0,
+    "route": "guard",
+    "usage": null
+  },
+  {
+    "text": "Куда ведёт эта дверь?",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Ведёт в тёмное место. Не уверен, но идём."
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.873,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 25,
+      "prompt_tokens": 98,
+      "total_tokens": 123,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Wait right there for me",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.205,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 321,
+      "total_tokens": 325,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Walk over to me",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.176,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 320,
+      "total_tokens": 324,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Stay close and follow my lead",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.189,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 322,
+      "total_tokens": 326,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Zaczekaj w tym miejscu",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.197,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 324,
+      "total_tokens": 328,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Wróć do mnie",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.187,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 321,
+      "total_tokens": 325,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Привет, иди за мной.",
+    "expected": [
+      "follow"
+    ],
+    "actual": [
+      "follow"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.222,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 326,
+      "total_tokens": 330,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Можешь подойти ко мне?",
+    "expected": [
+      "come"
+    ],
+    "actual": [
+      "come"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.2,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 325,
+      "total_tokens": 329,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Можешь подождать тут?",
+    "expected": [
+      "stop"
+    ],
+    "actual": [
+      "stop"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.199,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 325,
+      "total_tokens": 329,
+      "prompt_tokens_details": {
+        "cached_tokens": 311
+      }
+    }
+  },
+  {
+    "text": "Ха-ха, неплохо.",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Хм, неплохо, но тут что-то не то. Может, стоит проверить"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.035,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 31,
+      "prompt_tokens": 97,
+      "total_tokens": 128,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Можешь рассказать короткую шутку?",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Почему? Потому что я не знаю, что это за шутка."
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.012,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 28,
+      "prompt_tokens": 100,
+      "total_tokens": 128,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "У меня кот по кличке Плюш.",
+    "expected": [
+      "reply"
+    ],
+    "actual": {
+      "reply": "Кот Плюш — отличный имя! Всё ещё не уверен, что это кот,"
+    },
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 1.065,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 31,
+      "prompt_tokens": 99,
+      "total_tokens": 130,
+      "prompt_tokens_details": {
+        "cached_tokens": 78
+      }
+    }
+  },
+  {
+    "text": "Распахни дверь слева, а потом прикрой дверь справа",
+    "expected": [
+      "open_left",
+      "close_right"
+    ],
+    "actual": [
+      "open",
+      "close"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.326,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 337,
+      "total_tokens": 343,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Подойди ко мне, а потом распахни дверь справа",
+    "expected": [
+      "come",
+      "open_right"
+    ],
+    "actual": [
+      "come",
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.291,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 333,
+      "total_tokens": 339,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  },
+  {
+    "text": "Приоткрой дверь справа, потом распахни дверь слева",
+    "expected": [
+      "open_right",
+      "open_left"
+    ],
+    "actual": [
+      "open",
+      "open"
+    ],
+    "ok": true,
+    "finish_reason": "stop",
+    "seconds": 0.315,
+    "route": "llm",
+    "usage": {
+      "completion_tokens": 6,
+      "prompt_tokens": 337,
+      "total_tokens": 343,
+      "prompt_tokens_details": {
+        "cached_tokens": 307
+      }
+    }
+  }
+]

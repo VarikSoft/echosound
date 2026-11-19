@@ -1,0 +1,166 @@
+{
+  "cases": 90,
+  "correct": 90,
+  "correct_and_under_one_second": 81,
+  "cold_start_seconds": 3.5404147999999998,
+  "overall": {
+    "count": 84,
+    "median": 0.0058667,
+    "p95": 0.7086393999999999,
+    "maximum": 1.9092905999999998,
+    "within_one_second": 81
+  },
+  "streamed_first_text": {
+    "count": 7,
+    "median": 0.34808279999999997,
+    "p95": 0.643651,
+    "maximum": 0.643651,
+    "within_one_second": 7
+  },
+  "groups": {
+    "boundaries": {
+      "correct": 4,
+      "cases": 4,
+      "latency": {
+        "count": 4,
+        "median": 0.0001759,
+        "p95": 0.0007369999999999999,
+        "maximum": 0.0007369999999999999,
+        "within_one_second": 4
+      },
+      "streamed_first_text": null
+    },
+    "cancellation": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 2,
+        "median": 0.4912312,
+        "p95": 0.4912312,
+        "maximum": 0.4912312,
+        "within_one_second": 2
+      },
+      "streamed_first_text": null
+    },
+    "commands": {
+      "correct": 11,
+      "cases": 11,
+      "latency": {
+        "count": 11,
+        "median": 0.2766385,
+        "p95": 0.30128,
+        "maximum": 0.30128,
+        "within_one_second": 11
+      },
+      "streamed_first_text": null
+    },
+    "conversation": {
+      "correct": 7,
+      "cases": 7,
+      "latency": {
+        "count": 7,
+        "median": 0.00023329999999999998,
+        "p95": 0.0006315,
+        "maximum": 0.0006315,
+        "within_one_second": 7
+      },
+      "streamed_first_text": null
+    },
+    "conversation-authored": {
+      "correct": 11,
+      "cases": 11,
+      "latency": {
+        "count": 11,
+        "median": 0.00013979999999999998,
+        "p95": 0.00031739999999999996,
+        "maximum": 0.00031739999999999996,
+        "within_one_second": 11
+      },
+      "streamed_first_text": null
+    },
+    "conversation-llm": {
+      "correct": 6,
+      "cases": 6,
+      "latency": {
+        "count": 6,
+        "median": 1.1891574999999999,
+        "p95": 1.9092905999999998,
+        "maximum": 1.9092905999999998,
+        "within_one_second": 3
+      },
+      "streamed_first_text": {
+        "count": 6,
+        "median": 0.34808279999999997,
+        "p95": 0.643651,
+        "maximum": 0.643651,
+        "within_one_second": 6
+      }
+    },
+    "doors": {
+      "correct": 8,
+      "cases": 8,
+      "latency": {
+        "count": 8,
+        "median": 0.0007842999999999999,
+        "p95": 0.5256303999999999,
+        "maximum": 0.5256303999999999,
+        "within_one_second": 8
+      },
+      "streamed_first_text": null
+    },
+    "escort": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.00023669999999999998,
+        "p95": 0.0006663999999999999,
+        "maximum": 0.0006663999999999999,
+        "within_one_second": 3
+      },
+      "streamed_first_text": null
+    },
+    "invalid": {
+      "correct": 3,
+      "cases": 3,
+      "latency": null,
+      "streamed_first_text": null
+    },
+    "memory-FastLlm-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.0001357,
+        "p95": 0.0005863999999999999,
+        "maximum": 0.0005863999999999999,
+        "within_one_second": 9
+      },
+      "streamed_first_text": null
+    },
+    "non-speech": {
+      "correct": 2,
+      "cases": 2,
+      "latency": null,
+      "streamed_first_text": null
+    },
+    "voice-clean": {
+      "correct": 23,
+      "cases": 23,
+      "latency": {
+        "count": 23,
+        "median": 0.2737997,
+        "p95": 0.40752479999999996,
+        "maximum": 0.9326346,
+        "within_one_second": 23
+      },
+      "streamed_first_text": {
+        "count": 1,
+        "median": 0.6410482,
+        "p95": 0.6410482,
+        "maximum": 0.6410482,
+        "within_one_second": 1
+      }
+    }
+  }
+}

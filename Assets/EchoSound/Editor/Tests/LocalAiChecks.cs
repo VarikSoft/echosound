@@ -14,6 +14,7 @@ namespace EchoSound.Editor.Tests
         {
             QuickDoorChecks.Validate();
             FastLlmChecks.Validate();
+            ConversationChecks.Validate();
             Check(" STOP! ", "wait_here");
             Check("follow me", "follow_curator");
             Check("come here", "go_to");
@@ -22,8 +23,60 @@ namespace EchoSound.Editor.Tests
             Check("Podejdź do mnie.", "go_to");
             Check("стой", "wait_here");
             Check("иди за мной", "follow_curator");
-            Check("Следую за мной.", "follow_curator");
+            const QuickCompanionCommand.FollowContext protection = QuickCompanionCommand.FollowContext.Protection;
+            const QuickCompanionCommand.FollowContext unclearDoor = QuickCompanionCommand.FollowContext.ClarifyDoors;
+            const QuickCompanionCommand.FollowContext escortDoors = QuickCompanionCommand.FollowContext.OpenOnPath;
+            CheckFollowContext("Иди за мной. Короче, следи, чтобы враги меня не убили. Может, двери открываем меня. Не знаю.", protection | unclearDoor);
+            CheckFollowContext("Следуй за мной и прикрой меня. Может, откроем дверь?", protection | unclearDoor);
+            CheckFollowContext("Иди за мной, может, закроем двери.", unclearDoor);
+            CheckFollowContext("Иди за мной. Прикрой меня. И открывай все двери по дороге.", protection | escortDoors);
+            CheckFollowContext("Иди за мной. Открой все двери. Может, закроем двери?", unclearDoor);
+            foreach (string text in new[] {
+                "Если я скажу «иди за мной», прикрой меня.",
+                "Он сказал: иди за мной. Прикрой меня.",
+                "Иди за мной? Прикрой меня.",
+                "Не иди за мной. Прикрой меня.",
+                "Иди за мной. Прикрой меня, если услышишь шаги.",
+                "Иди за мной. Прикрой меня. Стой.",
+                "Иди за мной. Может, стой за дверью.",
+                "Иди за мной. Может, не открывай двери, пока я осмотрюсь."
+            })
+                Require(!QuickCompanionCommand.TryParseFollowWithContext(text, out _), "Do not split a conditional, quoted or conflicting command: " + text);
+            foreach (string text in new[] {
+                "Не иди за мной.",
+                "Перестань преследовать меня.",
+                "Пана, не иди за мной и не открываю больше две.",
+                "Эхо, не ходи больше за мной и не открывай двери."
+            })
+                Require(QuickCompanionCommand.TryParseDismissal(text, out var waitAction) && waitAction == QuickCompanionCommand.DismissalAction.Wait,
+                    "Stop following without operating doors: " + text);
+            foreach (string text in new[] {
+                "А еще этот. Можешь не ходить больше не преследовать меня и где-то гулять и закрывать двери.",
+                "Можешь больше не ходить за мной, а пройтись и закрыть двери?",
+                "Не следуй за мной. Закрой ближайшие двери."
+            })
+                Require(QuickCompanionCommand.TryParseDismissal(text, out var closeAction) && closeAction == QuickCompanionCommand.DismissalAction.CloseNearbyDoors,
+                    "Stop following and close nearby doors: " + text);
+            Require(QuickCompanionCommand.TryParseDismissal("Можешь больше не ходить за мной, а пройти связы к крык двери.", out var unclear)
+                && unclear == QuickCompanionCommand.DismissalAction.ClarifyDoors, "Stop safely even if the door clause is garbled.");
+            foreach (string text in new[] {
+                "Если скажу не иди за мной, закрой двери.",
+                "Я сказал: не иди за мной.",
+                "«Не иди за мной», сказал игрок.",
+                "Не иди за мной?",
+                "Не иди за мной и открывай все двери.",
+                "Не иди за мной и не закрывай двери рядом с Сашей.",
+                "Не иди за мной и закрой двери слева.",
+                "Можешь не ходить за мной, а пройти если я открою двери?",
+                "Не открываю больше две."
+            })
+                Require(!QuickCompanionCommand.TryParseDismissal(text, out _), "Do not mistake a quote, condition or unsupported clause for a dismissal: " + text);
+            Require(!QuickCompanionCommand.TryParse("Следую за мной.", out _, out _), "A first-person transcript is not a movement order.");
+            Require(!QuickCompanionCommand.TryParse("«Стой»", out _, out _), "A quoted stop does not stop the companion.");
             Check("ко мне", "go_to");
+            Check("Можешь подождать здесь, пока я немного осмотрюсь и попробую разобраться, куда нам дальше идти?", "wait_here");
+            foreach (string text in new[] { "Можешь подождать здесь, пока я осмотрюсь, и открой дверь", "Можешь подождать здесь, пока я посмотрю, а ты иди за мной", "Если можешь подождать здесь, пока я осмотрюсь" })
+                Require(!QuickCompanionCommand.TryParse(text, out _, out _), "A wait explanation cannot conceal another order or condition.");
             Require(QuickCompanionCommand.TrySplitFollowup("Open the door in front of me and then follow me.", out string first, out string tail)
                 && first == "Open the door in front of me" && tail == "follow me.", "Explicit movement suffix is separated.");
             foreach (string text in new[] { "If I open the door then follow me", "Open the door if I wave and then follow me", "Don't open the door then follow me", "Open the door then follow me?", "Open the door and then close it" })
@@ -61,6 +114,12 @@ namespace EchoSound.Editor.Tests
             LocalAiBuild.ValidateBundle();
             ExportFixtures();
             Debug.Log("Local AI checks: all passed.");
+        }
+
+        private static void CheckFollowContext(string text, QuickCompanionCommand.FollowContext expected)
+        {
+            Require(QuickCompanionCommand.TryParseFollowWithContext(text, out var context) && context == expected,
+                "Recognize the separate parts of a follow command: " + text);
         }
 
         private static void ExportFixtures()

@@ -1,0 +1,113 @@
+{
+  "cases": 72,
+  "correct": 72,
+  "correct_and_under_one_second": 61,
+  "cold_start_seconds": 2.8817350999999998,
+  "overall": {
+    "count": 66,
+    "median": 0.2241562,
+    "p95": 1.024722,
+    "maximum": 1.4410835,
+    "within_one_second": 61
+  },
+  "groups": {
+    "boundaries": {
+      "correct": 4,
+      "cases": 4,
+      "latency": {
+        "count": 4,
+        "median": 0.0001835,
+        "p95": 0.0005700999999999999,
+        "maximum": 0.0005700999999999999,
+        "within_one_second": 4
+      }
+    },
+    "cancellation": {
+      "correct": 2,
+      "cases": 2,
+      "latency": {
+        "count": 1,
+        "median": 0.41625619999999997,
+        "p95": 0.41625619999999997,
+        "maximum": 0.41625619999999997,
+        "within_one_second": 1
+      }
+    },
+    "commands": {
+      "correct": 11,
+      "cases": 11,
+      "latency": {
+        "count": 11,
+        "median": 0.2256745,
+        "p95": 0.2600155,
+        "maximum": 0.2600155,
+        "within_one_second": 11
+      }
+    },
+    "conversation": {
+      "correct": 7,
+      "cases": 7,
+      "latency": {
+        "count": 7,
+        "median": 0.9908081,
+        "p95": 1.3590830999999999,
+        "maximum": 1.3590830999999999,
+        "within_one_second": 4
+      }
+    },
+    "doors": {
+      "correct": 8,
+      "cases": 8,
+      "latency": {
+        "count": 8,
+        "median": 0.0007157,
+        "p95": 0.5270303,
+        "maximum": 0.5270303,
+        "within_one_second": 8
+      }
+    },
+    "escort": {
+      "correct": 3,
+      "cases": 3,
+      "latency": {
+        "count": 3,
+        "median": 0.000111,
+        "p95": 0.0006590999999999999,
+        "maximum": 0.0006590999999999999,
+        "within_one_second": 3
+      }
+    },
+    "invalid": {
+      "correct": 3,
+      "cases": 3,
+      "latency": null
+    },
+    "memory-FastLlm-Нина": {
+      "correct": 9,
+      "cases": 9,
+      "latency": {
+        "count": 9,
+        "median": 0.00011499999999999999,
+        "p95": 0.0002792,
+        "maximum": 0.0002792,
+        "within_one_second": 9
+      }
+    },
+    "non-speech": {
+      "correct": 2,
+      "cases": 2,
+      "latency": null
+    },
+    "voice-clean": {
+      "correct": 23,
+      "cases": 23,
+      "latency": {
+        "count": 23,
+        "median": 0.2325797,
+        "p95": 1.024722,
+        "maximum": 1.4410835,
+        "within_one_second": 21
+      }
+    }
+  }
+}

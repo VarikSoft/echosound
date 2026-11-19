@@ -1,0 +1,592 @@
+{
+  "cases": [
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioFalse-1-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioFalse-1-control"
+    },
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioFalse-2-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioFalse-2-control"
+    },
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioFalse-3-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioFalse-3-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioTrue-1-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioTrue-1-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioTrue-2-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioTrue-2-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownFalse-audioTrue-3-target",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownFalse-audioTrue-3-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioFalse-1-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioFalse-1-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioFalse-1-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioFalse-2-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioFalse-2-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioFalse-2-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioFalse-3-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioFalse-3-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioFalse-3-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioTrue-1-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioTrue-1-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioTrue-1-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioTrue-2-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioTrue-2-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioTrue-2-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FastLlm-knownTrue-audioTrue-3-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FastLlm-knownTrue-audioTrue-3-target",
+      "contains": "Саша",
+      "mode": "FastLlm",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FastLlm",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FastLlm-knownTrue-audioTrue-3-control"
+    },
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioFalse-1-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioFalse-1-control"
+    },
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioFalse-2-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioFalse-2-control"
+    },
+    {
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioFalse-3-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioFalse-3-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioTrue-1-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioTrue-1-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioTrue-2-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioTrue-2-control"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": true,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownFalse-audioTrue-3-target",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Ты ещё не называл своё имя.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownFalse-audioTrue-3-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioFalse-1-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioFalse-1-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioFalse-1-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioFalse-2-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioFalse-2-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioFalse-2-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioFalse-3-intro"
+    },
+    {
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioFalse-3-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioFalse-3-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioTrue-1-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioTrue-1-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioTrue-1-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioTrue-2-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioTrue-2-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioTrue-2-control"
+    },
+    {
+      "text": "Меня зовут Саша.",
+      "group": "setup",
+      "exact": "Понял, Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": true,
+      "id": "FreeDialogue-knownTrue-audioTrue-3-intro"
+    },
+    {
+      "audio": "panic.wav",
+      "expected": "preserve",
+      "reset": false,
+      "language": "Russian",
+      "text": "БЛЯ сука я обосрался, иди проверяй за меня что там происходит, а вообще как меня зовут вдруг ты мимик....",
+      "id": "FreeDialogue-knownTrue-audioTrue-3-target",
+      "contains": "Саша",
+      "mode": "FreeDialogue",
+      "group": "compound",
+      "following": true
+    },
+    {
+      "text": "Как меня зовут?",
+      "group": "name-control",
+      "exact": "Тебя зовут Саша.",
+      "mode": "FreeDialogue",
+      "expected": "preserve",
+      "reset": false,
+      "id": "FreeDialogue-knownTrue-audioTrue-3-control"
+    }
+  ]
+}

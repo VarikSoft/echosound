@@ -1,0 +1,95 @@
+Mono path[0] = '.utmp/voice-check-project/Builds/Windows/EchoSound_Data/Managed'
+Mono config path = '.utmp/voice-check-project/Builds/Windows/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.6.7f1 (b22767f04f04)
+[EntityIdStore] init: VM path (explicit commit), pageSize=4096, blockCount=262144, entitiesPerBlock=1024, blocksPerSlotPage=0, slots reserved=4294967296 bytes
+[Subsystems] Discovering subsystems at path .utmp/voice-check-project/Builds/Windows/EchoSound_Data/UnitySubsystems
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.005 seconds
+[Physics::Module] Selected backend (deferred post-plugins).
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
+UnloadTime: 0.549100 ms
+[Local AI] Language: AI bundle is incomplete
+[Companion] Order: follow me
+[Companion] Order: стой
+[Companion] Order: Podejdź do mnie.
+[Voice timing] recognition=0,038s audio=1,00s language=english requests=1
+[Voice timing] recognition=0,225s audio=2,04s language=russian requests=1
+[Companion] Order: Следуй за мной.
+[Voice timing] release-to-command=0,225s route=direct
+VOICE LATENCY PASSED: follow, release-to-action=0,242s, direct route
+[Voice timing] recognition=0,216s audio=1,41s language=russian requests=1
+[Companion] Order: Стой.
+[Voice timing] release-to-command=0,216s route=direct
+VOICE LATENCY PASSED: stop, release-to-action=0,233s, direct route
+[Voice timing] recognition=0,232s audio=1,77s language=russian requests=1
+[Companion] Order: Иди за мной.
+[Voice timing] release-to-command=0,232s route=direct
+VOICE LATENCY PASSED: follow2, release-to-action=0,249s, direct route
+[Companion] Order: stop
+[Companion] Order: Дверь впереди закрыта?
+DOOR STATUS PASSED: transcript-to-reply=0,003s, route=door-status
+[Companion] Order: Открой дверь.
+[Door timing] dispatch=0,001s action=open_door target=smoke_closed route=direct
+DOOR LATENCY PASSED: text-to-action=0,004s, route=direct
+[Companion] Order: Дверь впереди открыта?
+[Companion] open_door target=smoke_closed -> smoke_closed is now open.
+[Companion] Door resolution=Found: Готово.
+[Companion] Order: Закрой дверь передо мной.
+[Door timing] dispatch=0,000s action=close_door target=smoke_closed route=direct
+[Companion] close_door target=smoke_closed -> smoke_closed is now closed.
+[Companion] Door resolution=Found: Готово.
+[Voice timing] recognition=0,247s audio=4,00s language=russian requests=1
+[Companion] Order: Пожалуйста, откройте дверь передо мной.
+[Door timing] dispatch=0,000s action=open_door target=smoke_closed route=direct
+[Voice timing] release-to-command=0,248s route=direct
+DOOR VOICE LATENCY PASSED: release-to-action=0,248s, route=direct
+[Companion] open_door target=smoke_closed -> smoke_closed is now open.
+[Companion] Door resolution=Found: Готово.
+[Companion] Order: Закрой дверь передо мной а потом за мной
+[Door timing] dispatch=0,000s action=close_door target=smoke_closed route=direct
+[Companion] close_door target=smoke_closed -> smoke_closed is now closed.
+[Companion] Door resolution=Found: Готово.
+[Companion] Order: стой
+[Companion] Order: Открой дверь передо мной а потом за мной
+[Door timing] dispatch=0,000s action=open_door target=smoke_closed route=direct
+[Companion] Order: стой
+[Companion] Order: Закрой дверь передо мной.
+[Door timing] dispatch=0,000s action=close_door target=smoke_closed route=direct
+[Companion] close_door target=smoke_closed -> smoke_closed is now closed.
+[Companion] Door resolution=Found: Готово.
+[Voice timing] recognition=0,248s audio=2,99s language=russian requests=1
+[Companion] Order: Иди за мной и открой все двери.
+[Voice timing] release-to-command=0,249s route=direct
+[Companion] Order: стой
+[Companion] Order: Закрой дверь передо мной.
+[Door timing] dispatch=0,000s action=close_door target=smoke_closed route=direct
+[Companion] close_door target=smoke_closed -> smoke_closed is now closed.
+[Companion] Door resolution=Found: Готово.
+[Companion] Order: Открой все двери
+DOOR ESCORT PASSED: open on path, resume follow, stop, and standalone bulk opening.
+DOOR COMMANDS PASSED: open, close, speech, chained follow, cancellation; route=direct
+[Companion] Order: Открой дверь только когда я разрешу
+FAST MODE PASSED: clarification=0,000s; language model not loaded.
+[Local AI] Language: AI bundle is incomplete
+OFFLINE AI SMOKE PASSED: missing-model fallback, follow, stop, NavMesh movement, speech, clean exit.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

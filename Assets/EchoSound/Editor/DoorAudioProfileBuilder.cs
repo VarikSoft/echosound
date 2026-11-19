@@ -47,41 +47,35 @@ namespace EchoSound.Editor
             var doorPackDir = "Assets/Doors Small Sound Pack";
             var rpgAudioDir = "Assets/Multiple Solutions/Basic RPG Sounds/Audio";
 
-            // Open clips
-            var metalOpenClips = LoadSpecificClips(doorPackDir, new[] { "Drs_MetalDoor_Open_01", "Drs_Front_Door_Open_01" });
-            var woodOpenClips = LoadSpecificClips(doorPackDir, new[] { "Drs_Wood_Door_Open_01", "Drs_Wood_Door_Open_02", "Drs_Wood_DoubleDoor_Open_01" });
-            var scifiOpenClips = LoadSpecificClips(rpgAudioDir, new[] { "Pressure Containment Unlock 1", "Pressure Containment Unlock 2", "Pressure Containment Unlock 3", "Door Unlock 1" });
+            // Metal open & close
+            var metalOpenClips = LoadSpecificClips(doorPackDir, new[] { "Drs_MetalDoor_Open_01" });
+            var metalCloseClips = LoadSpecificClips(doorPackDir, new[] { "Drs_MetalDoor_Close_01" });
+            var metalBlockedClips = LoadSpecificClips(rpgAudioDir, new[] { "Door Lock 1", "Door Lock 2", "Door Lock 3" });
 
-            var defaultOpenList = new List<AudioClip>();
-            defaultOpenList.AddRange(metalOpenClips);
-            defaultOpenList.AddRange(scifiOpenClips);
+            // Wood open & close
+            var woodOpenClips = LoadSpecificClips(doorPackDir, new[] { "Drs_Wood_Door_Open_01", "Drs_Wood_Door_Open_02" });
+            var woodCloseClips = LoadSpecificClips(doorPackDir, new[] { "Drs_Wood_Door_Close_01", "Drs_Wood_Door_Close_02" });
+            var woodBlockedClips = LoadSpecificClips(rpgAudioDir, new[] { "Door Dungeon Lock 1", "Door Dungeon Lock 2", "Door Lock 4" });
 
-            // Close clips
-            var metalCloseClips = LoadSpecificClips(doorPackDir, new[] { "Drs_MetalDoor_Close_01", "Drs_Front_Door_Close_01" });
-            var woodCloseClips = LoadSpecificClips(doorPackDir, new[] { "Drs_Wood_Door_Close_01", "Drs_Wood_Door_Close_02", "Drs_Wood_DoubleDoor_Close_01" });
-            var scifiCloseClips = LoadSpecificClips(rpgAudioDir, new[] { "Pressure Containment Unlock 4", "Pressure Containment Unlock 5", "Pressure Containment Unlock 6" });
+            // 2. Create Material-specific Cues in Resources/Audio/Doors
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Metal_Open.asset", metalOpenClips, 0.92f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Metal_Close.asset", metalCloseClips, 0.95f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Metal_Blocked.asset", metalBlockedClips, 0.85f, 0.98f, 1.02f, 1.0f, 0.15f);
 
-            var defaultCloseList = new List<AudioClip>();
-            defaultCloseList.AddRange(metalCloseClips);
-            defaultCloseList.AddRange(scifiCloseClips);
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Wood_Open.asset", woodOpenClips, 0.90f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Wood_Close.asset", woodCloseClips, 0.95f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(ResourcesDoorsDir + "/Door_Wood_Blocked.asset", woodBlockedClips, 0.85f, 0.98f, 1.02f, 1.0f, 0.15f);
 
-            // Blocked / Locked clips
-            var blockedClips = LoadSpecificClips(rpgAudioDir, new[]
-            {
-                "Door Lock 1", "Door Lock 2", "Door Lock 3", "Door Lock 4", "Door Lock 5", "Door Lock 6",
-                "Door Dungeon Lock 1", "Door Dungeon Lock 2", "Door Dungeon Lock 3", "Door Dungeon Lock 4"
-            });
+            // Defaults fallback to Metal
+            CreateOrUpdateCue(DefaultOpenPath, metalOpenClips, 0.92f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(DefaultClosePath, metalCloseClips, 0.95f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(DefaultBlockedPath, metalBlockedClips, 0.85f, 0.98f, 1.02f, 1.0f, 0.15f);
 
-            // 2. Create Default Cues in Resources/Audio/Doors
-            CreateOrUpdateCue(DefaultOpenPath, defaultOpenList.ToArray(), 0.9f, 0.96f, 1.04f, 1.0f, 0.15f);
-            CreateOrUpdateCue(DefaultClosePath, defaultCloseList.ToArray(), 0.95f, 0.96f, 1.04f, 1.0f, 0.15f);
-            CreateOrUpdateCue(DefaultBlockedPath, blockedClips, 0.85f, 0.95f, 1.05f, 1.0f, 0.15f);
-
-            // 3. Create Specific Cues in Settings/Audio/SoundCues/Doors
-            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Metal_Open.asset", metalOpenClips, 0.9f, 0.96f, 1.04f, 1.0f, 0.15f);
-            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Metal_Close.asset", metalCloseClips, 0.95f, 0.96f, 1.04f, 1.0f, 0.15f);
-            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Wood_Open.asset", woodOpenClips, 0.9f, 0.96f, 1.04f, 1.0f, 0.15f);
-            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Wood_Close.asset", woodCloseClips, 0.95f, 0.96f, 1.04f, 1.0f, 0.15f);
+            // 3. Mirror in Settings/Audio/SoundCues/Doors
+            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Metal_Open.asset", metalOpenClips, 0.92f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Metal_Close.asset", metalCloseClips, 0.95f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Wood_Open.asset", woodOpenClips, 0.90f, 0.98f, 1.02f, 1.0f, 0.15f);
+            CreateOrUpdateCue(SettingsDoorsDir + "/Door_Wood_Close.asset", woodCloseClips, 0.95f, 0.98f, 1.02f, 1.0f, 0.15f);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

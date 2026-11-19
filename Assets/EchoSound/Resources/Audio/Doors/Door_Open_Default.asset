@@ -14,15 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: EchoSound.Sound::EchoSound.Sound.SoundCue
   clips:
   - {fileID: 8300000, guid: b1334dbf63b8b12469d492e285f8003d, type: 3}
-  - {fileID: 8300000, guid: 1c657965ef0f7b844b193b88edbe45b9, type: 3}
-  - {fileID: 8300000, guid: 7cc7893ef09d18e4ba4b1d08a300000b, type: 3}
-  - {fileID: 8300000, guid: 03787a23ff566424788ce56c25610348, type: 3}
-  - {fileID: 8300000, guid: 38b1fb7602bfdc0448dea17ef345395f, type: 3}
   selectionMode: 1
-  baseVolume: 0.9
-  volumeVariation: {x: 0.95, y: 1.05}
+  baseVolume: 0.92
+  volumeVariation: {x: 0.97, y: 1.03}
   basePitch: 1
-  pitchVariation: {x: 0.96, y: 1.04}
+  pitchVariation: {x: 0.98, y: 1.02}
   spatialBlend: 1
   rolloffMode: 0
   minDistance: 2

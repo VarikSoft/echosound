@@ -16,16 +16,11 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 5c04da25867f1e74c87438abed954f2e, type: 3}
   - {fileID: 8300000, guid: dd6c5b92106a82140b7b0c8093ff3a3d, type: 3}
   - {fileID: 8300000, guid: 660d04eaad7e5704088fb5ce2e778ba0, type: 3}
-  - {fileID: 8300000, guid: 19216361526904e4db4d49b5f5a173e6, type: 3}
-  - {fileID: 8300000, guid: 8f233e5473a4e004d93df44bda67efef, type: 3}
-  - {fileID: 8300000, guid: f80843d46b6467546a4d007cd972045f, type: 3}
-  - {fileID: 8300000, guid: 77b4b09bf30c8e7448468f7687cb1fce, type: 3}
-  - {fileID: 8300000, guid: 6c040d59abb9da9448deb7f0499878ca, type: 3}
   selectionMode: 1
   baseVolume: 0.85
-  volumeVariation: {x: 0.95, y: 1.05}
+  volumeVariation: {x: 0.97, y: 1.03}
   basePitch: 1
-  pitchVariation: {x: 0.96, y: 1.04}
+  pitchVariation: {x: 0.98, y: 1.02}
   spatialBlend: 1
   rolloffMode: 0
   minDistance: 2

@@ -213,6 +213,24 @@ namespace EchoSound.Editor.Tests
             Require(door.blockedCue != null, "Door.blockedCue must auto-populate default cue.");
 
             UnityEngine.Object.DestroyImmediate(doorObj);
+
+            // Verify Wood material-specific door cue resolution
+            var woodDoorObj = new GameObject("TestWoodDoor");
+            var woodDoor = woodDoorObj.AddComponent<EchoSound.Interaction.Door>();
+            woodDoor.materialKind = AcousticMaterialKind.Wood;
+            woodDoor.EnsureDefaultCues();
+            Require(woodDoor.openCue != null && woodDoor.openCue.name.Contains("Wood"), "Wood door must load Wood open cue.");
+            Require(woodDoor.closeCue != null && woodDoor.closeCue.name.Contains("Wood"), "Wood door must load Wood close cue.");
+            UnityEngine.Object.DestroyImmediate(woodDoorObj);
+
+            // Verify Metal material-specific door cue resolution
+            var metalDoorObj = new GameObject("TestMetalDoor");
+            var metalDoor = metalDoorObj.AddComponent<EchoSound.Interaction.Door>();
+            metalDoor.materialKind = AcousticMaterialKind.Metal;
+            metalDoor.EnsureDefaultCues();
+            Require(metalDoor.openCue != null && metalDoor.openCue.name.Contains("Metal"), "Metal door must load Metal open cue.");
+            Require(metalDoor.closeCue != null && metalDoor.closeCue.name.Contains("Metal"), "Metal door must load Metal close cue.");
+            UnityEngine.Object.DestroyImmediate(metalDoorObj);
         }
 
         private static void Require(bool condition, string message)

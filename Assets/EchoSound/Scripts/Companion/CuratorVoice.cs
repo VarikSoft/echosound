@@ -35,9 +35,11 @@ namespace EchoSound.Companion
         {
             if (PlayerPrefs.HasKey(LanguagePreference))
             {
+                // A saved language that is no longer supported falls back to the inspector setting.
                 int saved = PlayerPrefs.GetInt(LanguagePreference);
                 if (Enum.IsDefined(typeof(WhisperClient.SpeechLanguage), saved)) whisper.language = (WhisperClient.SpeechLanguage)saved;
             }
+            UpdateReplyLanguage(whisper.RecognitionLanguage);
         }
 
         public void SetLanguage(WhisperClient.SpeechLanguage selected)
@@ -45,6 +47,13 @@ namespace EchoSound.Companion
             whisper.language = selected;
             PlayerPrefs.SetInt(LanguagePreference, (int)selected);
             PlayerPrefs.Save();
+            UpdateReplyLanguage(whisper.RecognitionLanguage);
+        }
+
+        // Replies follow the player's words; the speech language decides when the words do not tell.
+        private static void UpdateReplyLanguage(string whisperLanguage)
+        {
+            if (CompanionLanguage.FromSpeech(whisperLanguage) is CompanionLanguage.Language language) CompanionLanguage.Preferred = language;
         }
 
         private void OnEnable()
@@ -156,6 +165,7 @@ namespace EchoSound.Companion
                 yield break;
             }
             text = WhisperClient.CleanTranscript(text);
+            UpdateReplyLanguage(whisper.LastLanguage);
             if (text.Length > 0 && companion != null)
             {
                 companion.Command(text);

@@ -325,8 +325,13 @@ following. “Stop” cancels escort. “Open all the doors” opens reachable d
 the companion's initial perception and reports if some were out of reach. Both
 commands use the same door interactions as the player and work in all modes.
 
-Exact standalone follow / stop / come-here phrases in English,
-Polish and Russian bypass generation. A recognised movement suffix after an explicit
+The companion understands English and Polish. Every phrase that game code acts on without
+the language model is listed once per language in `Scripts/Companion/CompanionPhrases.cs`;
+matching ignores punctuation and Polish diacritics, so “otworz drzwi” works like
+“otwórz drzwi”. Replies follow the language of the player's words; when the words do not
+tell (“stop”, a name), the speech language setting decides.
+
+Exact standalone follow / stop / come-here phrases bypass generation. A recognised movement suffix after an explicit
 door order (such as "open the door and then follow me") is executed separately.
 Simple open/close door commands also bypass generation, including front/behind/left/right
 relative to the player. For an unspecified door, a perceived door under the player's
@@ -335,19 +340,23 @@ Similarly close candidates trigger a clarification. An explicitly aimed door tha
 already open/closed is acknowledged without choosing another target. Door actions still
 use the shared navigation and interaction rules. Timing to begin an action excludes the
 time needed to walk to the door and animate its panel.
-An explicit Russian request to wait here while the player looks around also bypasses
-generation; an explanation containing a second order is not accepted by this shortcut.
-Questions, conditions and unrecognised suffixes are left intact for interpretation.
+A few fixed compound orders also bypass generation: “don't follow me” optionally followed by
+“and close all the doors” or “and don't open doors”, and “follow me” followed by “cover me”
+and/or “open all the doors on the way”. Every clause must be a listed one; anything else is
+left for interpretation. A polite Polish request may use the infinitive (“czy możesz
+otworzyć drzwi po lewej?”). Questions, conditions and unrecognised suffixes are left intact
+for interpretation.
 Each model request produces one bounded plan; execution results cannot start another
 model-driven action loop. This is a small model: unfamiliar wording can still
 produce the wrong intent. No fine-tuning has been performed.
 
-Speech defaults to the system language (Russian/Polish/English). Press **Esc** and
-choose **Russian / Polish / English / Auto** in the chat to change it; the choice
-is saved. A fixed language avoids re-detecting the language of each short command.
-Recognition uses one greedy pass without temperature retries or word timestamps.
-Auto remains available for mixed-language speech, without a second recognition
-pass. Existing single-language inspector settings are preserved. Replies currently
+Speech defaults to Polish on a Polish system and to English everywhere else. Press **Esc**
+and choose **Polish / English / Auto** in the chat to change it; the choice is saved. A fixed
+language avoids re-detecting the language of each short command. Recognition uses one greedy
+pass without temperature retries or word timestamps. Auto accepts Polish and English: when
+Whisper hears another language, which happens with short Polish phrases, the phrase is read
+again in the language last heard, so Auto can take a second pass. Existing single-language
+inspector settings are preserved. Replies currently
 appear as text; TTS remains planned.
 PTT phrases use a duration-bounded Whisper audio context with at least ten seconds
 of encoder context, a small vocabulary hint and synthetic boundary padding.
@@ -381,7 +390,7 @@ python Tools/Test-Companion.py --folder .utmp/companion-render-tests --build Bui
 
 Synthetic voices use installed Windows voices. Missing languages are listed in
 `.utmp/companion-tests/coverage.json`. The suite covers clean, quieter, noisy and padded
-recordings, two Russian voices when available, English speech, text in three languages,
+recordings, Polish speech (Microsoft Paulina) and two English voices when available, text in both languages,
 door sequences, escort, memory corrections, negation, quoted speech, silence, tones,
 cancellation and disabling voice input. Results and all failures are retained in JSON
 and Markdown beside the fixtures. Exit code 1 means functional failures and 2 means
@@ -391,13 +400,15 @@ manual quality review. It does not establish real-microphone accuracy or low-end
 
 - **EchoSound → Checks → Validate local AI commands** checks shortcut boundaries,
   rejected/unknown targets, structured output, voice encoding and bundle integrity.
+  It also checks English and Polish detection, that every phrase list has both languages,
+  and the route each built-player test phrase takes, so routing changes show up on any OS.
   It exports the actual client's test requests to `.utmp/ai-fixtures.json`.
 - `python Tools/Test-LocalAI.py` starts the bundled CPU servers, checks multilingual
   actions, questions, negation, multi-step orders and silence, then closes its servers.
   Optional `--audio path/to/jfk.wav` checks the public whisper.cpp JFK speech sample.
   Reports/logs go to `.utmp`; this is a developer test, not a player prerequisite.
 - `python Tools/Test-FastLLM.py` checks the actual exported Fast LLM requests, conservative
-  guards and target-direction resolution on Russian/English/Polish cases, including
+  guards and target-direction resolution on English/Polish cases, including
   held-out paraphrases. It reports warm inference latency separately from the cold prompt.
   LocalAiChecks exports `.utmp/fast-llm-fixtures.json`; pass `--fixtures` to use another path.
 - `./Tools/Test-OfflineBuild.ps1` launches the built game headlessly, checks actual
@@ -408,10 +419,10 @@ manual quality review. It does not establish real-microphone accuracy or low-end
   restores them in a `finally` block. Do not run it while playing that same build.
 - Optional `-VoiceFixtures path/to/folder` also sends `follow.wav`, `stop.wav`,
   `follow2.wav`, `door.wav` and `fast-door.wav` through the actual game voice component.
-  The last file must say a non-shortcut phrase such as “Распахни дверь впереди” and must
-  execute through Fast LLM. Fixtures must be mono PCM16 WAVs with Russian commands. The player log
+  The last file must say a non-shortcut phrase such as “Uchyl drzwi z przodu” and must
+  execute through Fast LLM. Fixtures must be mono PCM16 WAVs with Polish commands. The player log
   records recognition, release-to-command and model latency separately.
-- `python Tools/Benchmark-Voice.py path/to/folder --language russian` compares the
+- `python Tools/Benchmark-Voice.py path/to/folder --language polish` compares the
   previous auto-language pipeline with the current single-pass pipeline on the same
   local WAV files. It never captures a microphone. Synthetic fixtures measure latency
   and regressions; they do not establish accuracy for real microphones or accents.

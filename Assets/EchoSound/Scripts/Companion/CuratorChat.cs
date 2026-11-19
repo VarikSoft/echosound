@@ -11,7 +11,9 @@ namespace EchoSound.Companion
     {
         private const string InputName = "CuratorInput";
         private static readonly string[] CompanionModes = { "Quick commands", "Fast LLM", "Free dialogue (slower)" };
-        private static readonly string[] VoiceLanguages = { "Russian", "Polish", "English", "Auto" };
+        private static readonly string[] VoiceLanguages = { "Polish", "English", "Auto" };
+        private static readonly WhisperClient.SpeechLanguage[] VoiceChoices =
+            { WhisperClient.SpeechLanguage.Polish, WhisperClient.SpeechLanguage.English, WhisperClient.SpeechLanguage.Auto };
 
         public CompanionBrain companion;
         public CuratorVoice voice;
@@ -117,12 +119,12 @@ namespace EchoSound.Companion
             if (voice != null)
             {
                 string currentLanguage = voice.whisper.RecognitionLanguage;
-                int selected = currentLanguage == "russian" ? 0 : currentLanguage == "polish" ? 1 : currentLanguage == "english" ? 2 : 3;
+                int selected = currentLanguage == "polish" ? 0 : currentLanguage == "english" ? 1 : 2;
                 if (Cursor.lockState == CursorLockMode.Locked) GUILayout.Label("Voice: " + VoiceLanguages[selected] + " · Esc to change");
                 else
                 {
                     int next = GUILayout.Toolbar(selected, VoiceLanguages);
-                    if (next != selected) voice.SetLanguage(next == 0 ? WhisperClient.SpeechLanguage.Russian : next == 1 ? WhisperClient.SpeechLanguage.Polish : next == 2 ? WhisperClient.SpeechLanguage.English : WhisperClient.SpeechLanguage.Auto);
+                    if (next != selected) voice.SetLanguage(VoiceChoices[next]);
                 }
             }
             if (runtime.ChatStarting || runtime.SpeechStarting || (companion != null && companion.FastStarting)) GUILayout.Label("Preparing your companion. Basic orders are available.");

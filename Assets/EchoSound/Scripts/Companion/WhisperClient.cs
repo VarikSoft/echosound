@@ -18,22 +18,26 @@ namespace EchoSound.Companion
     [Serializable]
     public sealed class WhisperClient
     {
-        public enum SpeechLanguage { System, Russian, Polish, English, Auto }
+        // Values are stored in PlayerPrefs and scenes; keep them when the list changes. 1 was Russian, now unsupported.
+        public enum SpeechLanguage { System = 0, Polish = 2, English = 3, Auto = 4 }
         private const int WhisperSampleRate = 16000;
+        private static readonly string[] Supported = { "polish", "english" };
 
         // Sound descriptions rather than speech, such as [BLANK_AUDIO], (music) or *coughs*.
         private static readonly Regex SoundDescriptions = new Regex(@"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*");
 
         [Tooltip("The server's address. Its model is chosen when starting whisper-server.")]
         public string url = "http://127.0.0.1:8178/inference";
-        [Tooltip("Fixed language avoids language detection on each short order. Auto is available for mixed languages.")]
+        [Tooltip("Fixed language avoids language detection on each short order. Auto accepts Polish and English.")]
         public SpeechLanguage language = SpeechLanguage.System;
-        [Tooltip("Legacy setting. A single language is preserved when Language is System; multi-language lists now use the system language.")]
-        public string[] languages = { "polish", "english", "russian" };
+        [Tooltip("Legacy setting. A single Polish or English entry is preserved when Language is System; otherwise the system language decides.")]
+        public string[] languages = { "polish", "english" };
         [Min(5)] public int timeoutSeconds = 30;
 
         private UnityWebRequest pending;
         public double LastTranscriptionSeconds { get; private set; }
+        /// <summary>The language of the last transcript: the fixed language, or what Auto heard.</summary>
+        public string LastLanguage { get; private set; }
 
         public string RecognitionLanguage => ResolveLanguage(language, Application.systemLanguage, languages);
 
@@ -41,16 +45,19 @@ namespace EchoSound.Companion
         {
             switch (selected)
             {
-                case SpeechLanguage.Russian: return "russian";
                 case SpeechLanguage.Polish: return "polish";
                 case SpeechLanguage.English: return "english";
                 case SpeechLanguage.Auto: return "auto";
             }
-            if (legacy != null && legacy.Length == 1 && !string.IsNullOrWhiteSpace(legacy[0])) return legacy[0];
-            if (system == SystemLanguage.Russian) return "russian";
-            if (system == SystemLanguage.Polish) return "polish";
-            return "english";
+            if (legacy != null && legacy.Length == 1 && Array.IndexOf(Supported, legacy[0]) >= 0) return legacy[0];
+            return SystemDefault(system);
         }
+
+        /// <summary>Polish on a Polish system, English everywhere else.</summary>
+        public static string SystemDefault(SystemLanguage system) => system == SystemLanguage.Polish ? "polish" : "english";
+
+        /// <summary>Whether Auto's detected language is one the companion understands.</summary>
+        public static bool IsSupported(string whisperLanguage) => Array.IndexOf(Supported, whisperLanguage) >= 0;
 
         public IEnumerator Transcribe(float[] mono, int sampleRate, Action<string> onText, Action<string> onError)
         {
@@ -65,9 +72,24 @@ namespace EchoSound.Companion
             Action<string> onProblem = problem => error = problem;
 
             string selected = RecognitionLanguage;
-            yield return Send(wav, selected, AudioContext(samples.Length, WhisperSampleRate), onReply, onProblem);
+            bool auto = selected == "auto";
+            int audioContext = AudioContext(samples.Length, WhisperSampleRate);
+            int requests = 1;
+            // Only Auto needs the detected language, which verbose_json reports.
+            yield return Send(wav, selected, audioContext, auto, onReply, onProblem);
+            string heard = auto ? (string)reply?["language"] : selected;
+            // Whisper sometimes hears a short Polish phrase as another language. Read it again in the
+            // language last heard, so a Cyrillic or Czech transcript never reaches the companion.
+            if (auto && error == null && reply != null && !string.IsNullOrWhiteSpace((string)reply["text"]) && !IsSupported(heard))
+            {
+                heard = IsSupported(LastLanguage) ? LastLanguage : SystemDefault(Application.systemLanguage);
+                reply = null;
+                requests = 2;
+                yield return Send(wav, heard, audioContext, false, onReply, onProblem);
+            }
+            if (error == null && reply != null && IsSupported(heard)) LastLanguage = heard;
             LastTranscriptionSeconds = timer.Elapsed.TotalSeconds;
-            Debug.Log($"[Voice timing] recognition={LastTranscriptionSeconds:0.000}s audio={(double)mono.Length / sampleRate:0.00}s language={selected} requests=1");
+            Debug.Log($"[Voice timing] recognition={LastTranscriptionSeconds:0.000}s audio={(double)mono.Length / sampleRate:0.00}s language={selected} heard={heard} requests={requests}");
 
             if (error != null)
             {
@@ -100,12 +122,12 @@ namespace EchoSound.Companion
             return padded;
         }
 
-        private IEnumerator Send(byte[] wav, string language, int audioContext, Action<JObject> onReply, Action<string> onError)
+        private IEnumerator Send(byte[] wav, string language, int audioContext, bool reportLanguage, Action<JObject> onReply, Action<string> onError)
         {
             var form = new List<IMultipartFormSection>
             {
                 new MultipartFormDataSection("language", language),
-                new MultipartFormDataSection("response_format", "json"),
+                new MultipartFormDataSection("response_format", reportLanguage ? "verbose_json" : "json"),
                 new MultipartFormDataSection("temperature", "0"),
                 new MultipartFormDataSection("temperature_inc", "0"),
                 new MultipartFormDataSection("best_of", "1"),
@@ -154,7 +176,6 @@ namespace EchoSound.Companion
         {
             switch (language)
             {
-                case "russian": return "Разговор по-русски. Стой. Ко мне. Иди за мной. Открой дверь. Закрой дверь.";
                 case "english": return "A conversation. Stop. Come here. Follow me. Open the door. Close the door.";
                 case "polish": return "Rozmowa po polsku. Stój. Chodź do mnie. Idź za mną. Otwórz drzwi. Zamknij drzwi.";
                 default: return "";

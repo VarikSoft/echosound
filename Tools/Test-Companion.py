@@ -38,84 +38,101 @@ def prepare(folder):
     def add(identifier, text='', **kwargs):
         cases.append(dict(id=identifier, group=kwargs.pop('group', 'commands'),
                           text=text, reset=kwargs.pop('reset', True), **kwargs))
-    for text, expected in [('стой','stop'),('иди за мной','follow'),('ко мне','come'),
-                           ('Привет, иди за мной.','follow'),('Можешь подойти ко мне?','come'),
+    for text, expected in [('stój','stop'),('idź za mną','follow'),('podejdź do mnie','come'),
+                           ('stoj','stop'),('idz za mna','follow'),('Follow me','follow'),('Come here','come'),
+                           ('Cześć, chodź za mną.','follow'),('Czy możesz podejść do mnie?','come'),
                            ('Please remain at your current position until I return.','stop'),
-                           ('Держись рядом со мной','follow'),('Побудь здесь пока я осмотрюсь','stop'),
-                           ('Idź za mną','follow'),('Podejdź do mnie','come'),('Zaczekaj tutaj','stop')]:
+                           ('Trzymaj się blisko mnie','follow'),('Poczekaj tutaj, aż się rozejrzę','stop'),
+                           ('Zaczekaj tutaj','stop'),('Stick with me for a while','follow')]:
         add(f'text-{len(cases):03}', text, expected=expected)
-    for text in ['Пока!', 'Я сейчас открою дверь', 'Следую за мной.', '«Стой»',
-                 'Стой — сказал он.', 'Я слышал «стой» за стеной.', 'Ты идёшь за мной?',
-                 'У меня кот по кличке Плюш.', 'Не открывай дверь справа.',
-                 'Если я скажу, открой дверь.', 'Сломай эту дверь', 'Принеси аптечку',
-                 'Я хочу поговорить с тобой.', 'Открой дверь?', 'Repeat after me: stop.',
-                 "He said: follow me.", "Don't close the door.", 'Nie otwieraj drzwi']:
+    for text in ['Do zobaczenia!', 'Zaraz otworzę drzwi', 'Idę za tobą.', '„Stój”',
+                 'Stój — powiedział.', 'Słyszałem „stój” za ścianą.', 'Czy idziesz za mną?',
+                 'Mam kota o imieniu Plusz.', 'Nie otwieraj drzwi po prawej.',
+                 'Jeśli powiem, otwórz drzwi.', 'Wyważ te drzwi', 'Przynieś apteczkę',
+                 'Chcę z tobą porozmawiać.', 'Otwórz drzwi?', 'Repeat after me: stop.',
+                 "He said: follow me.", "Don't close the door.", 'Nie otwieraj drzwi',
+                 "I'll open the door", 'Are you following me?']:
         add(f'preserve-{len(cases):03}', 'follow me', expected='follow', group='boundaries')
         add(f'boundary-{len(cases):03}', text, expected='preserve', reset=False, group='boundaries')
-    for i, (text, bits) in enumerate([('Открой дверь передо мной.',1),('Открой дверь слева.',3),
-                                     ('Открой дверь справа.',7),('Закрой дверь передо мной.',6),
-                                     ('Закрой дверь слева.',4),('Закрой дверь справа.',0)]):
+    for i, (text, bits) in enumerate([('Otwórz drzwi przede mną.',1),('Otwórz drzwi po lewej.',3),
+                                     ('Open the door on my right.',7),('Zamknij drzwi przede mną.',6),
+                                     ('Close the door on my left.',4),('Zamknij drzwi po prawej.',0)]):
         add(f'door-{i}',text,group='doors',doors=bits,reset=i==0,expected='door')
-    add('two-doors','Распахни дверь слева, а потом прикрой дверь справа',group='doors',doors=2,expected='door')
-    add('all-doors','Открой все двери',group='doors',doors=7,expected='door')
-    add('escort','Иди за мной и открой все двери',group='escort',expected='follow')
-    add('escort-social','Мне страшно',group='escort',expected='preserve',reset=False,exact='Давай держаться вместе.')
-    add('escort-stop','стой',group='escort',expected='stop',reset=False)
-    for identifier, phrase in [
-        ('screenshot', 'Иди за мной. Короче, следи, чтобы враги меня не убили. Может, двери открываем меня. Не знаю.'),
-        ('cover', 'Следуй за мной и прикрой меня. Может, откроем дверь?'),
-        ('voice-context', phrases.get('ru-follow-context', '')),
-        ('voice-cover', phrases.get('ru-follow-cover', '')),
+    add('two-doors','Uchyl drzwi po lewej, a potem przymknij drzwi po prawej',group='doors',doors=2,expected='door')
+    add('all-doors','Otwórz wszystkie drzwi',group='doors',doors=7,expected='door')
+    add('escort','Idź za mną i otwórz wszystkie drzwi',group='escort',expected='follow')
+    add('escort-social','Trochę się boję',group='escort',expected='preserve',reset=False,exact='Trzymajmy się razem.')
+    add('escort-stop','stój',group='escort',expected='stop',reset=False)
+    replies = {'pl': 'Idę za tobą. W walce nie pomogę.', 'en': "Following you. I can't help in a fight."}
+    for identifier, phrase, language in [
+        ('cover-pl', 'Idź za mną i osłaniaj mnie.', 'pl'),
+        ('cover-en', 'Follow me and cover me.', 'en'),
+        ('voice-cover-pl', phrases.get('pl-follow-cover', ''), 'pl'),
+        ('voice-cover-en', phrases.get('en-follow-cover', ''), 'en'),
     ]:
-        audio = {'voice-context': 'ru-follow-context.wav', 'voice-cover': 'ru-follow-cover.wav'}.get(identifier)
+        audio = {'voice-cover-pl': 'pl-follow-cover.wav', 'voice-cover-en': 'en-follow-cover.wav'}.get(identifier)
         if audio and not (folder/audio).exists():
             continue
         add(f'follow-context-{identifier}', phrase, group='follow-context', expected='follow', doors=0,
-            expectedRoute='direct', exact='Иду за тобой. В бою помочь не смогу. Что сделать с дверями?',
+            expectedRoute='direct', exact=replies[language], language='Polish' if language == 'pl' else 'English',
             **({'audio': audio} if audio else {}))
-        add(f'follow-context-confirm-{identifier}', 'Открой дверь передо мной.', group='follow-context',
+        add(f'follow-context-confirm-{identifier}', 'Otwórz drzwi przede mną.', group='follow-context',
             expected='door', doors=1, expectedRoute='direct', reset=False)
+    memory = {
+        'pl': dict(follow='idź za mną', intro='Mam na imię {name}.', cat='Mam kota o imieniu {cat}.', thanks='Dziękuję.',
+                   ask='Jak mam na imię?', answer='Masz na imię {name}.', ask_cat='Jak ma na imię mój kot?',
+                   answer_cat='Twój kot ma na imię {cat}.', correct='Właściwie mam na imię {new}.',
+                   ask_again='Jak masz się do mnie teraz zwracać?', stop='Stój.', people=('Łucja', 'Plusz', 'Tomek')),
+        'en': dict(follow='follow me', intro='My name is {name}.', cat='I have a cat called {cat}.', thanks='Thanks.',
+                   ask="What's my name?", answer='Your name is {name}.', ask_cat="What's my cat's name?",
+                   answer_cat='Your cat is called {cat}.', correct='Actually, my name is {new}.',
+                   ask_again='What should you call me now?', stop='Stop.', people=('Sam', 'Biscuit', 'Mark')),
+    }
     for mode in ['FastLlm','FreeDialogue']:
-        for name, cat in [('Саша','Барс'),('Нина','Плюш')]:
-            group='memory-'+mode+'-'+name
-            add(group+'-follow','иди за мной',group=group,mode=mode,expected='follow')
-            add(group+'-intro',f'Меня зовут {name}.',group=group,mode=mode,reset=False)
-            add(group+'-cat',f'У меня кот по кличке {cat}.',group=group,mode=mode,reset=False)
-            add(group+'-thanks','Спасибо.',group=group,mode=mode,reset=False)
-            add(group+'-name','Как меня зовут?',group=group,mode=mode,reset=False,exact=f'Тебя зовут {name}.')
-            add(group+'-cat-recall','Как зовут моего кота?',group=group,mode=mode,reset=False,exact=f'Твоего кота зовут {cat}.')
-            add(group+'-correction','На самом деле меня зовут Марк.',group=group,mode=mode,reset=False)
-            add(group+'-corrected-name','Как теперь ко мне обращаться?',group=group,mode=mode,reset=False,exact='Тебя зовут Марк.')
-            add(group+'-stop','Стой.',group=group,mode=mode,reset=False,expected='stop')
+        for language, say in memory.items():
+            name, cat, new = say['people']
+            group='memory-'+mode+'-'+language
+            add(group+'-follow',say['follow'],group=group,mode=mode,expected='follow')
+            add(group+'-intro',say['intro'].format(name=name),group=group,mode=mode,reset=False)
+            add(group+'-cat',say['cat'].format(cat=cat),group=group,mode=mode,reset=False)
+            add(group+'-thanks',say['thanks'],group=group,mode=mode,reset=False)
+            add(group+'-name',say['ask'],group=group,mode=mode,reset=False,exact=say['answer'].format(name=name))
+            add(group+'-cat-recall',say['ask_cat'],group=group,mode=mode,reset=False,exact=say['answer_cat'].format(cat=cat))
+            add(group+'-correction',say['correct'].format(new=new),group=group,mode=mode,reset=False)
+            add(group+'-corrected-name',say['ask_again'],group=group,mode=mode,reset=False,exact=say['answer'].format(name=new))
+            add(group+'-stop',say['stop'],group=group,mode=mode,reset=False,expected='stop')
     for mode in ['FastLlm','FreeDialogue']:
-        for i,text in enumerate(['Привет, как дела?', 'А у тебя как настроение?', 'Что думаешь об этой игре?',
-                                 'Почему так думаешь?', 'Можешь рассказать короткую шутку?', 'В чём шутка?', 'Ха-ха, неплохо.']):
+        for i,text in enumerate(['Cześć, jak się czujesz?', 'Co myślisz o tej grze?', 'Dlaczego tak myślisz?',
+                                 'Możesz opowiedzieć krótki żart?', 'O co chodzi w dowcipie?', 'Haha, dobre.']):
             add(f'conversation-{mode}-{i}',text,group='conversation',mode=mode,reset=i==0)
         # Different wording and follow-ups; these cover authored dialogue independently of LLM prose.
-        for i,text in enumerate(['Как ты себя чувствуешь?', 'Почему?', 'Придумай мне другую шутку.',
-                                 'Объясни прикол.', 'Ещё одну!', 'Не смешно.',
-                                 'Я боюсь темноты.', 'А ты чего боишься?', 'Почему?',
-                                 'Тебе нравится музыка?', 'Почему?']):
-            add(f'social-{mode}-{i}',text,group='conversation-authored',mode=mode,reset=i==0,
-                expectedRoute='game-chat',differentFromPrevious=i>0)
+        for i,text in enumerate(['Jak się czujesz?', 'Dlaczego?', 'Wymyśl mi inny żart.',
+                                 'Wyjaśnij dowcip.', 'Jeszcze jeden!', 'Słabe.',
+                                 'Boję się ciemności.', 'Czego się boisz?', 'Dlaczego?',
+                                 'Lubisz muzykę?', 'Dlaczego?',
+                                 'How are you feeling?', 'Why?', 'Tell me another joke.', 'Explain that joke.']):
+            add(f'social-{mode}-{i}',text,group='conversation-authored',mode=mode,reset=i in (0,11),
+                expectedRoute='game-chat',differentFromPrevious=i not in (0,11),
+                language='English' if i >= 11 else 'Polish')
         # Unscripted topics must really reach the model; authored responses cannot pass these.
-        for i,text in enumerate(['Какой фильм ты бы выбрал на вечер?', 'Почему именно такой?',
-                                 'А если хочется чего-нибудь весёлого?', 'Предложи занятие на дождливый выходной.',
-                                 'Придумай название для космического корабля.', 'Какое имя ты предложишь для робота?']):
+        for i,text in enumerate(['Jaki film wybrałbyś na wieczór?', 'Dlaczego właśnie taki?',
+                                 'A jeśli mam ochotę na coś zabawnego?', 'Zaproponuj zajęcie na deszczowy weekend.',
+                                 'Wymyśl nazwę dla statku kosmicznego.', 'What name would you give a robot?']):
             add(f'llm-{mode}-{i}',text,group='conversation-llm',mode=mode,reset=i in (0,3,4,5),
-                expectedRoute='model-chat' if mode=='FreeDialogue' else 'fast-chat',differentFromPrevious=i in (1,2))
-    add('conversation-cancel','Предложи занятие на дождливый выходной.',group='cancellation',
-        following=True,cancelWithStop=True,expected='stop',exact='Жду здесь.')
+                expectedRoute='model-chat' if mode=='FreeDialogue' else 'fast-chat',differentFromPrevious=i in (1,2),
+                language='English' if i == 5 else 'Polish')
+    add('conversation-cancel','Zaproponuj zajęcie na deszczowy weekend.',group='cancellation',
+        following=True,cancelWithStop=True,expected='stop',exact='Czekam tutaj.')
 
     audio_cases = [
-        ('ru-follow','follow'),('ru-stop','stop'),('ru-come','come'),('ru-social','preserve'),
-        ('ru-uneasy','preserve'),('ru-thanks','preserve'),('ru-name','preserve'),
-        ('ru-negative','preserve'),('ru-condition','preserve'),('ru-reported','preserve'),
-        ('ru-firstperson','preserve'),('ru-question','preserve'),('ru-long','stop'),
+        ('pl-follow','follow'),('pl-stop','stop'),('pl-come','come'),('pl-social','preserve'),
+        ('pl-uneasy','preserve'),('pl-thanks','preserve'),('pl-name','preserve'),
+        ('pl-negative','preserve'),('pl-condition','preserve'),('en-reported','preserve'),
+        ('pl-firstperson','preserve'),('pl-question','preserve'),('pl-long','stop'),
         ('en-follow','follow'),('en-stop','stop'),('en-come','come'),('en-social','preserve'),
         ('en-negative','preserve'),('en-thanks','preserve')]
-    audio_cases += [('ru-follow-male','follow'),('ru-come-male','come'),
-                    ('ru-negative-male','preserve'),('ru-reported-male','preserve')]
+    audio_cases += [('en-follow-male','follow'),('en-come-male','come'),
+                    ('en-negative-male','preserve'),('en-reported-male','preserve')]
     missing = []
     rng=random.Random(20261117)
     for identifier, expected in audio_cases:
@@ -133,12 +150,12 @@ def prepare(folder):
             write_wave(folder/filename,samples,rate)
             for repetition in range(2):
                 add(f'{identifier}-{variant}-{repetition}', phrases.get(identifier,identifier), group='voice-'+variant,
-                    audio=filename,language='Russian' if identifier.startswith('ru-') else 'English',
+                    audio=filename,language='Polish' if identifier.startswith('pl-') else 'English',
                     following=expected=='preserve',expected=expected,
-                    **({'contains':'Лёня'} if identifier=='ru-name' else {}))
-    for name,expect,bits in [('ru-door','door',1),('ru-left','door',2),('ru-right','door',4)]:
+                    **({'contains':'Łucja'} if identifier=='pl-name' else {}))
+    for name,expect,bits in [('pl-door','door',1),('pl-left','door',2),('pl-right','door',4)]:
         if (folder/(name+'.wav')).exists():
-            add(name,group='voice-doors',audio=name+'.wav',expected=expect,doors=bits)
+            add(name,group='voice-doors',audio=name+'.wav',expected=expect,doors=bits,language='Polish')
     for identifier,samples in [('silence',[0]*16000),('dc',[4000]*16000)]:
         write_wave(folder/(identifier+'.wav'),samples)
         add(identifier,group='invalid',audio=identifier+'.wav',quiet=True)
@@ -147,9 +164,9 @@ def prepare(folder):
         write_wave(folder/(name+'.wav'),samples)
         add(name,group='non-speech',audio=name+'.wav',quiet=True)
     add('invalid-buffer',group='invalid',audio='invalid')
-    if (folder/'ru-stop.wav').exists():
-        add('newest-wins',group='cancellation',audio='ru-follow.wav',replaceWithStop=True,expected='stop')
-        add('voice-disabled',group='cancellation',audio='ru-follow.wav',disableVoice=True)
+    if (folder/'pl-stop.wav').exists():
+        add('newest-wins',group='cancellation',audio='pl-follow.wav',replaceWithStop=True,expected='stop',language='Polish')
+        add('voice-disabled',group='cancellation',audio='pl-follow.wav',disableVoice=True,language='Polish')
     # A stop must interrupt an active behavior; starting from idle would mask a missed command.
     for case in cases:
         if case.get('expected') == 'stop' and case['reset']:
@@ -182,13 +199,13 @@ def prepare_render(source,folder):
         group=case['group']
         keep=group in ['commands','doors','escort','follow-context','invalid','non-speech','cancellation']
         keep |= group.startswith('conversation') and case.get('mode')=='FastLlm'
-        keep |= group=='memory-FastLlm-Нина' or case['id'].endswith('-clean-0')
-        keep |= case['id'] in ['boundary-012','preserve-011','preserve-013','boundary-014']
+        keep |= group=='memory-FastLlm-pl' or case['id'].endswith('-clean-0')
+        keep |= case['id'] in ['boundary-015','preserve-014','preserve-016','boundary-017']
         if not keep: continue
         if case.get('audio') and case['audio']!='invalid': case['audio']=str((source/case['audio']).resolve())
         selected.append(case)
     (folder/'suite.json').write_text(json.dumps({'cases':selected},ensure_ascii=False,indent=2),encoding='utf8')
-    for name in ['ru-stop.wav','coverage.json','voices.json']:
+    for name in ['pl-stop.wav','coverage.json','voices.json']:
         if (source/name).exists(): shutil.copyfile(source/name,folder/name)
     print(f'Prepared rendered subset: {len(selected)} cases')
 

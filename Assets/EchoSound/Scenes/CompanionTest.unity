@@ -2903,7 +2903,6 @@ MonoBehaviour:
     languages:
     - polish
     - english
-    - russian
     timeoutSeconds: 30
   minSpeechSeconds: 0.2
   maxPhraseSeconds: 20

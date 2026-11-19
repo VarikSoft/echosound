@@ -7,28 +7,33 @@ namespace EchoSound.Companion
     /// <summary>Player-provided facts and a short conversation window. Model replies never update facts.</summary>
     public sealed class CompanionDialogue
     {
+        private const RegexOptions Options = RegexOptions.CultureInvariant;
+        private const RegexOptions IgnoreCase = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+
+        // Names are read from the original words, so their diacritics and capital letters survive.
         private const string Name = @"(?<name>\p{L}[\p{L}-]{1,31})";
         private const string ProperName = @"(?<name>\p{Lu}[\p{L}-]{1,31})";
         private static readonly Regex ExplicitPlayerName = new Regex(
-            @"^(?:(?:я поправлюсь[: ,]+)?(?:на самом деле )?меня зовут|my name is|mam na imię|nazywam się) " + Name + @"(?=$|[,.!])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            @"^(?:(?:actually|w(?:ł|l)a(?:ś|s)ciwie)[, ]+)?(?:my name is|mam na imi[eę]|nazywam si[eę]) " + Name + @"(?=$|[,.!])", IgnoreCase);
         private static readonly Regex Introduction = new Regex(
-            @"^(?i:(?:привет[,.!]\s*|hey[,.!]\s*|hi[,.!]\s*|cześć[,.!]\s*)?(?:я|i'm|i am|jestem)) " + ProperName + @"(?=$|[,.!]|\s+(?i:а моего|and my))");
+            @"^(?i:(?:hey[,.!]\s*|hi[,.!]\s*|hej[,.!]\s*|cze(?:ś|s)(?:ć|c)[,.!]\s*)?(?:i'm|i am|jestem)) " + ProperName
+            + @"(?=$|[,.!]|\s+(?i:and my|a m(?:ó|o)j|i m(?:ó|o)j))", Options);
         private static readonly Regex CatName = new Regex(
-            @"(?:^|[,!.]\s*|\s+а\s+)(?:моего кота зовут|у меня кот по кличке|my cat(?:'s name is| is named| is called)|mój kot ma na imię) " + Name + @"(?=$|[,.!])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            @"(?:^|[,!.]\s*|\s+(?:and|a|i)\s+)(?:my cat(?:'s name is| is named| is called)|i have a cat (?:called|named)"
+            + @"|m(?:ó|o)j kot ma na imi[eę]|m(?:ó|o)j kot nazywa si[eę]|mam kota o imieniu) " + Name + @"(?=$|[,.!])", IgnoreCase);
         private static readonly Regex PairedCatName = new Regex(
-            @"[,!]\s*(?:а |and |a )?(?:кота зовут|my cat is|kot ma na imię) " + Name + @"(?=$|[,.!])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        private static readonly Regex Mood = new Regex(@"^(?:а |ну |(?:привет|hey|hi|hello|hej|cześć)[,.!]? )?(?:(?:у тебя )?как (?:у тебя )?(?:дела|настроение)|как твои дела|как твоё настроение|как ты себя чувствуешь|ты как|как сам|how are you(?: doing)?|how(?:'s| is) it going|how do you feel|jak się czujesz|jak tam|jak nastrój)$");
-        private static readonly Regex Opinion = new Regex(@"^(?:а )?(?:что (?:ты )?думаешь об? (?:этой )?игре|как тебе (?:эта )?игра|тебе нравится (?:эта )?игра|what do you think (?:of|about) (?:this|the) game|do you like (?:this|the) game|co (?:myślisz|sądzisz) o (?:tej )?grze)$");
-        private static readonly Regex JokeRequest = new Regex(@"^(?:(?:можешь|можете) )?(?:(?:расскажи(?:те)?|рассказать|скажи|придумай|придумать) (?:мне )?(?:(?:короткую|ещё одну|другую|новую) )?(?:шутку|анекдот)|пошути|(?:can you |could you )?(?:tell (?:me )?|make )(?:a |another |a short )?joke|(?:opowiedz|powiedz) (?:mi )?(?:krótki |jeszcze jeden )?(?:żart|dowcip))(?: пожалуйста| please)?$");
-        private static readonly Regex Why = new Regex(@"^(?:а )?(?:почему(?: (?:так|ты так|так думаешь|ты так думаешь))?|зачем|why(?: (?:is that|do you (?:think|say) (?:that|so)))?|dlaczego|czemu)$");
-        private static readonly Regex ExplainJoke = new Regex(@"^(?:в чём (?:смысл|шутка|прикол)|в чем (?:смысл|шутка|прикол)|объясни (?:шутку|прикол)|не понял(?: шутку)?|what(?:'s| is) the joke|explain (?:the |that )?joke|wyjaśnij (?:żart|dowcip)|o co chodzi w (?:żarcie|dowcipie))$");
+            @"[,!]\s*(?:and |a |i )?(?:my cat is|my cat's name is|kot ma na imi[eę]|m(?:ó|o)j kot to) " + Name + @"(?=$|[,.!])", IgnoreCase);
+
+        // The rest is matched on simplified text: lower case, no punctuation, no Polish diacritics.
+        private static readonly Regex Mood = new Regex(@"^(?:(?:hey|hi|hello|hej|czesc) )?(?:how are you(?: doing| feeling)?|how(?:'s| is) it going|how do you feel|jak sie czujesz|jak tam|jak nastroj|co u ciebie|jak leci)$", Options);
+        private static readonly Regex Opinion = new Regex(@"^(?:what do you think (?:of|about) (?:this|the) game|do you like (?:this|the) game|co (?:myslisz|sadzisz) o (?:tej )?grze|podoba ci sie (?:ta )?gra)$", Options);
+        private static readonly Regex JokeRequest = new Regex(@"^(?:(?:can you |could you )?(?:tell (?:me )?|make (?:up )?)(?:a |another |a short |a new )?joke|(?:czy )?(?:mozesz )?(?:opowiedz|powiedz|wymysl|opowiedziec|powiedziec|wymyslic) (?:mi )?(?:krotki |jeszcze jeden |nowy |inny )?(?:zart|dowcip))(?: please| prosze)?$", Options);
+        private static readonly Regex Why = new Regex(@"^(?:why(?: (?:is that|do you (?:think|say) (?:that|so)))?|dlaczego|czemu|dlaczego tak(?: myslisz)?)$", Options);
+        private static readonly Regex ExplainJoke = new Regex(@"^(?:what(?:'s| is) the joke|explain (?:the |that )?joke|i don't get it|wyjasnij (?:zart|dowcip)|o co chodzi w (?:zarcie|dowcipie)|nie rozumiem(?: zartu)?)$", Options);
         private static readonly Regex PlayerNameQuestion = new Regex(
-            @"^(?:как меня зовут|как я представился(?: в начале)?|как теперь ко мне обращаться|как ко мне обращаться|what(?:'s| is) my name|what did i say my name was|jak mam na imię)[?.!]*$");
+            @"^(?:what(?:'s| is) my name|what did i say my name was|what should you call me(?: now)?|jak mam na imie|jak sie nazywam|jak masz sie do mnie (?:teraz )?zwracac)$", Options);
         private static readonly Regex CatNameQuestion = new Regex(
-            @"^(?:как зовут моего кота|как зовут кота|what(?:'s| is) my cat's name|what did i name my cat|jak ma na imię mój kot)[?.!]*$");
+            @"^(?:what(?:'s| is) my cat'?s name|what did i name my cat|jak ma na imie moj kot|jak nazywa sie moj kot)$", Options);
         private readonly Queue<(string Player, string Echo)> exchanges = new Queue<(string, string)>();
         private string playerName;
         private string catName;
@@ -37,31 +42,34 @@ namespace EchoSound.Companion
 
         public bool TryReply(string text, out string reply)
         {
+            reply = null;
+            // Quoted or reported words are not addressed to the companion.
+            if (string.IsNullOrWhiteSpace(text) || CompanionLanguage.HasQuote(text)) return false;
             string normalized = text.Trim().Replace('’', '\'');
-            string lower = normalized.ToLowerInvariant();
+            string simple = CompanionLanguage.Simplify(text);
             nextReason = nextExplanation = null;
-            if (PlayerNameQuestion.IsMatch(lower))
+            if (PlayerNameQuestion.IsMatch(simple))
             {
                 reply = playerName == null
-                    ? CompanionBrain.LocalReply(text, "I don't know your name yet.", "Jeszcze nie znam twojego imienia.", "Ты ещё не называл своё имя.")
-                    : CompanionBrain.LocalReply(text, $"Your name is {playerName}.", $"Masz na imię {playerName}.", $"Тебя зовут {playerName}.");
+                    ? Say(text, "I don't know your name yet.", "Jeszcze nie znam twojego imienia.")
+                    : Say(text, $"Your name is {playerName}.", $"Masz na imię {playerName}.");
                 return true;
             }
-            if (CatNameQuestion.IsMatch(lower))
+            if (CatNameQuestion.IsMatch(simple))
             {
                 reply = catName == null
-                    ? CompanionBrain.LocalReply(text, "You haven't told me your cat's name yet.", "Jeszcze nie znam imienia twojego kota.", "Ты ещё не говорил, как зовут твоего кота.")
-                    : CompanionBrain.LocalReply(text, $"Your cat is called {catName}.", $"Twój kot ma na imię {catName}.", $"Твоего кота зовут {catName}.");
+                    ? Say(text, "You haven't told me your cat's name yet.", "Jeszcze nie znam imienia twojego kota.")
+                    : Say(text, $"Your cat is called {catName}.", $"Twój kot ma na imię {catName}.");
                 return true;
             }
-            if (lower.TrimEnd('!', '.', '?') is "как тебя зовут" or "what's your name" or "what is your name" or "jak masz na imię")
+            if (simple is "what's your name" or "what is your name" or "jak masz na imie" or "jak sie nazywasz")
             {
-                reply = CompanionBrain.LocalReply(text, "Call me Echo.", "Mów mi Echo.", "Зови меня Эхо.");
+                reply = Say(text, "Call me Echo.", "Mów mi Echo.");
                 return true;
             }
 
             // Only affirmative statements from the player can create or correct these facts.
-            if (!lower.Contains("?") && !lower.Contains('"') && !lower.Contains('«'))
+            if (!text.Contains("?"))
             {
                 Match person = ExplicitPlayerName.Match(normalized);
                 if (!person.Success) person = Introduction.Match(normalized);
@@ -72,34 +80,36 @@ namespace EchoSound.Companion
                 if (person.Success || cat.Success)
                 {
                     reply = person.Success && cat.Success
-                        ? CompanionBrain.LocalReply(text, $"Got it, {playerName}. Your cat is {catName}.", $"Jasne, {playerName}. Twój kot to {catName}.", $"Понял, {playerName}. Кота зовут {catName}.")
+                        ? Say(text, $"Got it, {playerName}. Your cat is {catName}.", $"Jasne, {playerName}. Twój kot to {catName}.")
                         : person.Success
-                        ? CompanionBrain.LocalReply(text, $"Got it, {playerName}.", $"Jasne, {playerName}.", $"Понял, {playerName}.")
-                        : CompanionBrain.LocalReply(text, $"I'll remember {catName}.", $"Zapamiętam imię {catName}.", $"Запомню, что твоего кота зовут {catName}.");
+                        ? Say(text, $"Got it, {playerName}.", $"Jasne, {playerName}.")
+                        : Say(text, $"I'll remember {catName}.", $"Zapamiętam imię {catName}.");
                     return true;
                 }
             }
-            return TrySocial(text, lower.TrimEnd('?', '!', '.').Trim(), out reply);
+            return TrySocial(text, simple, out reply);
         }
+
+        private static string Say(string playerWords, string english, string polish) => CompanionLanguage.Pick(playerWords, english, polish);
 
         private bool TrySocial(string order, string text, out string reply)
         {
             reply = null;
             if (Mood.IsMatch(text))
-                return Social(order, "Alert, but better with you here.", "Czujnie, ale z tobą jest raźniej.", "Настороженно, но с тобой спокойнее.",
-                    "Two teammates handle surprises better.", "Razem łatwiej radzić sobie z niespodziankami.", "Вдвоём проще справляться с неожиданностями.", out reply);
+                return Social(order, "Alert, but better with you here.", "Czujnie, ale z tobą jest raźniej.",
+                    "Two teammates handle surprises better.", "Razem łatwiej radzić sobie z niespodziankami.", out reply);
             if (Opinion.IsMatch(text))
-                return Social(order, "Tense. Exploring together makes it worthwhile.", "Napięta atmosfera. Razem odkrywa się ciekawiej.", "Напряжённо. Исследовать вместе интереснее.",
-                    "Sharing the uncertainty makes exploration exciting.", "Wspólne odkrywanie nieznanego dodaje emocji.", "Неизвестность добавляет исследованию азарта.", out reply);
-            if (JokeRequest.IsMatch(text) || (explanation != null && text is "ещё" or "ещё одну" or "еще" or "еще одну" or "another one" or "jeszcze jeden"))
+                return Social(order, "Tense. Exploring together makes it worthwhile.", "Napięta atmosfera. Razem odkrywa się ciekawiej.",
+                    "Sharing the uncertainty makes exploration exciting.", "Wspólne odkrywanie nieznanego dodaje emocji.", out reply);
+            if (JokeRequest.IsMatch(text) || (explanation != null && text is "another one" or "one more" or "jeszcze jeden" or "jeszcze raz"))
             {
                 bool first = jokeIndex++ % 2 == 0;
                 reply = first
-                    ? CompanionBrain.LocalReply(order, "Ghosts hate rain. It dampens their spirits.", "Czemu duch nie kłamie? Bo jest przejrzysty.", "Призрак взял выходной: сегодня он не в духе.")
-                    : CompanionBrain.LocalReply(order, "The skeleton stayed home. He had no guts.", "Co robi duch na siłowni? Ćwiczy martwy ciąg.", "Скелет не пошёл на хоррор: духу не хватило.");
+                    ? Say(order, "Ghosts hate rain. It dampens their spirits.", "Czemu duch nie kłamie? Bo jest przejrzysty.")
+                    : Say(order, "The skeleton stayed home. He had no guts.", "Co robi duch na siłowni? Ćwiczy martwy ciąg.");
                 nextExplanation = first
-                    ? CompanionBrain.LocalReply(order, "Spirits means both ghosts and mood.", "Przejrzysty może znaczyć przezroczysty albo szczery.", "«Не в духе» — и про настроение, и про призрака.")
-                    : CompanionBrain.LocalReply(order, "No guts means both no courage and no organs.", "Martwy ciąg to ćwiczenie, a duch już nie żyje.", "«Духу не хватило» значит, что не хватило смелости.");
+                    ? Say(order, "Spirits means both ghosts and mood.", "Przejrzysty może znaczyć przezroczysty albo szczery.")
+                    : Say(order, "No guts means both no courage and no organs.", "Martwy ciąg to ćwiczenie, a duch już nie żyje.");
                 nextReason = nextExplanation;
                 return true;
             }
@@ -115,34 +125,34 @@ namespace EchoSound.Companion
                 nextReason = reason; nextExplanation = explanation;
                 return true;
             }
-            if (text is "ха-ха, неплохо" or "ха-ха неплохо" or "смешно" or "хаха" or "haha" or "ha ha" or "that's funny" or "dobre" && explanation != null)
+            if (text is "haha" or "ha ha" or "that's funny" or "nice one" or "dobre" or "haha dobre" or "smieszne" && explanation != null)
             {
-                reply = CompanionBrain.LocalReply(order, "Good. The ghosts get the next one.", "Dobrze. Następny żart opowiem duchom.", "Отлично. Следующую расскажем призракам.");
+                reply = Say(order, "Good. The ghosts get the next one.", "Dobrze. Następny żart opowiem duchom.");
                 nextReason = reason; nextExplanation = explanation;
                 return true;
             }
-            if (text is "не смешно" or "not funny" or "to nie jest śmieszne" && explanation != null)
+            if (text is "not funny" or "that's not funny" or "to nie jest smieszne" or "nie smieszne" or "slabe" && explanation != null)
             {
-                reply = CompanionBrain.LocalReply(order, "Fair. I'll retire that one.", "Racja. Ten żart skreślam.", "Ладно, эту вычёркиваю.");
+                reply = Say(order, "Fair. I'll retire that one.", "Racja. Ten żart skreślam.");
                 nextReason = reason; nextExplanation = explanation;
                 return true;
             }
-            if (text is "а ты чего боишься" or "чего ты боишься" or "ты боишься" or "what are you afraid of" or "czego się boisz")
-                return Social(order, "Losing my teammate in the dark.", "Zgubić partnera w ciemności.", "Потерять напарника в темноте.",
-                    "Exploring alone is much more unsettling.", "Samotne odkrywanie budzi większy niepokój.", "В одиночку здесь гораздо тревожнее.", out reply);
-            if (text is "ты любишь музыку" or "тебе нравится музыка" or "do you like music" or "lubisz muzykę")
-                return Social(order, "Quiet music, yes. I like hearing footsteps.", "Cichą, tak. Wolę też słyszeć kroki.", "Тихую — да. Хочется ещё слышать шаги.",
-                    "Loud music drowns out nearby sounds.", "Głośna muzyka zagłusza dźwięki otoczenia.", "Громкая музыка заглушает звуки вокруг.", out reply);
-            if (text is "я не люблю темноту" or "боюсь темноты" or "я боюсь темноты" or "i don't like the dark" or "i'm afraid of the dark" or "boję się ciemności")
-                return Social(order, "Understandable. It's easier with company.", "Rozumiem. Z kimś obok jest łatwiej.", "Понимаю. С компанией пережить её проще.",
-                    "You can share the worry instead of facing it alone.", "Nie trzeba mierzyć się z lękiem samemu.", "Не приходится справляться со страхом в одиночку.", out reply);
+            if (text is "what are you afraid of" or "are you afraid" or "czego sie boisz" or "boisz sie")
+                return Social(order, "Losing my teammate in the dark.", "Zgubić partnera w ciemności.",
+                    "Exploring alone is much more unsettling.", "Samotne odkrywanie budzi większy niepokój.", out reply);
+            if (text is "do you like music" or "lubisz muzyke")
+                return Social(order, "Quiet music, yes. I like hearing footsteps.", "Cichą, tak. Wolę też słyszeć kroki.",
+                    "Loud music drowns out nearby sounds.", "Głośna muzyka zagłusza dźwięki otoczenia.", out reply);
+            if (text is "i don't like the dark" or "i'm afraid of the dark" or "boje sie ciemnosci" or "nie lubie ciemnosci")
+                return Social(order, "Understandable. It's easier with company.", "Rozumiem. Z kimś obok jest łatwiej.",
+                    "You can share the worry instead of facing it alone.", "Nie trzeba mierzyć się z lękiem samemu.", out reply);
             return false;
         }
 
-        private bool Social(string order, string en, string pl, string ru, string reasonEn, string reasonPl, string reasonRu, out string reply)
+        private bool Social(string order, string en, string pl, string reasonEn, string reasonPl, out string reply)
         {
-            reply = CompanionBrain.LocalReply(order, en, pl, ru);
-            nextReason = CompanionBrain.LocalReply(order, reasonEn, reasonPl, reasonRu);
+            reply = Say(order, en, pl);
+            nextReason = Say(order, reasonEn, reasonPl);
             return true;
         }
 
@@ -184,7 +194,7 @@ namespace EchoSound.Companion
 
         public void NoteCommand(string order)
         {
-            reason = CompanionBrain.LocalReply(order, "You asked me to do that.", "To było twoje polecenie.", "Ты дал мне такую команду.");
+            reason = Say(order, "You asked me to do that.", "To było twoje polecenie.");
             explanation = nextReason = nextExplanation = null;
         }
 

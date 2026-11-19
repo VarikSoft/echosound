@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using EchoSound.Interaction;
+using static EchoSound.Companion.CompanionPhrases;
 
 namespace EchoSound.Companion
 {
@@ -16,102 +18,149 @@ namespace EchoSound.Companion
             public Direction Side;
         }
 
-        private static readonly Regex Russian = new Regex(@"^(?:пожалуйста )?(открой|откройте|закрой|закройте) (ближайшую |эту )?дверь(?: (передо мной|перед мной|впереди|за мной|позади меня|сзади|слева|справа|слева от меня|справа от меня))?(?: пожалуйста)?$");
-        private static readonly Regex English = new Regex(@"^(?:please )?(open|close) (?:the |this )?(nearest )?door(?: (in front of me|in front|behind me|on my left|on my right|to my left|to my right))?(?: please)?$");
-        private static readonly Regex Polish = new Regex(@"^(?:proszę |prosze )?(otwórz|otworz|zamknij) (najbliższe |najblizsze |te )?drzwi(?: (przede mną|przede mna|za mną|za mna|po lewej|po prawej))?(?: proszę| prosze)?$");
-        private const string RussianBulkOpen = @"(?:пожалуйста )?(?:по пути )?(?:открой(?:те)?|открывай(?:те)?|распахни) все ";
-        private static readonly Regex OpenAll = new Regex("^(?:" + RussianBulkOpen + @"двери(?: по пути| по дороге| рядом| вокруг)?(?: пожалуйста)?|(?:please )?open all (?:the )?doors(?: on the way| nearby)?(?: please)?|(?:proszę |prosze )?(?:otwórz|otworz|otwieraj) wszystkie drzwi(?: po drodze| w pobliżu)?)$");
-        // Accept observed Russian transcription errors only alongside a complete follow
-        // command, where the door scope is the path.
-        private static readonly Regex OpenAlongPath = new Regex("^" + RussianBulkOpen
-            + @"(?:двери (?:передо? мной|перед нами|впереди|на пути|передом ногей)|(?:двере|дверью) передо? мной)(?: пожалуйста)?$");
-        private static readonly Regex BulkLeadIn = new Regex(@"^(?:короче|слушай)(?:\s*[,!.]+\s*|\s+)");
-        private const string BulkConnector = @"(?:и потом|а потом|и заодно|и|and then|and|then|a potem|i potem|i)";
-        private static readonly Regex BulkJoin = new Regex(@"\s*[,;.!…]+\s*(?:" + BulkConnector + @"\s+)?|\s+" + BulkConnector + @"\s+|\s+(?=" + RussianBulkOpen + ")");
+        private const RegexOptions Options = RegexOptions.CultureInvariant;
+        private static readonly Regex[] Orders = { DoorOrder(English), DoorOrder(Polish) };
+        private static readonly Regex[] Questions = { DoorQuestion(English), DoorQuestion(Polish) };
+        private static readonly Regex[] OpenMany = { Bulk(English, true), Bulk(Polish, true) };
+        private static readonly Regex[] CloseMany = { Bulk(English, false), Bulk(Polish, false) };
+        private static readonly Regex DoorVerb = new Regex("^" + Any(book => book.Open.Concat(book.Close).ToArray()) + " ", Options);
 
+        private static string Sides(Phrasebook book) => Any(book, b => b.Front.Concat(b.Back).Concat(b.Left).Concat(b.Right).ToArray());
+        private static string Adjectives(Phrasebook book) => Any(book, b => b.LeftAdjective.Concat(b.RightAdjective).ToArray());
+
+        // "please open the nearest door", "close the door behind me", "otwórz lewe drzwi", "zamknij drzwi za mną".
+        private static Regex DoorOrder(Phrasebook book) => new Regex(
+            "^(?:" + Any(book, b => b.Please) + " )?"
+            + "(?:(?<open>" + Any(book, b => b.Open) + ")|(?<close>" + Any(book, b => b.Close) + ")) "
+            + "(?:" + Any(book, b => b.Determiner) + " )?"
+            + "(?:(?<nearest>" + Any(book, b => b.Nearest) + ") |(?<adjective>" + Adjectives(book) + ") )?"
+            + Any(book, b => b.Door)
+            + "(?: (?<side>" + Sides(book) + "))?"
+            + "(?: " + Any(book, b => b.Please) + ")?$", Options);
+
+        // "is the door on my left open", "czy lewe drzwi są zamknięte".
+        private static Regex DoorQuestion(Phrasebook book) => new Regex(
+            "^" + Any(book, b => b.DoorQuestion) + " "
+            + "(?:" + Any(book, b => b.Determiner) + " )?"
+            + "(?:(?<adjective>" + Adjectives(book) + ") )?"
+            + Any(book, b => b.Door)
+            + "(?: (?<side>" + Sides(book) + "))? "
+            + Any(book, b => b.DoorIsOpen.Concat(b.DoorIsClosed).ToArray()) + "$", Options);
+
+        // "open all the doors on the way", "close the nearby doors", "otwieraj drzwi po drodze", "pozamykaj drzwi".
+        private static Regex Bulk(Phrasebook book, bool open)
+        {
+            string verb = Any(book, b => open ? b.OpenAll : b.CloseAll);
+            string each = Any(book, b => open ? b.OpenEach : b.CloseEach);
+            string doors = Any(book, b => b.Doors);
+            string anyDoor = Any(book, b => b.Doors.Concat(b.Door).ToArray());
+            string adjective = Any(book, b => b.BulkAdjective);
+            string scope = Any(book, b => b.DoorScope);
+            string the = "(?:" + Any(book, b => b.Determiner) + " )?";
+            string target = "(?:" + Any(book, b => b.Quantifier) + " (?:" + adjective + " )?" + anyDoor + "(?: " + scope + ")?"
+                + "|" + the + adjective + " " + doors + "(?: " + scope + ")?"
+                + "|" + the + doors + " " + scope + ")";
+            return new Regex("^(?:" + Any(book, b => b.Please) + " )?"
+                + "(?:" + verb + " " + target + "|" + each + " " + the + doors + "(?: " + scope + ")?)"
+                + "(?: " + Any(book, b => b.Please) + ")?$", Options);
+        }
+
+        /// <summary>Whether a simplified clause asks to open or close several doors at once.</summary>
+        internal static bool IsBulk(string simplified, bool open) => (open ? OpenMany : CloseMany).Any(regex => regex.IsMatch(simplified));
+
+        internal static bool StartsWithDoorVerb(string folded) => DoorVerb.IsMatch(folded);
+
+        /// <summary>"Open all the doors" on its own, or together with "follow me" to open doors on the way.</summary>
         public static bool TryParseOpenAll(string text, out bool whileFollowing)
         {
             whileFollowing = false;
-            if (string.IsNullOrWhiteSpace(text) || text.Contains("?")) return false;
-            string value = Regex.Replace(FastIntentClient.StripGreeting(text), @"\s+", " ");
-            value = BulkLeadIn.Replace(value, "").TrimEnd('.', '!', '…');
-            if (OpenAll.IsMatch(NormalizeBulkClause(value))) return true;
-
-            // ASR can turn the pause between the two commands into a sentence break.
-            // Both complete clauses must match; neither is executed on its own here.
-            foreach (Match join in BulkJoin.Matches(value))
+            if (!QuickCompanionCommand.TrySplit(text, out var clauses)) return false;
+            if (clauses.Count == 1 && clauses[0] == QuickCompanionCommand.Clause.OpenAll) return true;
+            if (clauses.Count == 2 && clauses.Contains(QuickCompanionCommand.Clause.Follow) && clauses.Contains(QuickCompanionCommand.Clause.OpenAll))
             {
-                string first = NormalizeBulkClause(value.Substring(0, join.Index));
-                string second = NormalizeBulkClause(value.Substring(join.Index + join.Length));
-                if ((IsFollow(first) && IsEscortOpening(second)) || (IsFollow(second) && IsEscortOpening(first)))
-                {
-                    whileFollowing = true;
-                    return true;
-                }
+                whileFollowing = true;
+                return true;
             }
             return false;
         }
 
-        private static string NormalizeBulkClause(string text) => Regex.Replace(text.Replace(',', ' '), @"\s+", " ").Trim();
-
-        internal static bool IsEscortOpening(string text) => OpenAll.IsMatch(text) || OpenAlongPath.IsMatch(text);
-
-        private static bool IsFollow(string text) => QuickCompanionCommand.TryParse(text, out string action, out _)
-            && action == "follow_curator";
-
-        private const string StatusSide = @"(?<side>(?:передо? мной|впереди|за мной|позади меня|сзади|слева|справа)(?: от меня)?)";
-        private static readonly Regex RussianStatus = new Regex(@"^(?:эта )?дверь(?: " + StatusSide
-            + @")? (?:открыта|закрыта)(?: " + StatusSide + @")?$|^(?:открыта|закрыта) ли (?:эта )?дверь(?: " + StatusSide + @")?$");
-        private static readonly Regex EnglishStatus = new Regex(@"^is (?:the|this) door(?: (?<side>in front(?: of me)?|behind me|on my left|on my right|to my left|to my right))? (?:open|closed)$");
-        private static readonly Regex PolishStatus = new Regex(@"^czy (?:te )?drzwi(?: (?<side>przede mną|przede mna|za mną|za mna|po lewej|po prawej)(?: stronie)?)? (?:są|sa) (?:otwarte|zamknięte|zamkniete)$");
-
+        /// <summary>A question about one door's state. It reads the state and never operates the door.</summary>
         public static bool TryParseStatus(string text, out Direction direction)
         {
             direction = Direction.Facing;
-            if (string.IsNullOrWhiteSpace(text)) return false;
-            string value = Regex.Replace(text.Trim().TrimEnd('?', '.', '…').ToLowerInvariant(), @"\s+", " ").Trim();
-            Match match = RussianStatus.Match(value);
-            if (!match.Success) match = EnglishStatus.Match(value);
-            if (!match.Success) match = PolishStatus.Match(value);
-            var sides = match.Groups["side"].Captures;
-            if (!match.Success || sides.Count > 1) return false;
-            direction = ParseSide(match.Groups["side"].Value);
-            return true;
+            if (string.IsNullOrWhiteSpace(text) || CompanionLanguage.HasQuote(text)) return false;
+            string value = CompanionLanguage.Simplify(text);
+            foreach (Regex question in Questions)
+            {
+                Match match = question.Match(value);
+                if (!match.Success) continue;
+                return TryReadDirection(match, out direction);
+            }
+            return false;
         }
 
         public static bool TryParse(string text, out Request request)
         {
             request = default;
-            if (string.IsNullOrWhiteSpace(text) || text.Contains("?")) return false;
-            string value = Regex.Replace(text.Trim().TrimEnd('.', '!', '…').ToLowerInvariant().Replace(',', ' '), @"\s+", " ").Trim();
-            value = Regex.Replace(value, @"^(пожалуйста|please|proszę|prosze)[.!]\s*", "$1 ");
-            Match match = Russian.Match(value);
-            if (!match.Success) match = English.Match(value);
-            if (!match.Success) match = Polish.Match(value);
-            if (!match.Success) return false;
-            string verb = match.Groups[1].Value;
-            request.Action = verb.StartsWith("откр") || verb == "open" || verb.StartsWith("otw") ? InteractionAction.Open : InteractionAction.Close;
-            request.Side = Direction.Facing;
-            string adjective = match.Groups[2].Value.Trim();
-            if (adjective == "ближайшую" || adjective == "nearest" || adjective == "najbliższe" || adjective == "najblizsze")
-                request.Side = Direction.Nearest;
-            string side = match.Groups[3].Value;
-            // Do not silently discard one of two different target constraints.
-            if (request.Side == Direction.Nearest && side.Length > 0) return false;
-            if (side.Length > 0) request.Side = ParseSide(side);
+            if (string.IsNullOrWhiteSpace(text) || text.Contains("?") || CompanionLanguage.HasQuote(text)) return false;
+            string value = CompanionLanguage.Simplify(text);
+            foreach (Regex order in Orders)
+            {
+                Match match = order.Match(value);
+                if (!match.Success) continue;
+                request.Action = match.Groups["open"].Success ? InteractionAction.Open : InteractionAction.Close;
+                // Do not silently discard one of two different target constraints.
+                if (match.Groups["nearest"].Success)
+                {
+                    if (match.Groups["side"].Success) return false;
+                    request.Side = Direction.Nearest;
+                    return true;
+                }
+                return TryReadDirection(match, out request.Side);
+            }
+            return false;
+        }
+
+        private static bool TryReadDirection(Match match, out Direction direction)
+        {
+            direction = Direction.Facing;
+            Group side = match.Groups["side"], adjective = match.Groups["adjective"];
+            // "the left door on my right" names two places for one door.
+            if (side.Success && adjective.Success) return false;
+            if (side.Success) direction = ParseSide(side.Value);
+            else if (adjective.Success) direction = Contains(b => b.LeftAdjective, adjective.Value) ? Direction.Left : Direction.Right;
             return true;
         }
 
         private static Direction ParseSide(string side)
         {
-            switch (side)
-            {
-                case "передо мной": case "перед мной": case "впереди": case "in front of me": case "in front": case "przede mną": case "przede mna": return Direction.Front;
-                case "за мной": case "позади меня": case "сзади": case "behind me": case "za mną": case "za mna": return Direction.Back;
-                case "слева": case "слева от меня": case "on my left": case "to my left": case "po lewej": return Direction.Left;
-                case "справа": case "справа от меня": case "on my right": case "to my right": case "po prawej": return Direction.Right;
-                default: return Direction.Facing;
-            }
+            if (Contains(b => b.Front, side)) return Direction.Front;
+            if (Contains(b => b.Back, side)) return Direction.Back;
+            if (Contains(b => b.Left, side)) return Direction.Left;
+            if (Contains(b => b.Right, side)) return Direction.Right;
+            return Direction.Facing;
+        }
+
+        private static readonly (Direction Side, Regex Words)[] SideWords =
+        {
+            (Direction.Front, Mention(b => b.Front)),
+            (Direction.Back, Mention(b => b.Back)),
+            (Direction.Left, Mention(b => b.Left)),
+            (Direction.Right, Mention(b => b.Right)),
+            (Direction.Left, new Regex(@"\b" + Any(b => b.LeftAdjective) + " " + Any(b => b.DoorMention) + @"\b", Options)),
+            (Direction.Right, new Regex(@"\b" + Any(b => b.RightAdjective) + " " + Any(b => b.DoorMention) + @"\b", Options)),
+            (Direction.Nearest, Mention(b => b.Nearest)),
+        };
+
+        private static Regex Mention(System.Func<Phrasebook, string[]> select) => new Regex(@"\b" + Any(select) + @"\b", Options);
+
+        /// <summary>Every distinct door direction named anywhere in a folded clause.</summary>
+        public static List<Direction> SidesMentioned(string folded)
+        {
+            var sides = new List<Direction>();
+            foreach (var (side, words) in SideWords)
+                if (!sides.Contains(side) && words.IsMatch(folded)) sides.Add(side);
+            return sides;
         }
 
         public static Door Resolve(IEnumerable<Interactable> perceived, Transform viewer, Request request, Door aimed, out Resolution resolution, bool readState = false)

@@ -170,13 +170,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                     Body.Halt();
                     activeOrder = StartCoroutine(UseNearbyDoors(order, InteractionAction.Close));
                 }
-                else
-                {
-                    string reply = dismissal == QuickCompanionCommand.DismissalAction.ClarifyDoors
-                        ? "Останусь здесь. Что сделать с дверями?"
-                        : "Хорошо. Останусь здесь.";
-                    activeOrder = StartCoroutine(HandleQuick("wait_here", reply));
-                }
+                else activeOrder = StartCoroutine(HandleQuick("wait_here", LocalReply(order, "Okay. I'll stay here.", "Dobrze. Zostaję tutaj.")));
                 return;
             }
 
@@ -203,14 +197,12 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             if (QuickCompanionCommand.TryParseFollowWithContext(order, out var followContext))
             {
                 string note = (followContext & QuickCompanionCommand.FollowContext.Protection) != 0
-                    ? " В бою помочь не смогу." : "";
-                if ((followContext & QuickCompanionCommand.FollowContext.ClarifyDoors) != 0)
-                    note += " Что сделать с дверями?";
+                    ? LocalReply(order, " I can't help in a fight.", " W walce nie pomogę.") : "";
                 BeginOrder(order, "direct");
                 if ((followContext & QuickCompanionCommand.FollowContext.OpenOnPath) != 0)
                     StartDoorEscort(order, note);
                 else
-                    activeOrder = StartCoroutine(HandleQuick("follow_curator", "Иду за тобой." + note));
+                    activeOrder = StartCoroutine(HandleQuick("follow_curator", LocalReply(order, "Following you.", "Idę za tobą.") + note));
                 return;
             }
             if (split)
@@ -264,8 +256,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         {
             string answer = reason ?? LocalReply(order,
                 "Please give a direct movement or door command, with a direction if needed.",
-                "Podaj bezpośrednie polecenie ruchu lub otwarcia/zamknięcia drzwi i kierunek.",
-                "Уточни прямой командой: куда идти или какую дверь открыть/закрыть.");
+                "Podaj bezpośrednie polecenie ruchu lub otwarcia/zamknięcia drzwi i kierunek.");
             Spoke?.Invoke(answer);
         }
 
@@ -281,36 +272,44 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             Spoke?.Invoke(reply);
         }
 
-        private static readonly Regex PlayerDoorStatement = new Regex(@"^(?:я )?(?:сейчас )?(?:открою|закрою|открываю|закрываю) (?:эту )?дверь\b");
-        private static readonly Regex HeardSpeech = new Regex(@"^мне послыш[аи]лось\b");
+        // The player describing their own action is not an order for the companion.
+        private static readonly Regex PlayerDoorStatement = new Regex(
+            @"^(?:i'll|i will|i'm going to|i am going to|let me) (?:open|close|shut) (?:the |this |that )?doors?\b"
+            + @"|^(?:ja )?(?:teraz |zaraz |sam )?(?:otworze|zamkne|otwieram|zamykam) (?:te )?drzwi\b", RegexOptions.CultureInvariant);
+
+        public enum SmallTalk { None, Farewell, Greeting, Thanks, Uneasy, PlayerDoorAction, Activity }
+
+        /// <summary>Common teammate phrases with authored replies; matching ignores punctuation and Polish diacritics.</summary>
+        public static SmallTalk ClassifySmallTalk(string order)
+        {
+            string text = CompanionLanguage.Simplify(order);
+            if (text is "bye" or "see you" or "see you later" or "do zobaczenia" or "na razie") return SmallTalk.Farewell;
+            if (text is "hi" or "hello" or "hey" or "hi there" or "hello there" or "czesc" or "hej" or "siema" or "dzien dobry") return SmallTalk.Greeting;
+            if (text is "thanks" or "thank you" or "thanks a lot" or "thank you so much" or "dzieki" or "dziekuje"
+                or "dziekuje bardzo" or "wielkie dzieki") return SmallTalk.Thanks;
+            if (text is "i'm scared" or "i am scared" or "i'm afraid" or "it's creepy here" or "this place is creepy"
+                or "boje sie" or "troche sie boje" or "strasznie tu" or "tu jest strasznie") return SmallTalk.Uneasy;
+            if (PlayerDoorStatement.IsMatch(text)) return SmallTalk.PlayerDoorAction;
+            if (text is "what are you doing" or "what are you doing now" or "are you following me" or "are you still following me"
+                or "co robisz" or "co teraz robisz" or "idziesz za mna" or "czy idziesz za mna") return SmallTalk.Activity;
+            return SmallTalk.None;
+        }
 
         private bool TryReplyLocally(string order, out string reply)
         {
-            string text = order.ToLowerInvariant().TrimEnd('?', '!', '.').Trim();
-            reply = null;
-            if (text is "пока" or "до встречи" or "bye" or "see you" or "do zobaczenia")
-                reply = LocalReply(order, "See you.", "Do zobaczenia.", "До встречи.");
-            else if (text is "привет, как дела" or "привет как дела" or "привет" or "hi" or "hello" or "cześć")
-                reply = LocalReply(order, "Hey. How are you holding up?", "Cześć. Jak się trzymasz?", "Привет. Как ты держишься?");
-            else if (text is "спасибо" or "спасибо, что ты рядом" or "спасибо что ты рядом"
-                or "thanks" or "thank you" or "dzięki" or "dziękuję")
-                reply = LocalReply(order, "Anytime.", "Nie ma sprawy.", "Не за что.");
-            else if (text is "мне тут немного жутко" or "мне здесь не по себе" or "мне страшно" or "i'm scared" or "boję się" or "trochę się boję")
-                reply = LocalReply(order, "Let's stick together.", "Trzymajmy się razem.", "Давай держаться вместе.");
-            else if (HeardSpeech.IsMatch(text) || ((text.StartsWith("я слышал ") || text.StartsWith("я слышала "))
-                && (text.Contains('«') || text.Contains('"'))))
-                reply = "Понял. Продолжаю делать то, о чём договорились.";
-            else if (PlayerDoorStatement.IsMatch(text))
-                reply = "Хорошо, скажи, если нужна помощь.";
-            else if (text is "что ты сейчас делаешь" or "что ты делаешь" or "ты сейчас идёшь за мной" or "ты сейчас идешь за мной"
-                or "ты идёшь за мной" or "ты идешь за мной" or "what are you doing" or "are you following me" or "co robisz")
+            switch (ClassifySmallTalk(order))
             {
-                if (Body.IsWalking)
-                    reply = LocalReply(order, "I'm heading to the target.", "Idę do celu.", "Иду к цели.");
-                else if (Body.Activity == "following the curator")
-                    reply = LocalReply(order, "I'm following you.", "Idę za tobą.", "Я иду за тобой.");
-                else
-                    reply = LocalReply(order, "I'm waiting here.", "Czekam tutaj.", "Я жду здесь.");
+                case SmallTalk.Farewell: reply = LocalReply(order, "See you.", "Do zobaczenia."); break;
+                case SmallTalk.Greeting: reply = LocalReply(order, "Hey. How are you holding up?", "Cześć. Jak się trzymasz?"); break;
+                case SmallTalk.Thanks: reply = LocalReply(order, "Anytime.", "Nie ma sprawy."); break;
+                case SmallTalk.Uneasy: reply = LocalReply(order, "Let's stick together.", "Trzymajmy się razem."); break;
+                case SmallTalk.PlayerDoorAction: reply = LocalReply(order, "Okay. Tell me if you need help.", "Dobrze. Daj znać, jeśli będzie trzeba pomóc."); break;
+                case SmallTalk.Activity:
+                    if (Body.IsWalking) reply = LocalReply(order, "I'm heading to the target.", "Idę do celu.");
+                    else if (Body.Activity == "following the curator") reply = LocalReply(order, "I'm following you.", "Idę za tobą.");
+                    else reply = LocalReply(order, "I'm waiting here.", "Czekam tutaj.");
+                    break;
+                default: reply = null; break;
             }
             return reply != null;
         }
@@ -320,7 +319,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             if (!FastReady || !LocalAiRuntime.Instance.ChatReady)
             {
                 if (FastIntentClient.CanPlan(order)) Clarify(order, FastStarting
-                    ? LocalReply(order, "Give me a second. Short commands still work.", "Daj mi chwilę. Krótkie polecenia działają.", "Дай мне секунду. Короткие команды уже работают.")
+                    ? LocalReply(order, "Give me a second. Short commands still work.", "Daj mi chwilę. Krótkie polecenia działają.")
                     : null);
                 else AskToRepeat(order);
                 yield break;
@@ -350,7 +349,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         private void AskToRepeat(string order)
         {
             LastCommandRoute = "chat-clarify";
-            Spoke?.Invoke(LocalReply(order, "Could you say that another way?", "Możesz powiedzieć to inaczej?", "Можешь сказать это другими словами?"));
+            Spoke?.Invoke(LocalReply(order, "Could you say that another way?", "Możesz powiedzieć to inaczej?"));
         }
 
         private IEnumerator ExecuteFastPlan(string order, string[] plan, QuickDoorCommand.Request?[] doors)
@@ -362,9 +361,9 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 else
                 {
                     string action = code == "follow" ? "follow_curator" : code == "stop" ? "wait_here" : "go_to";
-                    string reply = code == "follow" ? LocalReply(order, "Following you.", "Idę za tobą.", "Иду за тобой.")
-                        : code == "stop" ? LocalReply(order, "Waiting here.", "Czekam tutaj.", "Жду здесь.")
-                        : LocalReply(order, "Coming to you.", "Idę do ciebie.", "Иду к тебе.");
+                    string reply = code == "follow" ? LocalReply(order, "Following you.", "Idę za tobą.")
+                        : code == "stop" ? LocalReply(order, "Waiting here.", "Czekam tutaj.")
+                        : LocalReply(order, "Coming to you.", "Idę do ciebie.");
                     yield return HandleQuick(action, reply, false);
                 }
                 if (!lastActionSucceeded) break;
@@ -394,8 +393,8 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             {
                 SetStatus(open ? "opening nearby doors" : "closing nearby doors");
                 Spoke?.Invoke(open
-                    ? LocalReply(order, "I'll open the nearby doors.", "Otworzę pobliskie drzwi.", "Открою ближайшие двери.")
-                    : "Перестал идти за тобой. Закрою ближайшие открытые двери.");
+                    ? LocalReply(order, "I'll open the nearby doors.", "Otworzę pobliskie drzwi.")
+                    : LocalReply(order, "I stopped following you. I'll close the nearby open doors.", "Już za tobą nie idę. Zamknę pobliskie otwarte drzwi."));
             }
             var failed = new HashSet<Door>();
             while (true)
@@ -410,12 +409,14 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             string reply;
             if (open)
                 reply = remaining.Count == 0
-                    ? LocalReply(order, "The nearby doors are open.", "Pobliskie drzwi są otwarte.", "Ближайшие двери открыты.")
-                    : LocalReply(order, "Some nearby doors are out of reach.", "Do części drzwi nie mogę dotrzeć.", "До некоторых ближайших дверей не удалось добраться.");
+                    ? LocalReply(order, "The nearby doors are open.", "Pobliskie drzwi są otwarte.")
+                    : LocalReply(order, "Some nearby doors are out of reach.", "Do części drzwi nie mogę dotrzeć.");
             else
             {
                 Body.Halt();
-                reply = remaining.Count == 0 ? "Я остановился. Ближайшие двери закрыты." : "Часть ближайших дверей осталась открыта. Я остановился.";
+                reply = remaining.Count == 0
+                    ? LocalReply(order, "I've stopped. The nearby doors are closed.", "Zatrzymałem się. Pobliskie drzwi są zamknięte.")
+                    : LocalReply(order, "Some nearby doors are still open. I've stopped.", "Część pobliskich drzwi jest nadal otwarta. Zatrzymałem się.");
             }
             history.Add(new JObject { ["role"] = "assistant", ["content"] = reply });
             Spoke?.Invoke(reply);
@@ -428,11 +429,11 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             orderInProgress = false;
             if (Body.curator == null)
             {
-                Clarify(order, LocalReply(order, "I can't find you.", "Nie mogę cię znaleźć.", "Не могу тебя найти."));
+                Clarify(order, LocalReply(order, "I can't find you.", "Nie mogę cię znaleźć."));
                 return;
             }
             Body.Follow();
-            string reply = LocalReply(order, "I'm with you. I'll open doors on the way.", "Idę za tobą i otwieram drzwi po drodze.", "Я за тобой. Двери по пути буду открывать.") + note;
+            string reply = LocalReply(order, "I'm with you. I'll open doors on the way.", "Idę za tobą i otwieram drzwi po drodze.") + note;
             history.Add(new JObject { ["role"] = "assistant", ["content"] = reply });
             Spoke?.Invoke(reply);
             doorEscort = StartCoroutine(FollowAndOpenDoors());
@@ -513,7 +514,7 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 string name = request.Action.Verb() + "_door";
                 UseObjectTool tool = UseObjectTool.CreateFor(new[] { door }).Find(candidate => candidate.Name == name);
                 SetStatus("acting");
-                Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze.", "Хорошо."));
+                Spoke?.Invoke(LocalReply(order, "Okay.", "Dobrze."));
                 string outcome = null;
                 if (logToConsole) Debug.Log($"[Door timing] dispatch={timer.Elapsed.TotalSeconds:0.000}s action={name} target={door.id} route={LastCommandRoute}", this);
                 yield return tool.Run(this, new JObject { ["target"] = door.id }, result => outcome = result);
@@ -521,12 +522,12 @@ Reply in the language of the latest player order, in one short sentence. Do not 
                 if (logToConsole) Debug.Log($"[Companion] {name} target={door.id} -> {outcome}", this);
                 // Preserve the real object result for subsequent conversation, including failures.
                 history.Add(new JObject { ["role"] = "assistant", ["content"] = outcome });
-                if (tool.Succeeded) report = LocalReply(order, "Done.", "Gotowe.", "Готово.");
+                if (tool.Succeeded) report = LocalReply(order, "Done.", "Gotowe.");
                 else if (outcome != null && outcome.Contains("standing in the doorway"))
-                    report = LocalReply(order, "The doorway is blocked. Move away so I can close it.", "Przejście jest zajęte. Odsuń się od drzwi.", "В проёме кто-то стоит. Отойди, чтобы я мог закрыть дверь.");
+                    report = LocalReply(order, "The doorway is blocked. Move away so I can close it.", "Przejście jest zajęte. Odsuń się od drzwi.");
                 else if (outcome != null && outcome.Contains("reach"))
-                    report = LocalReply(order, "I can't find a route to that door.", "Nie mogę dotrzeć do tych drzwi.", "Не могу добраться до этой двери.");
-                else report = LocalReply(order, "I couldn't use that door.", "Nie udało się użyć tych drzwi.", "Не удалось открыть или закрыть эту дверь.");
+                    report = LocalReply(order, "I can't find a route to that door.", "Nie mogę dotrzeć do tych drzwi.");
+                else report = LocalReply(order, "I couldn't use that door.", "Nie udało się użyć tych drzwi.");
             }
             if (logToConsole) Debug.Log($"[Companion] Door resolution={resolution}: {report}", this);
             history.Add(new JObject { ["role"] = "assistant", ["content"] = report });
@@ -570,11 +571,11 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             switch (resolution)
             {
                 case QuickDoorCommand.Resolution.Ambiguous:
-                    return LocalReply(order, "Which door? Look at it or say left/right.", "Które drzwi? Spójrz na nie lub powiedz lewo/prawo.", "Какую дверь? Посмотри на неё или уточни: слева или справа.");
+                    return LocalReply(order, "Which door? Look at it or say left/right.", "Które drzwi? Spójrz na nie lub powiedz lewo/prawo.");
                 case QuickDoorCommand.Resolution.Missing:
-                    return LocalReply(order, "I don't know a door in that direction.", "Nie znam drzwi w tym kierunku.", "В этом направлении нет известной мне двери.");
+                    return LocalReply(order, "I don't know a door in that direction.", "Nie znam drzwi w tym kierunku.");
                 case QuickDoorCommand.Resolution.NoPlayer:
-                    return LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.", "Не вижу тебя и не могу определить нужную дверь.");
+                    return LocalReply(order, "I can't locate you to choose a door.", "Nie mogę cię znaleźć, żeby wybrać drzwi.");
                 default: return null;
             }
         }
@@ -582,11 +583,11 @@ Reply in the language of the latest player order, in one short sentence. Do not 
         private static string DoorStateReply(string order, Door door)
         {
             if (door.IsBusy) return door.IsOpen
-                ? LocalReply(order, "The door is already opening.", "Drzwi już się otwierają.", "Дверь уже открывается.")
-                : LocalReply(order, "The door is already closing.", "Drzwi już się zamykają.", "Дверь уже закрывается.");
+                ? LocalReply(order, "The door is already opening.", "Drzwi już się otwierają.")
+                : LocalReply(order, "The door is already closing.", "Drzwi już się zamykają.");
             return door.IsOpen
-                ? LocalReply(order, "The door is already open.", "Drzwi są już otwarte.", "Дверь уже открыта.")
-                : LocalReply(order, "The door is already closed.", "Drzwi są już zamknięte.", "Дверь уже закрыта.");
+                ? LocalReply(order, "The door is already open.", "Drzwi są już otwarte.")
+                : LocalReply(order, "The door is already closed.", "Drzwi są już zamknięte.");
         }
 
         private IEnumerator HandleQuick(string action, string reply, bool finishOrder = true)
@@ -669,16 +670,15 @@ Reply in the language of the latest player order, in one short sentence. Do not 
             else if (!string.IsNullOrWhiteSpace(reply?.Reply)) ReplyToConversation(order, reply.Reply, "model-chat");
         }
 
-        internal static string LocalReply(string order, string english, string polish, string russian)
-        {
-            foreach (char letter in order) if (letter >= '\u0400' && letter <= '\u04ff') return russian;
-            foreach (char letter in order) if ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ".IndexOf(letter) >= 0) return polish;
-            return english;
-        }
+        /// <summary>The reply in the language of the player's words; the speech language setting breaks ties.</summary>
+        internal static string LocalReply(string order, string english, string polish) => CompanionLanguage.Pick(order, english, polish);
+
+        private static readonly Regex AboutSurroundings = new Regex(
+            @"\b(?:doors?|see|where|nearby|around|drzwi|widzisz|gdzie|obok|dookola|wokol)\b", RegexOptions.CultureInvariant);
 
         private string ConversationContext(string order)
         {
-            if (Regex.IsMatch(order, @"(?i)\b(двер[а-яё]*|видишь|вокруг|где|рядом|door|see|where|nearby|drzwi|widzisz|gdzie)\b"))
+            if (AboutSurroundings.IsMatch(CompanionLanguage.Fold(order)))
                 return Perception.DescribeForConversation();
             return "Companion activity: " + Body.Activity + ". No other observations were supplied.";
         }

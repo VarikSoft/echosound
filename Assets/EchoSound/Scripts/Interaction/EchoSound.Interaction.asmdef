@@ -1,4 +1,5 @@
 {
   "name": "EchoSound.Interaction",
-  "rootNamespace": "EchoSound.Interaction"
+  "rootNamespace": "EchoSound.Interaction",
+  "references": ["EchoSound.Sound"]
 }

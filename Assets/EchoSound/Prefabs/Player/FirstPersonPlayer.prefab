@@ -103,7 +103,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6d0dfb2bc6db4259a77734eebe23e965, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.AcousticMaterialReadout
   readDistance: 5
   visibilityThreshold: 0.002
@@ -178,11 +178,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c37286882f8ad8540b59bc80c4cc7002, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: EchoSound.Player::EchoSound.FirstPersonPlayer
   walkSpeed: 4.5
   runSpeed: 7.5
   jumpSpeed: 5
+  useKeyboardOnly: 1
+  enableGamepad: 0
+  joystickDeadzone: 0.35
   view: {fileID: 8004322684627568444}
   sensitivity: 2
 --- !u!114 &1483615776902823761
@@ -195,7 +198,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af972026e629ee74a90adf2616397d97, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: EchoSound.Sound::EchoSound.Sound.PlayerSoundEmitter
   walkRadius: 14
   runRadius: 24
@@ -204,3 +207,4 @@ MonoBehaviour:
   jumpRadius: 16
   landRadius: 22
   minimumLandVelocity: 3
+  surfaceAudio: {fileID: 11400000, guid: a1010000000000000000000000000001, type: 2}

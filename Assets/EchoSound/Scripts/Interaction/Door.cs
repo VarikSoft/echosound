@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using EchoSound.Sound;
 
 namespace EchoSound.Interaction
 {
     /// <summary>
     /// A sliding door that fills a doorway. While closed it blocks bodies and carves the NavMesh,
     /// so agents plan routes around it. Opening slides the panel sideways into the wall.
+    /// Emits audible SoundCues and acoustic propagation pulses into SoundBus.
     /// </summary>
     public sealed class Door : Interactable
     {
@@ -19,6 +21,19 @@ namespace EchoSound.Interaction
         [Tooltip("Distance from the doorway to the spot where an agent stands to use the door.")]
         [Min(0.5f)] public float standDistance = 1.1f;
         [SerializeField] private bool startOpen;
+
+        [Header("Door Audio & Acoustics")]
+        [Tooltip("Sound cue played when door starts opening.")]
+        public SoundCue openCue;
+
+        [Tooltip("Sound cue played when door starts closing.")]
+        public SoundCue closeCue;
+
+        [Tooltip("Sound cue played when door is blocked and cannot move.")]
+        public SoundCue blockedCue;
+
+        [Tooltip("Acoustic wave radius emitted to SoundBus for echolocation VFX and AI listeners.")]
+        [Min(1f)] public float acousticRadius = 14f;
 
         private NavMeshObstacle obstacle;
         // 0 means closed, 1 means fully open.
@@ -52,8 +67,18 @@ namespace EchoSound.Interaction
         {
             bool open = action == InteractionAction.Open;
             problem = null;
-            if (IsOpen == open) problem = open ? "it is already open" : "it is already closed";
-            else if (!open && IsDoorwayBlocked()) problem = "something is standing in the doorway";
+            if (IsOpen == open)
+            {
+                problem = open ? "it is already open" : "it is already closed";
+            }
+            else if (!open && IsDoorwayBlocked())
+            {
+                problem = "something is standing in the doorway";
+                if (blockedCue != null)
+                {
+                    AudioManager.Instance.Play(blockedCue, transform.position);
+                }
+            }
             return problem == null;
         }
 
@@ -61,6 +86,12 @@ namespace EchoSound.Interaction
         protected override void Perform(Interactor user, InteractionAction action)
         {
             IsOpen = action == InteractionAction.Open;
+            SoundCue cue = IsOpen ? openCue : closeCue;
+            if (cue != null)
+            {
+                AudioManager.Instance.Play(cue, transform.position);
+            }
+            SoundBus.Emit(transform.position, acousticRadius, 0.8f, SoundType.Interaction, gameObject);
         }
 
         private void Update()

@@ -104,6 +104,7 @@ namespace EchoSound.Editor.Tests
                 Validate();
                 VoiceChecks.Validate();
                 SoundBusChecks.ValidateSoundBus();
+                AudioSystemChecks.ValidateAudioSystem();
                 EcholocationChecks.ValidateEcholocationVFX();
                 CapturePreview();
                 CaptureGeneratedPreview();

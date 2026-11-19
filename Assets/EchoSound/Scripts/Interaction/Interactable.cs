@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
+using EchoSound.Sound;
 
 namespace EchoSound.Interaction
 {
     /// <summary>
     /// A scene object that the player and the companion use through one entry point, TryUse,
     /// so both follow the same rules. Subclasses describe their state in plain words for the companion's LLM.
+    /// Supports optional audible SoundCues and acoustic SoundBus emissions.
     /// </summary>
     public abstract class Interactable : MonoBehaviour
     {
@@ -18,6 +20,10 @@ namespace EchoSound.Interaction
         public string locationHint = "";
         [Tooltip("Largest horizontal distance from the object's pivot at which it can be used.")]
         [Min(0.5f)] public float useDistance = 2f;
+
+        [Header("Audio (Optional)")]
+        [Tooltip("Audible sound cue played when this object is successfully used.")]
+        public SoundCue useSoundCue;
 
         /// <summary>One word, for example "door".</summary>
         public abstract string Kind { get; }
@@ -64,7 +70,11 @@ namespace EchoSound.Interaction
             }
             if (!CanUse(action, out problem)) return false;
 
-            // Later: emit the use sound here, so enemies hear every user in the same way.
+            if (useSoundCue != null)
+            {
+                AudioManager.Instance.Play(useSoundCue, transform.position);
+            }
+
             Perform(user, action);
             return true;
         }

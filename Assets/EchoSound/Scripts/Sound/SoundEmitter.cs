@@ -5,6 +5,7 @@ namespace EchoSound.Sound
     /// <summary>
     /// Component that can be placed on interactive objects (doors, levers, traps, cameras, projectiles)
     /// to emit sounds into the SoundBus. Can be triggered from scripts, Animation Events, or UnityEvents.
+    /// Optionally triggers audible sound playback via AudioManager.
     /// </summary>
     [AddComponentMenu("EchoSound/Sound/Sound Emitter")]
     public class SoundEmitter : MonoBehaviour
@@ -24,6 +25,10 @@ namespace EchoSound.Sound
         [Tooltip("Transform used as origin point for emitted sounds. If null, this GameObject's transform is used.")]
         public Transform emissionPoint;
 
+        [Header("Audio Playback (Optional)")]
+        [Tooltip("Audible sound cue played through the AudioManager when emitted.")]
+        public SoundCue soundCue;
+
         public Vector3 SoundPosition => emissionPoint != null ? emissionPoint.position : transform.position;
 
         /// <summary>
@@ -32,6 +37,7 @@ namespace EchoSound.Sound
         public void Emit()
         {
             SoundBus.Emit(SoundPosition, radius, intensity, soundType, gameObject);
+            PlaySoundCue();
         }
 
         /// <summary>
@@ -40,6 +46,7 @@ namespace EchoSound.Sound
         public void EmitWithRadius(float customRadius)
         {
             SoundBus.Emit(SoundPosition, customRadius, intensity, soundType, gameObject);
+            PlaySoundCue();
         }
 
         /// <summary>
@@ -48,6 +55,15 @@ namespace EchoSound.Sound
         public void EmitWithType(SoundType overrideType)
         {
             SoundBus.Emit(SoundPosition, radius, intensity, overrideType, gameObject);
+            PlaySoundCue();
+        }
+
+        private void PlaySoundCue()
+        {
+            if (soundCue != null)
+            {
+                AudioManager.Instance.Play(soundCue, SoundPosition, transform);
+            }
         }
 
         private void OnDrawGizmosSelected()

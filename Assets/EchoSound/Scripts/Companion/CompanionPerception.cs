@@ -91,6 +91,21 @@ namespace EchoSound.Companion
 
         private float Distance(Interactable item) => Vector3.Distance(item.transform.position, transform.position);
 
+        public string DescribeForConversation()
+        {
+            var text = new StringBuilder("Companion activity: ").Append(body.Activity).Append(". Partial nearby observations: ");
+            List<Interactable> items = Perceived();
+            if (items.Count == 0) text.Append("none.");
+            for (int i = 0; i < Mathf.Min(3, items.Count); i++)
+            {
+                Interactable item = items[i];
+                text.Append(item.Kind).Append(": ").Append(item.State);
+                if (body.curator != null) text.Append(", ").Append(Direction(body.curator, item.transform.position)).Append(" of player");
+                text.Append("; ");
+            }
+            return text.ToString();
+        }
+
         // Lets the LLM resolve the curator's "in front of me", "behind me", "on my left".
         private static string Direction(Transform viewer, Vector3 point)
         {

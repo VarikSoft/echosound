@@ -55,16 +55,28 @@ namespace EchoSound.Companion
         public override IEnumerator Run(CompanionBrain companion, JObject arguments, Action<string> report)
         {
             Succeeded = false;
-            CompanionAgent body = companion.Body;
             string target = Target(arguments);
-            string verb = action.Verb();
-
             Interactable item = companion.Perception.Find(target);
             if (item == null || item.Kind != kind)
             {
                 report($"There is no {kind} '{target}' near you.");
                 yield break;
             }
+            yield return RunOn(companion, item, report);
+        }
+
+        internal static IEnumerator UseDoor(CompanionBrain companion, Door door, InteractionAction action)
+        {
+            if (door == null || !door.isActiveAndEnabled || door.IsOpen == (action == InteractionAction.Open)) yield break;
+            var tool = new UseObjectTool(action, door.Kind);
+            yield return tool.RunOn(companion, door, _ => { });
+        }
+
+        private IEnumerator RunOn(CompanionBrain companion, Interactable item, Action<string> report)
+        {
+            CompanionAgent body = companion.Body;
+            string target = item.id;
+            string verb = action.Verb();
             // Ask the object's rules before walking, so the companion does not walk over for nothing.
             if (!item.CanUse(action, out string problem))
             {
@@ -92,6 +104,12 @@ namespace EchoSound.Companion
                 }
             }
 
+            if (item == null || !item.isActiveAndEnabled)
+            {
+                body.Halt();
+                report($"Cannot {verb} {target}: it is gone.");
+                yield break;
+            }
             body.Face(item.transform.position);
             if (!item.TryUse(companion.Hands, action, out problem))
             {
@@ -99,13 +117,13 @@ namespace EchoSound.Companion
                 report($"Could not {verb} {target}: {problem}.");
                 yield break;
             }
-            while (item.IsBusy) yield return null;
+            while (item != null && item.isActiveAndEnabled && item.IsBusy) yield return null;
             // Give the NavMesh a frame to drop or add a door's carved hole before the next function plans a route.
             yield return null;
 
             body.Halt("waiting next to " + target);
-            Succeeded = true;
-            report($"{target} is now {item.State}.");
+            Succeeded = item != null && item.isActiveAndEnabled;
+            report(Succeeded ? $"{target} is now {item.State}." : $"{target} is gone.");
         }
     }
 }

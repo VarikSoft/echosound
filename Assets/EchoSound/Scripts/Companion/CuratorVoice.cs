@@ -101,6 +101,30 @@ namespace EchoSound.Companion
         {
             if (transcription != null) StopCoroutine(transcription);
             whisper.Cancel();
+            transcription = null;
+            if (mono == null || mono.Length == 0 || sampleRate < 8000 || sampleRate > 192000)
+            {
+                Failed?.Invoke("Invalid voice recording. Please try again.");
+                return;
+            }
+            double variance = 0, sum = 0;
+            foreach (float sample in mono)
+            {
+                if (float.IsNaN(sample) || float.IsInfinity(sample))
+                {
+                    Failed?.Invoke("Invalid voice recording. Please try again.");
+                    return;
+                }
+                sum += sample;
+                variance += sample * sample;
+            }
+            double mean = sum / mono.Length;
+            // Empty PTT and electrical DC must not become invented speech from the recognizer.
+            if (variance / mono.Length - mean * mean < 1e-8)
+            {
+                StatusChanged?.Invoke("");
+                return;
+            }
             transcription = StartCoroutine(Transcribe(mono, sampleRate));
         }
 

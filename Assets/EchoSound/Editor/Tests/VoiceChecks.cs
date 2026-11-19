@@ -57,6 +57,12 @@ namespace EchoSound.Editor.Tests
         [MenuItem("EchoSound/Checks/Validate voice orders")]
         public static void ValidateOrders()
         {
+            Require(WhisperClient.AudioContext(16000, 16000) == 512, "Short PTT phrases use a bounded padded window.");
+            Require(WhisperClient.AudioContext(20 * 16000, 16000) >= 1100, "Long phrases must keep all audio plus the margin.");
+            Require(WhisperClient.AudioContext(40 * 16000, 16000) == 1500, "Do not exceed the model's context.");
+            float[] padded = WhisperClient.PadForRecognition(new[] { 0.25f, -0.25f });
+            Require(padded.Length == 32002 && padded[16000] == 0.25f && padded[16001] == -0.25f
+                && padded[0] == 0 && padded[32001] == 0, "Padding must preserve the exact original PCM.");
             var level = new float[4800];
             for (int i = 0; i < level.Length; i++) level[i] = 0.5f;
             float[] down = WhisperClient.Resample(level, 48000, 16000);

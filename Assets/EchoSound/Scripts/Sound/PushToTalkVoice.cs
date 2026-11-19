@@ -52,6 +52,11 @@ namespace EchoSound.Sound
                 && Input.GetKey(talkKey) && !Input.GetKey(KeyCode.Escape) && Time.timeScale > 0f;
             if (!held)
             {
+                if (IsRecording && focused && Application.isFocused && Cursor.lockState == CursorLockMode.Locked)
+                {
+                    try { ReadMicrophone(); }
+                    catch (Exception exception) { Fail("Cannot read the end of the phrase. Press V again.", exception); }
+                }
                 if (wasHeld || IsRecording) StopCapture();
                 wasHeld = false;
                 return;

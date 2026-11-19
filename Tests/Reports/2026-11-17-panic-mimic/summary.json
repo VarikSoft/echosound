@@ -1,0 +1,64 @@
+{
+  "cases": 60,
+  "correct": 60,
+  "correct_and_under_one_second": 54,
+  "cold_start_seconds": 2.9496670999999997,
+  "overall": {
+    "count": 60,
+    "median": 0.0001048,
+    "p95": 1.1671057,
+    "maximum": 1.4858582999999999,
+    "within_one_second": 54
+  },
+  "streamed_first_text": {
+    "count": 24,
+    "median": 0.40638779999999997,
+    "p95": 0.6766011,
+    "maximum": 0.6908892,
+    "within_one_second": 24
+  },
+  "groups": {
+    "compound": {
+      "correct": 24,
+      "cases": 24,
+      "latency": {
+        "count": 24,
+        "median": 0.8731118999999999,
+        "p95": 1.4685913,
+        "maximum": 1.4858582999999999,
+        "within_one_second": 18
+      },
+      "streamed_first_text": {
+        "count": 24,
+        "median": 0.40638779999999997,
+        "p95": 0.6766011,
+        "maximum": 0.6908892,
+        "within_one_second": 24
+      }
+    },
+    "name-control": {
+      "correct": 24,
+      "cases": 24,
+      "latency": {
+        "count": 24,
+        "median": 6.9e-05,
+        "p95": 0.00015879999999999998,
+        "maximum": 0.000605,
+        "within_one_second": 24
+      },
+      "streamed_first_text": null
+    },
+    "setup": {
+      "correct": 12,
+      "cases": 12,
+      "latency": {
+        "count": 12,
+        "median": 0.000103,
+        "p95": 0.0006705,
+        "maximum": 0.0006705,
+        "within_one_second": 12
+      },
+      "streamed_first_text": null
+    }
+  }
+}

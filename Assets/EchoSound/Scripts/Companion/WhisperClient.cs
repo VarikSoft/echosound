@@ -56,7 +56,8 @@ namespace EchoSound.Companion
         {
             Cancel();
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            byte[] wav = EncodeWav(Resample(mono, sampleRate, WhisperSampleRate), WhisperSampleRate);
+            float[] samples = PadForRecognition(Resample(mono, sampleRate, WhisperSampleRate));
+            byte[] wav = EncodeWav(samples, WhisperSampleRate);
 
             JObject reply = null;
             string error = null;
@@ -64,7 +65,7 @@ namespace EchoSound.Companion
             Action<string> onProblem = problem => error = problem;
 
             string selected = RecognitionLanguage;
-            yield return Send(wav, selected, onReply, onProblem);
+            yield return Send(wav, selected, AudioContext(samples.Length, WhisperSampleRate), onReply, onProblem);
             LastTranscriptionSeconds = timer.Elapsed.TotalSeconds;
             Debug.Log($"[Voice timing] recognition={LastTranscriptionSeconds:0.000}s audio={(double)mono.Length / sampleRate:0.00}s language={selected} requests=1");
 
@@ -82,7 +83,24 @@ namespace EchoSound.Companion
             else onText(text);
         }
 
-        private IEnumerator Send(byte[] wav, string language, Action<JObject> onReply, Action<string> onError)
+        // Whisper normally encodes a padded 30-second window even for a one-second PTT phrase.
+        // Retain at least ten seconds of context and two seconds of margin for longer phrases.
+        public static int AudioContext(int sampleCount, int sampleRate)
+        {
+            double seconds = (double)sampleCount / sampleRate;
+            return Math.Min(1500, Math.Max(512, (int)Math.Ceiling((seconds + 2) * 50 / 128) * 128));
+        }
+
+        // Supply boundary context without waiting or recording extra time. VAD removes this
+        // padding; it also keeps short first/last words away from the model's window boundary.
+        public static float[] PadForRecognition(float[] mono)
+        {
+            var padded = new float[mono.Length + 2 * WhisperSampleRate];
+            Array.Copy(mono, 0, padded, WhisperSampleRate, mono.Length);
+            return padded;
+        }
+
+        private IEnumerator Send(byte[] wav, string language, int audioContext, Action<JObject> onReply, Action<string> onError)
         {
             var form = new List<IMultipartFormSection>
             {
@@ -94,6 +112,9 @@ namespace EchoSound.Companion
                 new MultipartFormDataSection("beam_size", "1"),
                 new MultipartFormDataSection("no_timestamps", "true"),
                 new MultipartFormDataSection("token_timestamps", "false"),
+                new MultipartFormDataSection("audio_ctx", audioContext.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                // Recognition vocabulary, not an instruction to convert uncertain audio into a command.
+                new MultipartFormDataSection("prompt", LanguageHint(language)),
                 new MultipartFormFileSection("file", wav, "phrase.wav", "audio/wav")
             };
             UnityWebRequest web = UnityWebRequest.Post(url, form);
@@ -127,6 +148,17 @@ namespace EchoSound.Companion
                 yield break;
             }
             onReply(reply);
+        }
+
+        private static string LanguageHint(string language)
+        {
+            switch (language)
+            {
+                case "russian": return "Разговор по-русски. Стой. Ко мне. Иди за мной. Открой дверь. Закрой дверь.";
+                case "english": return "A conversation. Stop. Come here. Follow me. Open the door. Close the door.";
+                case "polish": return "Rozmowa po polsku. Stój. Chodź do mnie. Idź za mną. Otwórz drzwi. Zamknij drzwi.";
+                default: return "";
+            }
         }
 
         public void Cancel()

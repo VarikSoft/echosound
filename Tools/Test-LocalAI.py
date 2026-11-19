@@ -23,12 +23,12 @@ def free_port():
         return sock.getsockname()[1]
 
 @contextlib.contextmanager
-def server(kind, port, key):
+def server(kind, port, key, model=None):
     model_dir = BUNDLE / 'models'
     executable = BUNDLE / 'windows-x64' / kind / (('llama' if kind == 'llama' else 'whisper') + '-server.exe')
     args = [str(executable), '--host', '127.0.0.1', '--port', str(port), '-t', '4']
     if kind == 'llama':
-        args += ['-m', str(model_dir/'Qwen_Qwen3-1.7B-Q4_K_M.gguf'), '-ngl', '0', '-c', '4096', '-np', '1', '-tb', '4', '--jinja', '--reasoning-budget', '0', '--api-key', key]
+        args += ['-m', str(model or model_dir/'Qwen_Qwen3-1.7B-Q4_K_M.gguf'), '-ngl', '0', '-c', '4096', '-np', '1', '-tb', '4', '--jinja', '--reasoning-budget', '0', '--api-key', key]
     else:
         args += ['-m', str(model_dir/'ggml-base-q5_1.bin'), '-ng', '--vad', '-vm', str(model_dir/'ggml-silero-v5.1.2.bin'), '-vp', '300', '-nlp']
     with (ROOT/f'.utmp/{kind}-smoke.log').open('wb') as log:

@@ -10,6 +10,8 @@ namespace EchoSound.Companion
     public sealed class CuratorChat : MonoBehaviour
     {
         private const string InputName = "CuratorInput";
+        private static readonly string[] CompanionModes = { "Quick commands", "Fast LLM", "Free dialogue (slower)" };
+        private static readonly string[] VoiceLanguages = { "Russian", "Polish", "English", "Auto" };
 
         public CompanionBrain companion;
         public CuratorVoice voice;
@@ -20,6 +22,7 @@ namespace EchoSound.Companion
         private readonly List<string> lines = new List<string>();
         private string draft = "";
         private string status = "";
+        private string partialReply = "";
         private bool typing;
         private bool focusInput;
         private GUIStyle lineStyle;
@@ -36,6 +39,7 @@ namespace EchoSound.Companion
             if (companion == null) return;
             companion.OrderReceived += OnOrderReceived;
             companion.Spoke += OnSpoke;
+            companion.ReplyProgress += OnReplyProgress;
             companion.Failed += OnFailed;
             companion.StatusChanged += OnStatusChanged;
         }
@@ -50,12 +54,15 @@ namespace EchoSound.Companion
             if (companion == null) return;
             companion.OrderReceived -= OnOrderReceived;
             companion.Spoke -= OnSpoke;
+            companion.ReplyProgress -= OnReplyProgress;
+            partialReply = "";
             companion.Failed -= OnFailed;
             companion.StatusChanged -= OnStatusChanged;
         }
 
         private void OnOrderReceived(string order) => AddLine("<b>Curator:</b> " + order);
         private void OnSpoke(string text) => AddLine("<b>Companion:</b> " + text);
+        private void OnReplyProgress(string text) => partialReply = text;
         private void OnFailed(string error) => AddLine("<color=#ff8866>" + error + "</color>");
         private void OnStatusChanged(string text) => status = text;
 
@@ -103,19 +110,18 @@ namespace EchoSound.Companion
                 else
                 {
                     int mode = (int)companion.Mode;
-                    int nextMode = GUILayout.Toolbar(mode, new[] { "Команды", "Быстрый LLM", "Диалог (медленнее)" });
+                    int nextMode = GUILayout.Toolbar(mode, CompanionModes);
                     if (nextMode != mode) companion.SetMode((CompanionBrain.CompanionMode)nextMode);
                 }
             }
             if (voice != null)
             {
                 string currentLanguage = voice.whisper.RecognitionLanguage;
-                string label = currentLanguage == "russian" ? "Русский" : currentLanguage == "polish" ? "Polski" : currentLanguage == "english" ? "English" : "Auto";
-                if (Cursor.lockState == CursorLockMode.Locked) GUILayout.Label("Voice: " + label + " · Esc to change");
+                int selected = currentLanguage == "russian" ? 0 : currentLanguage == "polish" ? 1 : currentLanguage == "english" ? 2 : 3;
+                if (Cursor.lockState == CursorLockMode.Locked) GUILayout.Label("Voice: " + VoiceLanguages[selected] + " · Esc to change");
                 else
                 {
-                    int selected = currentLanguage == "russian" ? 0 : currentLanguage == "polish" ? 1 : currentLanguage == "english" ? 2 : 3;
-                    int next = GUILayout.Toolbar(selected, new[] { "Русский", "Polski", "English", "Auto" });
+                    int next = GUILayout.Toolbar(selected, VoiceLanguages);
                     if (next != selected) voice.SetLanguage(next == 0 ? WhisperClient.SpeechLanguage.Russian : next == 1 ? WhisperClient.SpeechLanguage.Polish : next == 2 ? WhisperClient.SpeechLanguage.English : WhisperClient.SpeechLanguage.Auto);
                 }
             }
@@ -123,6 +129,8 @@ namespace EchoSound.Companion
             else if (companion != null && companion.Mode != CompanionBrain.CompanionMode.QuickCommands && !string.IsNullOrEmpty(runtime.ChatError)) GUILayout.Label(runtime.ChatError, lineStyle);
             if (!runtime.SpeechStarting && !runtime.SpeechReady) GUILayout.Label(runtime.SpeechError, lineStyle);
             foreach (string line in lines) GUILayout.Label(line, lineStyle);
+            if (!string.IsNullOrEmpty(partialReply))
+                GUILayout.Label("<b>Companion:</b> " + partialReply.Replace('<', '＜').Replace('>', '＞'), lineStyle);
             if (!string.IsNullOrEmpty(status)) GUILayout.Label("<i>Companion: " + status + "...</i>", lineStyle);
 
             if (typing)

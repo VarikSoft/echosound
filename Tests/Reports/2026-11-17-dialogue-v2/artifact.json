@@ -1,0 +1,16 @@
+{
+  "sha256": "c539f796818b3d8437a664a6d6af22f271b647a62c676b2cb36f8bfbe61d8902",
+  "archive": "Builds/EchoSound-Windows-dialogue-v2.zip",
+  "bytes": 1486976566,
+  "verifiedAssemblies": [
+    {
+      "sha256": "0BC8C3477633FF0D440C3F7745A2B67EED52693329122294D0FE32C41D5B30AF",
+      "path": "EchoSound_Data/Managed/EchoSound.Companion.dll"
+    },
+    {
+      "sha256": "3DAB5A749C4575F342221EE024A5B5288FBF191C751794B80BEB278BF0409E42",
+      "path": "EchoSound_Data/Managed/EchoSound.Testing.dll"
+    }
+  ],
+  "entries": 224
+}

@@ -3,6 +3,7 @@ import argparse
 import importlib.util
 import json
 import pathlib
+import re
 import time
 import urllib.request
 import uuid
@@ -15,14 +16,16 @@ spec.loader.exec_module(runtime)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--fixtures', type=pathlib.Path, default=ROOT/'.utmp/fast-llm-fixtures.json')
+    parser.add_argument('--model', type=pathlib.Path, help='Optional candidate GGUF; leaves the game bundle unchanged')
     args = parser.parse_args()
     cases = json.loads(args.fixtures.read_text(encoding='utf-8-sig'))
     results = []
     key = uuid.uuid4().hex
-    with runtime.server('llama', runtime.free_port(), key) as url:
+    with runtime.server('llama', runtime.free_port(), key, args.model.resolve() if args.model else None) as url:
         for case in [dict(cases[0], text='Warm up', expected=None)] + cases:
             start = time.monotonic()
             data = {}
+            finish_reason = 'stop'
             if case['guarded']:
                 actual = ['clarify']
             else:
@@ -31,13 +34,39 @@ def main():
                     request['messages'] = [request['messages'][0], {'role':'user','content':'Warm up'}]
                 req = urllib.request.Request(url+'/v1/chat/completions', data=json.dumps(request).encode(),
                     headers={'Content-Type':'application/json','Authorization':'Bearer '+key})
-                with urllib.request.urlopen(req, timeout=40) as response: data = json.load(response)
-                choice = data['choices'][0]
-                if choice['finish_reason'] != 'stop': raise RuntimeError('Incomplete plan: '+case['text'])
-                raw = json.loads(choice['message']['content'])
-                actual = [case['resolved'][code] for code in raw]
-                if 'clarify' in actual: actual = ['clarify']
-            row = {'text':case['text'], 'expected':case['expected'], 'actual':actual, 'ok':case['expected'] is None or actual==case['expected'],
+                with urllib.request.urlopen(req, timeout=40) as response:
+                    if request.get('stream'):
+                        reply=''
+                        finish_reason='length'
+                        for line in response:
+                            if not line.startswith(b'data:'): continue
+                            payload=line[5:].strip()
+                            if payload==b'[DONE]': break
+                            chunk=json.loads(payload)
+                            if not chunk.get('choices'): continue
+                            choice=chunk['choices'][0]
+                            reply += choice.get('delta',{}).get('content') or ''
+                            sentence=re.search(r'[.!?]',reply)
+                            if sentence:
+                                reply=reply[:sentence.end()]
+                                finish_reason='stop'
+                                break
+                            if choice.get('finish_reason'): finish_reason=choice['finish_reason']
+                        actual={'reply':reply} if finish_reason=='stop' else []
+                    else:
+                        data=json.load(response)
+                        choice=data['choices'][0]
+                        finish_reason=choice['finish_reason']
+                        actual=json.loads(choice['message']['content']) if finish_reason=='stop' else []
+            if isinstance(actual, dict):
+                reply = actual.get('reply')
+                ok = case['expected'] == ['reply'] and isinstance(reply, str) and 0 < len(reply.strip()) <= 180
+                if ok:
+                    ok = bool(re.search(r'[\u0400-\u04ff]', reply)) == bool(re.search(r'[\u0400-\u04ff]', case['text']))
+            else:
+                ok = actual == case['expected'] if case['guarded'] else ','.join(actual) in case['accepted']
+            row = {'text':case['text'], 'expected':case['expected'], 'actual':actual, 'ok':case['expected'] is None or ok,
+                   'finish_reason':finish_reason,
                    'seconds':round(time.monotonic()-start,3),'route':'guard' if case['guarded'] else 'llm','usage':data.get('usage')}
             results.append(row)
             print(json.dumps(row,ensure_ascii=True),flush=True)

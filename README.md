@@ -281,33 +281,51 @@ checkout or CI machine. To check a prepared bundle without network access:
    Missing/corrupt bundles fail the build instead of creating an unusable release.
 
 The baseline uses CPU inference with at most four threads per engine and a 4096-token
-LLM context. Fast LLM has a 24-token output cap; Free dialogue allows 192 tokens.
+context. The command interpreter allows 12 output tokens. Conversation uses a
+separate compact prompt and streams plain text: Fast LLM allows 48 output tokens
+and one sentence; Free dialogue allows 80 tokens and two sentences. Complete
+sentences are retained when a reply reaches its deadline; unfinished fragments
+are not presented as complete replies.
 It does not reserve dedicated VRAM for AI.
 RAM use, response latency and gameplay FPS still depend on hardware; minimum
 requirements have not been established by testing low-end computers. Windows x64
 is the currently packaged platform; other platforms require their own native bundles.
 
-The default **Fast LLM** mode interprets paraphrased movement and door commands using
-the same bundled Qwen3 1.7B. It warms a fixed prompt at startup, reuses its cached prefix,
-and emits at most two intent codes instead of a long tool plan. Game code resolves
-targets from current perception and validates interaction rules. It sends no conversation
-history or changing world description through this interpreter. A request has a 1.5-second
-inference deadline; timeout, invalid output and uncertainty request clarification without
-executing a partial plan. This is not a guarantee of total microphone-to-action latency:
-speech recognition, startup, walking and door animation take additional time.
+Game code checks for an explicit order before it sends anything to the gameplay planner.
+The bundled Qwen3 1.7B can propose up to two actions, and each one must match its clause.
+Conversation goes through a reply-only request in both LLM modes. It preserves ongoing
+actions, retains up to four recent exchanges within a bounded window and tracks explicit player
+names and cat names separately from generated text. Game code resolves
+each door's direction from its own clause and uses current perception to select a target.
+Explicit sequences such as “open the door on the left, then close the door on the right”
+must have a valid action for each step before any action starts. The planner has a
+1.5-second inference deadline; fast chat has a 1.9-second deadline and Free dialogue
+has a 3.5-second deadline. Speech recognition,
+startup, walking and door animation take additional time.
 
 Press **Esc** to choose **Quick commands**, **Fast LLM**, or **Free dialogue (slower)**.
 Quick commands uses only exact shortcuts and does not load the language model.
-Fast LLM accepts non-exact game orders, but conservatively rejects negation, conditions,
-quoted instructions, requests concerning all doors, and unsupported continuous door-holding.
-It may ask to rephrase valid but ambiguous wording. Free dialogue retains the richer,
-slower interpreter and open-ended conversation. Switching to Quick commands cancels
+Fast LLM accepts paraphrased commands with explicit action words. Quoted or reported
+orders never reach the planner. Unsupported or ambiguous orders may require rephrasing.
+Free dialogue uses the same command rules and allows two short sentences. Questions
+about nearby objects receive a compact sample of current observations. Switching to Quick commands cancels
 inference and unloads the language model. Speech recognition stays available in all modes.
 Direct shortcuts remain available while Fast LLM is preparing.
+Common teammate conversation (mood, reassurance, jokes and their explanations) uses
+authored replies in all modes. Follow-up reasons track the last topic or command;
+asking for another joke selects a different line. This is distinct from model-generated
+conversation, which remains less reliable on unfamiliar topics. Actual generated text
+appears progressively in the chat; a new input clears the previous unfinished reply.
+Player and cat names can be introduced together and corrected independently.
+Door status questions such as “Is the door on my left open?” read the current door state
+and reply without interrupting an ongoing action. They are available in all modes.
+“Follow me and open all the doors” starts escort. The companion opens closed doors
+between it and the player or directly in front of the nearby player, then resumes
+following. “Stop” cancels escort. “Open all the doors” opens reachable doors within
+the companion's initial perception and reports if some were out of reach. Both
+commands use the same door interactions as the player and work in all modes.
 
-In Free dialogue, the companion interprets free-form orders as constrained JSON plans, validates
-function names and object ids, then executes them through NavMesh and the shared
-interaction code. Exact standalone follow / stop / come-here phrases in English,
+Exact standalone follow / stop / come-here phrases in English,
 Polish and Russian bypass generation. A recognised movement suffix after an explicit
 door order (such as "open the door and then follow me") is executed separately.
 Simple open/close door commands also bypass generation, including front/behind/left/right
@@ -317,23 +335,59 @@ Similarly close candidates trigger a clarification. An explicitly aimed door tha
 already open/closed is acknowledged without choosing another target. Door actions still
 use the shared navigation and interaction rules. Timing to begin an action excludes the
 time needed to walk to the door and animate its panel.
+An explicit Russian request to wait here while the player looks around also bypasses
+generation; an explanation containing a second order is not accepted by this shortcut.
 Questions, conditions and unrecognised suffixes are left intact for interpretation.
 Each model request produces one bounded plan; execution results cannot start another
 model-driven action loop. This is a small model: unfamiliar wording can still
 produce the wrong intent. No fine-tuning has been performed.
 
 Speech defaults to the system language (Russian/Polish/English). Press **Esc** and
-choose **Русский / Polski / English / Auto** in the chat to change it; the choice
+choose **Russian / Polish / English / Auto** in the chat to change it; the choice
 is saved. A fixed language avoids re-detecting the language of each short command.
 Recognition uses one greedy pass without temperature retries or word timestamps.
 Auto remains available for mixed-language speech, without a second recognition
 pass. Existing single-language inspector settings are preserved. Replies currently
 appear as text; TTS remains planned.
+PTT phrases use a duration-bounded Whisper audio context with at least ten seconds
+of encoder context, a small vocabulary hint and synthetic boundary padding.
+Padding adds samples without waiting for extra recording time. Silence and DC recordings are
+discarded before recognition. Microphone capture drains complete remaining frames
+on a normal PTT release. Uncertain transcripts can still need correction, especially names.
 If speech recognition fails, text input remains available. If inference fails,
 the basic movement shortcuts remain available. Engine errors are recorded in the
 Unity/player log; the chat does not ask players to install developer tools.
 
 ### Offline AI checks
+
+The [dialogue update report](Tests/Reports/2026-11-17-dialogue-v2/README.md) separates
+authored conversation, generated answers, actual streamed first text and complete replies.
+
+The [2026-11-17 acceptance report](Tests/Reports/2026-11-17/README.md) includes raw
+results, latency misses and dialogue quality findings. The one-second target is
+not yet met for every input.
+
+The built-player acceptance suite measures time from submitting a complete PCM buffer
+or typed order to the first complete reply or the start of an action. Navigation and
+door animation completion are checked separately. It records every one-second miss.
+
+```powershell
+./Tools/Prepare-CompanionTests.ps1
+python Tools/Test-Companion.py --prepare
+python Tools/Test-Companion.py --build Builds/Windows
+python Tools/Test-Companion.py --folder .utmp/companion-render-tests --prepare-render-from .utmp/companion-tests
+python Tools/Test-Companion.py --folder .utmp/companion-render-tests --build Builds/Windows --render
+```
+
+Synthetic voices use installed Windows voices. Missing languages are listed in
+`.utmp/companion-tests/coverage.json`. The suite covers clean, quieter, noisy and padded
+recordings, two Russian voices when available, English speech, text in three languages,
+door sequences, escort, memory corrections, negation, quoted speech, silence, tones,
+cancellation and disabling voice input. Results and all failures are retained in JSON
+and Markdown beside the fixtures. Exit code 1 means functional failures and 2 means
+the one-second target was missed. Use `--render` to retain the graphics device.
+The suite confirms state assertions and a reply, with generated dialogue retained for
+manual quality review. It does not establish real-microphone accuracy or low-end requirements.
 
 - **EchoSound → Checks → Validate local AI commands** checks shortcut boundaries,
   rejected/unknown targets, structured output, voice encoding and bundle integrity.
@@ -343,7 +397,7 @@ Unity/player log; the chat does not ask players to install developer tools.
   Optional `--audio path/to/jfk.wav` checks the public whisper.cpp JFK speech sample.
   Reports/logs go to `.utmp`; this is a developer test, not a player prerequisite.
 - `python Tools/Test-FastLLM.py` checks the actual exported Fast LLM requests, conservative
-  guards and target-direction resolution on 41 Russian/English/Polish cases, including
+  guards and target-direction resolution on Russian/English/Polish cases, including
   held-out paraphrases. It reports warm inference latency separately from the cold prompt.
   LocalAiChecks exports `.utmp/fast-llm-fixtures.json`; pass `--fixtures` to use another path.
 - `./Tools/Test-OfflineBuild.ps1` launches the built game headlessly, checks actual

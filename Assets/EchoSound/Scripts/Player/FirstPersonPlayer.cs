@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using EchoSound.Sound;
 using EchoSound.VFX;
+using EchoSound.Combat;
 
 namespace EchoSound
 {
@@ -31,13 +32,20 @@ namespace EchoSound
 
         private CharacterController controller;
         private PlayerSoundEmitter soundEmitter;
+        private StaminaComponent stamina;
+        private HealthComponent health;
         private float cameraPitch;
         private float verticalSpeed;
+
+        public StaminaComponent Stamina => stamina != null ? stamina : (stamina = GetComponent<StaminaComponent>());
+        public HealthComponent Health => health != null ? health : (health = GetComponent<HealthComponent>());
 
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
             soundEmitter = GetComponent<PlayerSoundEmitter>();
+            stamina = GetComponent<StaminaComponent>();
+            health = GetComponent<HealthComponent>();
 
             if (view == null)
             {
@@ -110,12 +118,28 @@ namespace EchoSound
         private void UpdateMovement()
         {
             Vector2 input = GetMovementInput();
-            float speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+            bool wantsToRun = Input.GetKey(KeyCode.LeftShift);
+            bool isMoving = input.sqrMagnitude > 0.01f;
+
+            bool isRunning = wantsToRun && isMoving && (stamina == null || stamina.CanSprint);
+            float speed = isRunning ? runSpeed : walkSpeed;
+
+            if (isRunning && stamina != null)
+            {
+                stamina.ConsumeSprint(Time.deltaTime);
+            }
+
             Vector3 velocity = (transform.right * input.x + transform.forward * input.y) * speed;
 
             // A small downward velocity keeps the CharacterController grounded.
             if (controller.isGrounded && verticalSpeed < 0) verticalSpeed = -2;
-            if (controller.isGrounded && Input.GetKeyDown(KeyCode.Space)) verticalSpeed = jumpSpeed;
+            if (controller.isGrounded && Input.GetKeyDown(KeyCode.Space))
+            {
+                if (stamina == null || stamina.TryConsumeJump())
+                {
+                    verticalSpeed = jumpSpeed;
+                }
+            }
             verticalSpeed += Physics.gravity.y * Time.deltaTime;
             velocity.y = verticalSpeed;
             controller.Move(velocity * Time.deltaTime);

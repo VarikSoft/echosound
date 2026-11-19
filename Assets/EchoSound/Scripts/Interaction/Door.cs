@@ -39,6 +39,10 @@ namespace EchoSound.Interaction
         // 0 means closed, 1 means fully open.
         private float openAmount;
 
+        private static SoundCue defaultOpenCue;
+        private static SoundCue defaultCloseCue;
+        private static SoundCue defaultBlockedCue;
+
         public bool IsOpen { get; private set; }
         public override string Kind => "door";
         public override string State => IsBusy ? (IsOpen ? "opening" : "closing") : (IsOpen ? "open" : "closed");
@@ -61,6 +65,29 @@ namespace EchoSound.Interaction
             IsOpen = startOpen;
             openAmount = startOpen ? 1 : 0;
             ApplyOpenAmount();
+            EnsureDefaultCues();
+        }
+
+        /// <summary>
+        /// Ensures default door audio cues from Resources if not explicitly assigned in the Inspector.
+        /// </summary>
+        public void EnsureDefaultCues()
+        {
+            if (openCue == null)
+            {
+                if (defaultOpenCue == null) defaultOpenCue = Resources.Load<SoundCue>("Audio/Doors/Door_Open_Default");
+                openCue = defaultOpenCue;
+            }
+            if (closeCue == null)
+            {
+                if (defaultCloseCue == null) defaultCloseCue = Resources.Load<SoundCue>("Audio/Doors/Door_Close_Default");
+                closeCue = defaultCloseCue;
+            }
+            if (blockedCue == null)
+            {
+                if (defaultBlockedCue == null) defaultBlockedCue = Resources.Load<SoundCue>("Audio/Doors/Door_Blocked_Default");
+                blockedCue = defaultBlockedCue;
+            }
         }
 
         protected override bool CanPerform(InteractionAction action, out string problem)
@@ -74,6 +101,7 @@ namespace EchoSound.Interaction
             else if (!open && IsDoorwayBlocked())
             {
                 problem = "something is standing in the doorway";
+                EnsureDefaultCues();
                 if (blockedCue != null)
                 {
                     AudioManager.Instance.Play(blockedCue, transform.position);
@@ -86,6 +114,7 @@ namespace EchoSound.Interaction
         protected override void Perform(Interactor user, InteractionAction action)
         {
             IsOpen = action == InteractionAction.Open;
+            EnsureDefaultCues();
             SoundCue cue = IsOpen ? openCue : closeCue;
             if (cue != null)
             {
@@ -151,6 +180,7 @@ namespace EchoSound.Interaction
             // Usable from anywhere in front of the opening, including its edges.
             door.useDistance = width * 0.5f + 1;
             door.startOpen = open;
+            door.EnsureDefaultCues();
             root.SetActive(true);
             return door;
         }

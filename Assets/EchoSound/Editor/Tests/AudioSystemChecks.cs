@@ -21,6 +21,7 @@ namespace EchoSound.Editor.Tests
             TestSurfaceAudioProfileMapping();
             TestVolumeAndDecibelConversions();
             TestConfiguredFootstepAssets();
+            TestConfiguredDoorAssets();
             Debug.Log("AudioSystem checks: all tests passed successfully.");
         }
 
@@ -186,6 +187,32 @@ namespace EchoSound.Editor.Tests
                 Require(emitter != null, "PlayerSoundEmitter component must be present on FirstPersonPlayer prefab.");
                 Require(emitter.surfaceAudio != null, "PlayerSoundEmitter.surfaceAudio must be wired on FirstPersonPlayer prefab.");
             }
+        }
+
+        private static void TestConfiguredDoorAssets()
+        {
+            var openCue = Resources.Load<SoundCue>("Audio/Doors/Door_Open_Default");
+            Require(openCue != null, "Resources must contain Audio/Doors/Door_Open_Default.");
+            Require(openCue.clips != null && openCue.clips.Length > 0, "Door_Open_Default must contain audio clips.");
+
+            var closeCue = Resources.Load<SoundCue>("Audio/Doors/Door_Close_Default");
+            Require(closeCue != null, "Resources must contain Audio/Doors/Door_Close_Default.");
+            Require(closeCue.clips != null && closeCue.clips.Length > 0, "Door_Close_Default must contain audio clips.");
+
+            var blockedCue = Resources.Load<SoundCue>("Audio/Doors/Door_Blocked_Default");
+            Require(blockedCue != null, "Resources must contain Audio/Doors/Door_Blocked_Default.");
+            Require(blockedCue.clips != null && blockedCue.clips.Length > 0, "Door_Blocked_Default must contain audio clips.");
+
+            // Verify Door component auto-wiring
+            var doorObj = new GameObject("TestDoor");
+            var door = doorObj.AddComponent<EchoSound.Interaction.Door>();
+            door.EnsureDefaultCues();
+
+            Require(door.openCue != null, "Door.openCue must auto-populate default cue.");
+            Require(door.closeCue != null, "Door.closeCue must auto-populate default cue.");
+            Require(door.blockedCue != null, "Door.blockedCue must auto-populate default cue.");
+
+            UnityEngine.Object.DestroyImmediate(doorObj);
         }
 
         private static void Require(bool condition, string message)

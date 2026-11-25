@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f88e4cccc0114b90b23295e698b425f6, type: 3}
+  m_Name: FootstepBank_Default
+  m_EditorClassIdentifier: EchoSound.Characters::EchoSound.Characters.FootstepSoundBank
+  fallback: {fileID: 11400000, guid: 440f9854c62e4ca58db061a7275e8da1, type: 2}
+  surfaces:
+  - surface: {fileID: 11400000, guid: 3da7d6ae4d00eb8449a563951e568f8e, type: 2}
+    sounds: {fileID: 11400000, guid: 8ef535ccec544d68b8da23b3ddd1cacb, type: 2}
+  - surface: {fileID: 11400000, guid: 997433ccb91b273498577d959acc2ee3, type: 2}
+    sounds: {fileID: 11400000, guid: f8fcbd4d34b1451dabbf09d93d8c756f, type: 2}
+  - surface: {fileID: 11400000, guid: ba2dd33a34bdd4e46b5339bf81a316be, type: 2}
+    sounds: {fileID: 11400000, guid: e1401ba631674d3aa575a5ed743425e3, type: 2}
+  - surface: {fileID: 11400000, guid: 958907e116a8bea40be52299a94ce2bf, type: 2}
+    sounds: {fileID: 11400000, guid: 078ba72c55944c0ab488b9f4ff91536b, type: 2}

@@ -50,10 +50,36 @@ namespace EchoSound.Sound
             return surface != null && surface.isActiveAndEnabled && surface.profile != null ? surface : null;
         }
 
-        public static float ContactGain(Collider collider)
+        public static float ContactGain(Collider collider) => ContactGain(Find(collider));
+
+        public static float ContactGain(AcousticSurface surface) =>
+            surface != null ? Mathf.Clamp(surface.profile.contactLoudness, 0, 2) : 1;
+
+        private static readonly RaycastHit[] groundHits = new RaycastHit[16];
+
+        /// <summary>
+        /// Surface under a contact point (feet), ignoring the character's own colliders.
+        /// Null means unmarked ground or nothing below.
+        /// </summary>
+        public static AcousticSurface FindGround(Vector3 feet, Transform ignore, float probeDistance = 0.8f)
         {
-            AcousticSurface surface = Find(collider);
-            return surface != null ? Mathf.Clamp(surface.profile.contactLoudness, 0, 2) : 1;
+            const float lift = 0.25f;
+            int count = Physics.RaycastNonAlloc(feet + Vector3.up * lift, Vector3.down, groundHits,
+                probeDistance, SoundBus.ObstacleMask, QueryTriggerInteraction.Ignore);
+            // A full buffer may have dropped the nearest hit; treat the ground as unmarked.
+            if (count >= groundHits.Length) return null;
+
+            Collider nearest = null;
+            float nearestDistance = float.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = groundHits[i];
+                if (ignore != null && hit.collider.transform.IsChildOf(ignore)) continue;
+                if (hit.distance >= nearestDistance) continue;
+                nearestDistance = hit.distance;
+                nearest = hit.collider;
+            }
+            return Find(nearest);
         }
     }
 }

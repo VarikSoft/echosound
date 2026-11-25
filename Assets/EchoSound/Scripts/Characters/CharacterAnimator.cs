@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -7,8 +8,9 @@ namespace EchoSound.Characters
     /// <summary>
     /// Plays idle / walk / run / jump / fall / land from any <see cref="ILocomotionSource"/>.
     /// Clips come from the shared set; any filled override slot replaces just that clip.
+    /// Also reports foot contacts in sync with the animation.
     /// </summary>
-    public sealed class CharacterAnimator : MonoBehaviour
+    public sealed class CharacterAnimator : MonoBehaviour, IFootstepSource
     {
         [SerializeField] private Animator animator;
 
@@ -29,6 +31,14 @@ namespace EchoSound.Characters
         [Range(0, 90)] public float maxLegYaw = 70f;
         [Min(0.01f)] public float legTurnTime = 0.1f;
 
+        [Header("Footsteps")]
+        [Tooltip("Normalised walk/run cycle times where the left (x) and right (y) foot land. Adjust for custom clips.")]
+        [SerializeField] private Vector2 footContacts = new Vector2(0.25f, 0.75f);
+        [Tooltip("Fall speed (m/s) that gives a full-strength landing.")]
+        [SerializeField, Min(0.1f)] private float hardLandingSpeed = 10f;
+
+        public event Action<FootstepEvent> Footstep;
+
         private const float AirDelay = 0.1f;
         private const float LandAfterAirTime = 0.25f;
         private const int Count = CharacterAnimationClips.SlotCount;
@@ -46,7 +56,9 @@ namespace EchoSound.Characters
         private float stridePhase;
         private float legYaw;
         private bool movingBackward;
-        private Transform hips, spine, chest;
+        private Transform hips, spine, chest, leftFoot, rightFoot;
+        private float fallSpeed;
+        private bool wasStriding;
 
         public AnimationClip GetClip(CharacterAnimationSlot slot) => clips[(int)slot];
 
@@ -65,6 +77,8 @@ namespace EchoSound.Characters
             stridePhase = 0;
             legYaw = 0;
             movingBackward = false;
+            wasStriding = false;
+            fallSpeed = 0;
             for (int i = 0; i < Count; i++) weights[i] = i == (int)CharacterAnimationSlot.Idle ? 1 : 0;
         }
 
@@ -83,6 +97,8 @@ namespace EchoSound.Characters
                 hips = animator.GetBoneTransform(HumanBodyBones.Hips);
                 spine = animator.GetBoneTransform(HumanBodyBones.Spine);
                 chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+                leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
             }
             Rebuild();
             ResetMotion();
@@ -134,22 +150,34 @@ namespace EchoSound.Characters
 
             if (grounded)
             {
-                if (!wasGrounded && airTime > LandAfterAirTime && Has(CharacterAnimationSlot.Land))
+                if (!wasGrounded && airTime > LandAfterAirTime)
                 {
-                    landTimer = clips[(int)CharacterAnimationSlot.Land].length;
-                    Restart(CharacterAnimationSlot.Land);
+                    RaiseFootstep(FootstepKind.Land, transform.position,
+                        Mathf.Clamp(fallSpeed / hardLandingSpeed, 0.3f, 1), fallSpeed);
+                    if (Has(CharacterAnimationSlot.Land))
+                    {
+                        landTimer = clips[(int)CharacterAnimationSlot.Land].length;
+                        Restart(CharacterAnimationSlot.Land);
+                    }
                 }
                 airTime = 0;
+                fallSpeed = 0;
             }
             else
             {
-                if (wasGrounded) Restart(CharacterAnimationSlot.Jump);
+                if (wasGrounded)
+                {
+                    Restart(CharacterAnimationSlot.Jump);
+                    // Walking off a ledge is not a jump.
+                    if (velocity.y > 1) RaiseFootstep(FootstepKind.Jump, transform.position, 1);
+                }
                 airTime += dt;
+                fallSpeed = Mathf.Max(fallSpeed, -velocity.y);
             }
             wasGrounded = grounded;
             landTimer -= dt;
 
-            System.Array.Clear(targets, 0, Count);
+            Array.Clear(targets, 0, Count);
             if (airTime > AirDelay)
                 Target(velocity.y > 0.1f ? CharacterAnimationSlot.Jump : CharacterAnimationSlot.Fall, 1);
             else if (landTimer > 0)
@@ -162,7 +190,8 @@ namespace EchoSound.Characters
             for (int i = 0; i < Count; i++) mixer.SetInputWeight(i, sum > 0 ? weights[i] / sum : 0);
 
             float direction = UpdateLegYaw(velocity, speed, dt);
-            UpdateStride(speed, direction, dt);
+            bool striding = grounded && airTime <= 0 && landTimer <= 0 && speed > 0.3f;
+            UpdateStride(speed, direction, dt, striding);
         }
 
         // Turns the legs towards the move direction; backwards moves keep the legs forward and play the stride in reverse.
@@ -183,16 +212,40 @@ namespace EchoSound.Characters
         }
 
         // Walk and run share one normalised phase, so blending between them never breaks the step.
-        private void UpdateStride(float speed, float direction, float dt)
+        private void UpdateStride(float speed, float direction, float dt, bool striding)
         {
             float walkLength = Length(CharacterAnimationSlot.Walk), runLength = Length(CharacterAnimationSlot.Run);
             float run = Mathf.Clamp01((speed - walkSpeed) / Mathf.Max(0.01f, runSpeed - walkSpeed));
             float walkRate = Mathf.Clamp(speed / walkSpeed, 0.5f, 2f) / walkLength;
             float runRate = Mathf.Clamp(speed / runSpeed, 0.5f, 2f) / runLength;
-            stridePhase = Mathf.Repeat(stridePhase + direction * Mathf.Lerp(walkRate, runRate, run) * dt, 1);
+            float delta = direction * Mathf.Lerp(walkRate, runRate, run) * dt;
+            // Starting to move: put the left foot right at its contact so the first step sounds at once.
+            if (striding && !wasStriding) stridePhase = Mathf.Repeat(footContacts.x - delta * 0.5f, 1);
+            wasStriding = striding;
+            float previous = stridePhase;
+            stridePhase = Mathf.Repeat(stridePhase + delta, 1);
             SetPhase(CharacterAnimationSlot.Walk, walkLength);
             SetPhase(CharacterAnimationSlot.Run, runLength);
+
+            if (!striding) return;
+            FootstepKind kind = run > 0.5f ? FootstepKind.Run : FootstepKind.Walk;
+            float intensity = run > 0.5f ? 1 : 0.6f;
+            if (Crossed(previous, delta, footContacts.x)) RaiseFootstep(kind, FootPosition(leftFoot), intensity);
+            if (Crossed(previous, delta, footContacts.y)) RaiseFootstep(kind, FootPosition(rightFoot), intensity);
         }
+
+        /// <summary>True when moving the phase by delta (either direction, wrapping) passes the point.</summary>
+        private static bool Crossed(float from, float delta, float point)
+        {
+            if (delta > 0) { float d = Mathf.Repeat(point - from, 1); return d > 0 && d <= delta; }
+            if (delta < 0) { float d = Mathf.Repeat(from - point, 1); return d < -delta; }
+            return false;
+        }
+
+        private Vector3 FootPosition(Transform foot) => foot != null ? foot.position : transform.position;
+
+        private void RaiseFootstep(FootstepKind kind, Vector3 position, float intensity, float impactSpeed = 0) =>
+            Footstep?.Invoke(new FootstepEvent(kind, position, intensity, impactSpeed));
 
         private void LateUpdate()
         {

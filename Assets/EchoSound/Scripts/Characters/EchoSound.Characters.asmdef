@@ -1,4 +1,5 @@
 {
   "name": "EchoSound.Characters",
-  "rootNamespace": "EchoSound.Characters"
+  "rootNamespace": "EchoSound.Characters",
+  "references": ["EchoSound.Sound"]
 }

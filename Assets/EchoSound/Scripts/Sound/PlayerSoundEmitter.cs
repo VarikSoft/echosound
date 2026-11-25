@@ -41,6 +41,12 @@ namespace EchoSound.Sound
         private bool wasMoving;
         private float nextFootstepTime;
 
+        /// <summary>
+        /// When true, another component decides when contacts happen (e.g. animation-synced footsteps)
+        /// and calls EmitFootstep / EmitJump / EmitLanding; built-in distance timing is skipped.
+        /// </summary>
+        public bool ExternalTiming { get; set; }
+
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
@@ -65,6 +71,12 @@ namespace EchoSound.Sound
         private void Update()
         {
             if (controller == null) return;
+            if (ExternalTiming)
+            {
+                // Keep tracking fresh so switching back does not emit a phantom contact.
+                ResetTracking();
+                return;
+            }
 
             bool isGrounded = controller.isGrounded;
             bool movedThisFrame = false;
@@ -72,17 +84,13 @@ namespace EchoSound.Sound
             // Detect Jump Takeoff (space pressed while on ground)
             if (isGrounded && Input.GetKeyDown(KeyCode.Space))
             {
-                EmitContact(jumpRadius, 1f, SoundType.Jump);
+                EmitJump();
             }
 
             // Detect Landing
             if (!wasGrounded && isGrounded)
             {
-                if (Mathf.Abs(peakVerticalVelocity) >= minimumLandVelocity)
-                {
-                    float intensity = Mathf.Clamp01(Mathf.Abs(peakVerticalVelocity) / 10f);
-                    EmitContact(landRadius * Mathf.Max(0.5f, intensity), intensity, SoundType.Land);
-                }
+                EmitLanding(Mathf.Abs(peakVerticalVelocity));
                 peakVerticalVelocity = 0f;
             }
 
@@ -115,11 +123,7 @@ namespace EchoSound.Sound
                     {
                         distanceTravelled -= targetStepDistance;
                         nextFootstepTime = Time.time + 0.18f;
-                        float radius = isRunning ? runRadius : walkRadius;
-                        SoundType type = isRunning ? SoundType.FootstepRun : SoundType.FootstepWalk;
-                        float intensity = isRunning ? 1.0f : 0.6f;
-
-                        EmitContact(radius, intensity, type);
+                        EmitFootstep(isRunning);
                     }
                 }
             }
@@ -129,25 +133,26 @@ namespace EchoSound.Sound
             wasMoving = movedThisFrame;
         }
 
-        private readonly RaycastHit[] groundHits = new RaycastHit[16];
+        public void EmitFootstep(bool running)
+        {
+            if (running) EmitContact(runRadius, 1.0f, SoundType.FootstepRun);
+            else EmitContact(walkRadius, 0.6f, SoundType.FootstepWalk);
+        }
+
+        public void EmitJump() => EmitContact(jumpRadius, 1f, SoundType.Jump);
+
+        /// <param name="fallSpeed">Downward speed at touchdown, m/s. Soft landings stay silent.</param>
+        public void EmitLanding(float fallSpeed)
+        {
+            if (fallSpeed < minimumLandVelocity) return;
+            float intensity = Mathf.Clamp01(fallSpeed / 10f);
+            EmitContact(landRadius * Mathf.Max(0.5f, intensity), intensity, SoundType.Land);
+        }
 
         private void EmitContact(float radius, float intensity, SoundType type)
         {
-            float gain = 1;
-            float nearest = float.MaxValue;
             Vector3 feet = controller.bounds.center - Vector3.up * controller.bounds.extents.y;
-            int count = Physics.RaycastNonAlloc(feet + Vector3.up * 0.25f, Vector3.down, groundHits,
-                0.8f, SoundBus.ObstacleMask, QueryTriggerInteraction.Ignore);
-            if (count < groundHits.Length)
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    var hit = groundHits[i];
-                    if (hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
-                    nearest = hit.distance;
-                    gain = AcousticSurface.ContactGain(hit.collider);
-                }
-            }
+            float gain = AcousticSurface.ContactGain(AcousticSurface.FindGround(feet, transform));
             SoundBus.Emit(transform.position, radius, intensity * gain, type, gameObject);
         }
     }

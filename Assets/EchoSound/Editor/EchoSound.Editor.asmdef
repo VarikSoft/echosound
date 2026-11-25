@@ -10,7 +10,8 @@
     "EchoSound.Companion",
     "EchoSound.Sound",
     "EchoSound.VFX",
-    "EchoSound.UI"
+    "EchoSound.UI",
+    "EchoSound.Characters"
   ],
   "includePlatforms": [
     "Editor"

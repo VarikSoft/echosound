@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c312e8ea4b2411e95a1d72f4f2b0526, type: 3}
+  m_Name: DefaultCharacterAnimations
+  m_EditorClassIdentifier: EchoSound.Characters::EchoSound.Characters.CharacterAnimationSet
+  clips:
+    idle: {fileID: 7400000, guid: 7e5dcaea3218aab4bb0ba233f5f9245b, type: 2}
+    walk: {fileID: 7400000, guid: 481e6eea661f59f47a269a3ed163eada, type: 2}
+    run: {fileID: 7400000, guid: e8708e6fcac8c2f489955faf43f8a34c, type: 2}
+    jump: {fileID: 7400000, guid: cdd9db32a4542c44c926e67689ef5dc7, type: 2}
+    fall: {fileID: 7400000, guid: fc666280fe842fc47bb7be6a3e22e62d, type: 2}
+    land: {fileID: 7400000, guid: 5807f443a3b66224cbc4ce69b75fe17a, type: 2}

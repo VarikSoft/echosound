@@ -28,6 +28,13 @@ namespace EchoSound.Generation
         [Tooltip("Probability of adding an extra connection between neighbouring rooms.")]
         [Range(0, 1)] public float loopChance = 0.2f;
 
+        [Header("Monster Spawning")]
+        [Tooltip("Monster prefab to spawn in rooms away from the player spawn (e.g. StalkerMonster).")]
+        public GameObject monsterPrefab;
+        [Range(0, 10)] public int monsterCount = 2;
+        [Tooltip("Minimum room index away from Spawn (Rooms[0]) where monsters can spawn.")]
+        [Min(1)] public int minMonsterRoomIndex = 2;
+
         [SerializeField, HideInInspector] private Transform generatedRoot;
         public GeneratedLevel Current { get; private set; }
         public event Action<GeneratedLevel> Generated;
@@ -71,9 +78,61 @@ namespace EchoSound.Generation
             }
 
             List<RoomTemplate> corridors = PlaceCorridors(graph);
+            SpawnMonsters(placedRooms, newSeed);
             Current = new GeneratedLevel(graph, placedRooms, corridors);
             Physics.SyncTransforms();
             Generated?.Invoke(Current);
+        }
+
+        private void SpawnMonsters(List<RoomTemplate> placedRooms, int layoutSeed)
+        {
+            GameObject prefab = monsterPrefab;
+#if UNITY_EDITOR
+            if (prefab == null)
+            {
+                prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/EchoSound/Prefabs/Monsters/StalkerMonster.prefab");
+                monsterPrefab = prefab;
+            }
+#endif
+            if (prefab == null || monsterCount <= 0 || placedRooms == null) return;
+
+            int startIndex = Mathf.Clamp(minMonsterRoomIndex, 1, placedRooms.Count - 1);
+            if (placedRooms.Count <= startIndex) return;
+
+            var candidates = new List<int>();
+            for (int i = startIndex; i < placedRooms.Count; i++)
+            {
+                candidates.Add(i);
+            }
+
+            var rng = new System.Random(layoutSeed ^ 0x5F3759DF);
+            for (int i = candidates.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+            }
+
+            int toSpawn = Mathf.Min(monsterCount, candidates.Count);
+            for (int i = 0; i < toSpawn; i++)
+            {
+                RoomTemplate room = placedRooms[candidates[i]];
+                Vector3 spawnPos = room.AnchorPosition + Vector3.up * 0.1f;
+                GameObject instance;
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    instance = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab, generatedRoot);
+                }
+                else
+#endif
+                {
+                    instance = Instantiate(prefab, generatedRoot);
+                }
+
+                instance.transform.position = spawnPos;
+                instance.name = $"Stalker_{i + 1:00} ({room.displayName})";
+            }
         }
 
         private List<RoomCatalog.Match> SelectPrefabs(RoomGraph graph, int layoutSeed)

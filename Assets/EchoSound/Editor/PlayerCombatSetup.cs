@@ -14,6 +14,7 @@ namespace EchoSound.Editor
     public static class PlayerCombatSetup
     {
         private const string PlayerPrefabPath = "Assets/EchoSound/Prefabs/Player/FirstPersonPlayer.prefab";
+        private const string MonsterPrefabPath = "Assets/EchoSound/Prefabs/Monsters/StalkerMonster.prefab";
         private const string BreathingCuePath = "Assets/EchoSound/Resources/Audio/Player/Exhausted_Breathing.asset";
 
         [InitializeOnLoadMethod]
@@ -22,6 +23,7 @@ namespace EchoSound.Editor
             EditorApplication.delayCall += () =>
             {
                 CheckAndWirePlayerPrefab();
+                CheckAndCreateMonsterPrefab();
             };
         }
 
@@ -100,6 +102,66 @@ namespace EchoSound.Editor
             finally
             {
                 PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        [MenuItem("EchoSound/Combat/Setup Stalker Monster Prefab")]
+        public static void CheckAndCreateMonsterPrefab()
+        {
+            if (File.Exists(MonsterPrefabPath)) return;
+
+            string folder = Path.GetDirectoryName(MonsterPrefabPath);
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+                AssetDatabase.Refresh();
+            }
+
+            var root = new GameObject("StalkerMonster");
+            try
+            {
+                var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                visual.name = "Body";
+                visual.transform.SetParent(root.transform, false);
+                visual.transform.localPosition = new Vector3(0f, 1f, 0f);
+                var col = visual.GetComponent<Collider>();
+                if (col != null) Object.DestroyImmediate(col);
+
+                var cc = root.AddComponent<CharacterController>();
+                cc.height = 2f;
+                cc.center = new Vector3(0f, 1f, 0f);
+                cc.radius = 0.45f;
+
+                var health = root.AddComponent<HealthComponent>();
+                health.maxHealth = 120f;
+                health.currentHealth = 120f;
+                health.invulnerabilityDuration = 0.25f;
+
+                var stamina = root.AddComponent<StaminaComponent>();
+                stamina.maxStamina = 100f;
+                stamina.currentStamina = 100f;
+                stamina.sprintDrainRate = 18f;
+                stamina.regenRate = 25f;
+                stamina.regenDelay = 1.5f;
+                stamina.exhaustedAcousticRadius = 0f;
+
+                var stats = root.AddComponent<MonsterStats>();
+                stats.monsterName = "Stalker";
+                stats.attackDamage = 25f;
+                stats.attackRange = 2.0f;
+                stats.attackCooldown = 1.2f;
+                stats.hearingSensitivity = 1.25f;
+
+                root.AddComponent<StalkerController>();
+
+                PrefabUtility.SaveAsPrefabAsset(root, MonsterPrefabPath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                Debug.Log("[PlayerCombatSetup] Created StalkerMonster prefab at " + MonsterPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
             }
         }
     }

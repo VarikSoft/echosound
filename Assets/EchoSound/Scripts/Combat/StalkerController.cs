@@ -115,6 +115,12 @@ namespace EchoSound.Combat
                 targetDamageable = damageable;
                 targetTransform = soundEvent.Source.transform;
             }
+            else
+            {
+                // Lured by a non-living sound source (e.g. thrown decoy keys)
+                targetDamageable = null;
+                targetTransform = null;
+            }
 
             if (soundHitCount >= hitsToLocatePlayer)
             {

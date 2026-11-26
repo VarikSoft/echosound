@@ -150,6 +150,19 @@ namespace EchoSound.Editor.Tests
                 Require(stalker.SoundHitCount == 4, "Stalker should have 4 sound hits.");
                 Require(stalker.CurrentState == StalkerController.State.Hunt, "Stalker should enter Hunt after 4 hits.");
                 Require(stalker.LastHeardPosition == finalWavePos, "Stalker must go to the exact position of the last wave.");
+
+                // Decoy lure -> redirects LastHeardPosition to decoy spot
+                var decoyGo = new GameObject("TestDecoy");
+                try
+                {
+                    Vector3 decoyPos = new Vector3(-12f, 0f, 8f);
+                    stalker.OnSoundHeard(new SoundEvent(decoyPos, 24f, 1f, SoundType.Impact, decoyGo), 6f);
+                    Require(stalker.LastHeardPosition == decoyPos, "Stalker should be lured to decoy impact position.");
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(decoyGo);
+                }
             }
             finally
             {
@@ -166,6 +179,7 @@ namespace EchoSound.Editor.Tests
             Require(prefab.GetComponent<StaminaComponent>() != null, "FirstPersonPlayer.prefab missing StaminaComponent.");
             Require(prefab.GetComponent<PlayerStatsHUD>() != null, "FirstPersonPlayer.prefab missing PlayerStatsHUD.");
             Require(prefab.GetComponent<PauseMenuController>() != null, "FirstPersonPlayer.prefab missing PauseMenuController.");
+            Require(prefab.GetComponent<PlayerDecoyThrower>() != null, "FirstPersonPlayer.prefab missing PlayerDecoyThrower.");
         }
 
         private static void Require(bool condition, string message)

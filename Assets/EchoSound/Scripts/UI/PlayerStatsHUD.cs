@@ -13,6 +13,7 @@ namespace EchoSound.UI
         [Header("Target References (Optional, auto-detected if null)")]
         public HealthComponent health;
         public StaminaComponent stamina;
+        public PlayerDecoyThrower decoyThrower;
 
         [Header("HUD Configuration")]
         public bool showHUD = true;
@@ -39,6 +40,7 @@ namespace EchoSound.UI
         {
             if (health == null) health = GetComponentInParent<HealthComponent>();
             if (stamina == null) stamina = GetComponentInParent<StaminaComponent>();
+            if (decoyThrower == null) decoyThrower = GetComponentInParent<PlayerDecoyThrower>();
             InitTextures();
         }
 
@@ -111,6 +113,7 @@ namespace EchoSound.UI
                 if (health != null) health.OnDamageTaken += HandleDamageTaken;
             }
             if (stamina == null) stamina = GetComponentInParent<StaminaComponent>();
+            if (decoyThrower == null) decoyThrower = GetComponentInParent<PlayerDecoyThrower>();
 
             if (damageFlashAlpha > 0.01f && damageFlashTexture != null)
             {
@@ -180,6 +183,15 @@ namespace EchoSound.UI
                 labelStyle.normal.textColor = isExhausted ? new Color(1f, 0.4f, 0.3f) : new Color(0.95f, 0.85f, 0.5f);
                 string stText = isExhausted ? "EXHAUSTED" : $"{(int)stamina.CurrentStamina}/{(int)stamina.MaxStamina}";
                 GUI.Label(new Rect(startX + barWidth + 8f, stY - 2f, 120f, barHeight + 4f), stText, labelStyle);
+            }
+
+            // 3. Decoy Keys Count
+            if (decoyThrower != null)
+            {
+                float dkY = startY + (barHeight + 6f) * 2f;
+                labelStyle.normal.textColor = new Color(0.85f, 0.82f, 0.55f);
+                GUI.Label(new Rect(startX, dkY - 2f, 180f, barHeight + 6f),
+                    $"Keys [G/RMB]: {decoyThrower.CurrentDecoys}/{decoyThrower.MaxDecoys}", labelStyle);
             }
         }
     }

@@ -101,6 +101,15 @@ namespace EchoSound.Editor
                     Debug.Log("[PlayerCombatSetup] Added PauseMenuController to FirstPersonPlayer prefab.");
                 }
 
+                // 5. PlayerDecoyThrower
+                var decoy = root.GetComponent<PlayerDecoyThrower>();
+                if (decoy == null)
+                {
+                    decoy = root.AddComponent<PlayerDecoyThrower>();
+                    modified = true;
+                    Debug.Log("[PlayerCombatSetup] Added PlayerDecoyThrower to FirstPersonPlayer prefab.");
+                }
+
                 if (modified)
                 {
                     PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);

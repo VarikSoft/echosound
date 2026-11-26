@@ -28,6 +28,13 @@ namespace EchoSound.Generation
         [Tooltip("Probability of adding an extra connection between neighbouring rooms.")]
         [Range(0, 1)] public float loopChance = 0.2f;
 
+        [Header("Fixed layout")]
+        [Tooltip("Optional. When set, these room prefabs are built in this order as a straight chain instead of " +
+                 "a random layout, for example to test specific rooms. The first room is the spawn; " +
+                 "the first and last rooms need a single doorway, the others two opposite ones.")]
+        public List<GameObject> fixedRooms = new List<GameObject>();
+        private bool UsesFixedRooms => fixedRooms.Count > 0;
+
         [SerializeField, HideInInspector] private Transform generatedRoot;
         public GeneratedLevel Current { get; private set; }
         public event Action<GeneratedLevel> Generated;
@@ -47,7 +54,7 @@ namespace EchoSound.Generation
                     throw new InvalidOperationException("Corridor must be a north/south RoomTemplate with matching footprint.");
             }
 
-            var graph = new RoomGraph(newSeed, roomCount, loopChance);
+            RoomGraph graph = UsesFixedRooms ? RoomGraph.Chain(fixedRooms.Count) : new RoomGraph(newSeed, roomCount, loopChance);
             List<RoomCatalog.Match> selectedRooms = SelectPrefabs(graph, newSeed);
             var layout = new CorridorLayout(graph, newSeed, catalog.roomSize,
                 corridorPrefab != null ? corridorModulesPerConnection : 0, longCorridorFraction);
@@ -80,10 +87,39 @@ namespace EchoSound.Generation
         {
             // Separate random state keeps prefab selection independent of layout construction.
             var random = new System.Random(layoutSeed);
+            List<RoomCatalog.Match> result = UsesFixedRooms ? FitFixedRooms(graph) : PickRandomRooms(graph, random);
+            // A fixed layout may only turn its rooms; a random one may also swap them.
+            LevelReachability.MakeEveryRoomReachable(graph, result, UsesFixedRooms ? null : catalog, random);
+            return result;
+        }
+
+        private List<RoomCatalog.Match> PickRandomRooms(RoomGraph graph, System.Random random)
+        {
             var result = new List<RoomCatalog.Match>();
             foreach (RoomGraph.Node node in graph.Nodes)
             {
                 result.Add(catalog.Pick(node.Doors, random));
+            }
+            return result;
+        }
+
+        private List<RoomCatalog.Match> FitFixedRooms(RoomGraph graph)
+        {
+            var result = new List<RoomCatalog.Match>();
+            for (int index = 0; index < graph.Nodes.Count; index++)
+            {
+                GameObject prefab = fixedRooms[index];
+                string label = $"Fixed room {index + 1} ({(prefab != null ? prefab.name : "empty")})";
+                RoomTemplate template = prefab != null ? prefab.GetComponent<RoomTemplate>() : null;
+                if (template == null) throw new InvalidOperationException(label + " needs RoomTemplate on its root.");
+                if (!template.Validate(catalog.roomSize, out string error)) throw new InvalidOperationException(label + ": " + error);
+
+                DoorMask required = graph.Nodes[index].Doors;
+                if (!RoomCatalog.TryFit(prefab, required, out RoomCatalog.Match match))
+                {
+                    throw new InvalidOperationException($"{label} cannot be turned to have exactly these doors: {required}.");
+                }
+                result.Add(match);
             }
             return result;
         }

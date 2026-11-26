@@ -1626,6 +1626,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1188612026423377607}
   - component: {fileID: 5621711804957879957}
+  - component: {fileID: 5214081209265031560}
+  - component: {fileID: 3967633629690326651}
   m_Layer: 0
   m_Name: Player B plate
   m_TagString: Untagged
@@ -2284,7 +2286,6 @@ Transform:
   - {fileID: 1188612026423377607}
   - {fileID: 1962369887334706743}
   - {fileID: 4429323642814054861}
-  - {fileID: 196739266334657118}
   m_Father: {fileID: 4576866253669157469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2343975947130814052
@@ -2892,6 +2893,8 @@ GameObject:
   m_Component:
   - component: {fileID: 4429323642814054861}
   - component: {fileID: 7212465096744369056}
+  - component: {fileID: 5393772447542528927}
+  - component: {fileID: 4717929466294442079}
   m_Layer: 0
   m_Name: Shared mechanism
   m_TagString: Untagged
@@ -3448,118 +3451,6 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 2e6a744a2ad2ed14a9c7fe3e0cc2220a, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &3688279903240842502
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 196739266334657118}
-  - component: {fileID: 5431554875097784278}
-  - component: {fileID: 5331128803465488253}
-  - component: {fileID: 8887651672923289736}
-  m_Layer: 0
-  m_Name: Shared mechanism - placement pad
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &196739266334657118
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3688279903240842502}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.3, y: 0.025, z: -4}
-  m_LocalScale: {x: 0.9, y: 0.05, z: 0.9}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4086943120387934470}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5431554875097784278
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3688279903240842502}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!65 &5331128803465488253
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3688279903240842502}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &8887651672923289736
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3688279903240842502}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a564cb1d48cda014f9b7371bd8fbd957, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5387,6 +5278,7 @@ GameObject:
   m_Component:
   - component: {fileID: 615179526968249370}
   - component: {fileID: 8586527776336054227}
+  - component: {fileID: 2116700782974358482}
   m_Layer: 0
   m_Name: Door_North
   m_TagString: Untagged
@@ -6648,6 +6540,8 @@ MonoBehaviour:
   footprint: 18
   roomHeight: 3.75
   anchor: {fileID: 4173052778145126096}
+  hasEntrance: 1
+  entrance: 2
 --- !u!1 &7370451045707901809
 GameObject:
   m_ObjectHideFlags: 0
@@ -7782,6 +7676,8 @@ GameObject:
   m_Component:
   - component: {fileID: 7345226660266290527}
   - component: {fileID: 8912332917768659540}
+  - component: {fileID: 3763776309055971807}
+  - component: {fileID: 8626697774670112469}
   m_Layer: 0
   m_Name: Player A plate
   m_TagString: Untagged
@@ -8180,3 +8076,104 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3763776309055971807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8701672247584205571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &8626697774670112469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8701672247584205571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f34d5f70fd75481d9e53e9950635a6e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.PressurePlate
+  size: {x: 0.9, y: 0.9}
+  minimumMass: 5
+  top: {fileID: 232826577027347768}
+  pressDepth: 0.02
+--- !u!114 &5214081209265031560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1778797606607255274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &3967633629690326651
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1778797606607255274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f34d5f70fd75481d9e53e9950635a6e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.PressurePlate
+  size: {x: 0.9, y: 0.9}
+  minimumMass: 5
+  top: {fileID: 1962369887334706743}
+  pressDepth: 0.02
+--- !u!114 &5393772447542528927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3183966092874582313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &4717929466294442079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3183966092874582313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bf00562d66741c39dfa07f224ddaf53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.SignalGate
+  rule: 0
+  inputs: 
+  - {fileID: 3763776309055971807}
+  - {fileID: 5214081209265031560}
+  latch: 1
+--- !u!114 &2116700782974358482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6166307224438355455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64b908bee35e480b819e384e238b212a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.DoorwayLock
+  unlockedBy: {fileID: 5393772447542528927}

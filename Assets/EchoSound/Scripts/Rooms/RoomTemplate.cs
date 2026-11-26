@@ -15,7 +15,15 @@ namespace EchoSound.Rooms
         [Tooltip("Place this on a safe walking surface, not above a pit.")]
         public Transform anchor;
 
+        [Tooltip("For a puzzle that can only be solved from one side: the door the player must come in by. " +
+                 "The generator guarantees every room stays reachable when such rooms open only after being entered here.")]
+        public bool hasEntrance;
+        public DoorSide entrance;
+
         public Vector3 AnchorPosition => anchor != null ? anchor.position : transform.position;
+
+        /// <summary>The entrance side after turning the room by quarter turns, or -1 for a room without an entrance.</summary>
+        public int EntranceSide(int quarterTurns) => hasEntrance ? ((int)entrance + quarterTurns) % 4 : -1;
 
         public DoorMask Doors
         {
@@ -74,6 +82,11 @@ namespace EchoSound.Rooms
             if (foundDoors == DoorMask.None)
             {
                 error = "Add at least one RoomDoor marker.";
+                return false;
+            }
+            if (hasEntrance && (foundDoors & DoorLayout.Bit((int)entrance)) == 0)
+            {
+                error = "The entrance must be one of the room's doors.";
                 return false;
             }
             return true;

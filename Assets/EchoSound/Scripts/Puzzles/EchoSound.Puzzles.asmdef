@@ -1,0 +1,5 @@
+{
+  "name": "EchoSound.Puzzles",
+  "rootNamespace": "EchoSound.Puzzles",
+  "references": ["EchoSound.Interaction"]
+}

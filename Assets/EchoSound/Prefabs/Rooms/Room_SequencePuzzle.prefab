@@ -1266,6 +1266,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6936143400207365739}
   - component: {fileID: 997560009518925050}
+  - component: {fileID: 6315892219716277681}
+  - component: {fileID: 1061510259838462124}
   m_Layer: 0
   m_Name: Sequence clue
   m_TagString: Untagged
@@ -2875,6 +2877,8 @@ GameObject:
   - component: {fileID: 1005697411269539178}
   - component: {fileID: 8201463382430328922}
   - component: {fileID: 1612065351940683809}
+  - component: {fileID: 5657276246936346404}
+  - component: {fileID: 6949389961163410086}
   m_Layer: 0
   m_Name: Sequence panel 1
   m_TagString: Untagged
@@ -3793,6 +3797,8 @@ GameObject:
   - component: {fileID: 4543904397670280513}
   - component: {fileID: 5634588026643815449}
   - component: {fileID: 3533200218000560997}
+  - component: {fileID: 4804296739069304498}
+  - component: {fileID: 6560109438780322513}
   m_Layer: 0
   m_Name: Sequence panel 2
   m_TagString: Untagged
@@ -3905,6 +3911,8 @@ GameObject:
   - component: {fileID: 5392866182112114409}
   - component: {fileID: 5919496397742917367}
   - component: {fileID: 1474343754528809612}
+  - component: {fileID: 3448418204710473059}
+  - component: {fileID: 7113753275477621596}
   m_Layer: 0
   m_Name: Sequence panel 3
   m_TagString: Untagged
@@ -6232,6 +6240,7 @@ GameObject:
   - component: {fileID: 4752982185995717280}
   - component: {fileID: 4759447985894935139}
   - component: {fileID: 1210435501634601439}
+  - component: {fileID: 1608708111228754884}
   m_Layer: 0
   m_Name: Sequence clue - placement pad
   m_TagString: Untagged
@@ -8156,3 +8165,146 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5657276246936346404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3438692270169235420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &6949389961163410086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3438692270169235420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba1bff4342a64c0f82e0d86b521f0c80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.PushButton
+  id: sequence_button_1
+  locationHint: panel 1 of 3, counted from the left
+  useDistance: 2.5
+  onSeconds: 0
+  handle: {fileID: 5576954418573955941}
+  standDistance: 1.6
+  pressDepth: 0.04
+--- !u!114 &4804296739069304498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4338399777346991703}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &6560109438780322513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4338399777346991703}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba1bff4342a64c0f82e0d86b521f0c80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.PushButton
+  id: sequence_button_2
+  locationHint: panel 2 of 3, counted from the left
+  useDistance: 2.5
+  onSeconds: 0
+  handle: {fileID: 7383244562188360688}
+  standDistance: 1.6
+  pressDepth: 0.04
+--- !u!114 &3448418204710473059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4443915583035170278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &7113753275477621596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4443915583035170278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba1bff4342a64c0f82e0d86b521f0c80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.PushButton
+  id: sequence_button_3
+  locationHint: panel 3 of 3, counted from the left
+  useDistance: 2.5
+  onSeconds: 0
+  handle: {fileID: 3032407077431787806}
+  standDistance: 1.6
+  pressDepth: 0.04
+--- !u!114 &6315892219716277681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1434638702219153482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0be5a15d30f24a6f936f899d194094b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.Signal
+  isOn: 0
+--- !u!114 &1061510259838462124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1434638702219153482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bf00562d66741c39dfa07f224ddaf53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.SignalGate
+  rule: 0
+  inputs: 
+  - {fileID: 5657276246936346404}
+  - {fileID: 4804296739069304498}
+  - {fileID: 3448418204710473059}
+  latch: 1
+--- !u!114 &1608708111228754884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7511099450260786853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98eb155ff09d43d39f05a0bbaeb3f7fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Puzzles::EchoSound.Puzzles.SignalLamp
+  input: {fileID: 6315892219716277681}
+  lamp: {fileID: 1210435501634601439}
+  offColor: {r: 0.35, g: 0.05, b: 0.05, a: 1}
+  onColor: {r: 0.2, g: 1, b: 0.3, a: 1}

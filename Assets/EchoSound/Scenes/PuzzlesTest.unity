@@ -999,7 +999,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: EchoSound.Player::EchoSound.PlayerInteractor
   view: {fileID: 547102010}
-  useKey: 101
+  useKey: 323
   rayLength: 4
 --- !u!114 &547102014
 MonoBehaviour:
@@ -2862,7 +2862,7 @@ GameObject:
   - component: {fileID: 1873210725}
   - component: {fileID: 1873210724}
   m_Layer: 0
-  m_Name: Companion Test Controls - V talk, E use door
+  m_Name: Companion Test Controls - V talk, LMB use
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -68,3 +68,9 @@ MonoBehaviour:
   - prefab: {fileID: 5156989762135776626, guid: 91c65283b7052674d9e0702a618dd284, type: 3}
     weight: 4
     allowRotation: 1
+  - prefab: {fileID: 6496334738227767654, guid: 8a91ce3927844f51aa2fa2e39d376cf2, type: 3}
+    weight: 3
+    allowRotation: 1
+  - prefab: {fileID: 1307933476811686839, guid: a5cafb116a5c44cb80d9121c0dbce58e, type: 3}
+    weight: 3
+    allowRotation: 1

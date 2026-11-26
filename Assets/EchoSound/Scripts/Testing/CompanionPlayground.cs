@@ -4,6 +4,7 @@ using UnityEngine.AI;
 using EchoSound.Companion;
 using EchoSound.Generation;
 using EchoSound.Interaction;
+using EchoSound.Puzzles;
 using EchoSound.Rooms;
 
 namespace EchoSound.Testing
@@ -42,6 +43,7 @@ namespace EchoSound.Testing
             BakeNavMesh(level);
             // Doors appear after baking: a closed door carves the NavMesh instead of being baked in as a wall.
             SpawnDoors(level);
+            NameRoomObjects(level);
             if (companion != null)
             {
                 if (player != null) companion.Body.curator = player.transform;
@@ -93,23 +95,71 @@ namespace EchoSound.Testing
                     if (neighbourIndex <= roomIndex) continue; // Both rooms list the doorway; place one door.
 
                     Vector2Int step = DoorLayout.Steps[side];
-                    var direction = new Vector3(step.x, 0, step.y);
-                    Vector3 localPosition = (new Vector3(node.Cell.x, 0, node.Cell.y) + direction * 0.5f) * roomSize;
-                    Vector3 position = generator.transform.TransformPoint(localPosition);
-                    Quaternion rotation = generator.transform.rotation * Quaternion.LookRotation(direction);
-
+                    Vector3 direction = generator.transform.rotation * new Vector3(step.x, 0, step.y);
                     RoomTemplate room = level.Rooms[roomIndex];
                     RoomTemplate neighbour = level.Rooms[neighbourIndex];
-                    RoomDoor doorway = NearestDoorway(room, position);
+
+                    // Rooms may be far apart with a corridor between them, so use their real doorways, not grid cells.
+                    // One door per connection: in the neighbour's doorway if that is a locked puzzle exit, otherwise in this room's.
+                    RoomDoor ownDoorway = DoorwayFacing(room, direction, roomSize);
+                    RoomDoor neighbourDoorway = DoorwayFacing(neighbour, -direction, roomSize);
+                    bool inNeighbour = ownDoorway == null || (LockOf(ownDoorway) == null && LockOf(neighbourDoorway) != null);
+                    RoomDoor doorway = inNeighbour ? neighbourDoorway : ownDoorway;
+                    RoomTemplate owner = inNeighbour ? neighbour : room;
                     bool open = random.NextDouble() >= closedDoorChance;
+                    if (doorway == null)
+                    {
+                        Debug.LogWarning($"Room {owner.name} has no doorway towards its neighbour; no door placed.", owner);
+                        continue;
+                    }
+                    DoorwayLock exitLock = LockOf(doorway);
+                    // A one-sided puzzle room has a door only at its locked exit, not at its entrance.
+                    if (exitLock == null && (IsEntrance(room, ownDoorway) || IsEntrance(neighbour, neighbourDoorway))) continue;
 
                     doorCount++;
-                    Door door = Door.Create("door_" + doorCount, room.transform, position, rotation,
-                        doorway != null ? doorway.width : 3, doorway != null ? doorway.height : 2.6f, doorMaterial, open);
+                    Door door = Door.Create("door_" + doorCount, owner.transform, doorway.transform.position,
+                        Quaternion.LookRotation(direction), doorway.WorldWidth, doorway.WorldHeight, doorMaterial,
+                        open && exitLock == null, locked: exitLock != null);
                     door.locationHint = $"between room {roomIndex + 1} ({room.displayName}) " +
                         $"and room {neighbourIndex + 1} ({neighbour.displayName})";
+                    if (exitLock != null) door.gameObject.AddComponent<DoorLock>().Input = exitLock.unlockedBy;
                 }
             }
+        }
+
+        // Room prefabs carry objects such as puzzle buttons with prefab-wide ids; the same room can appear twice.
+        private static void NameRoomObjects(GeneratedLevel level)
+        {
+            for (int roomIndex = 0; roomIndex < level.Rooms.Count; roomIndex++)
+            {
+                RoomTemplate room = level.Rooms[roomIndex];
+                foreach (Interactable item in room.GetComponentsInChildren<Interactable>())
+                {
+                    if (item is Door) continue; // Doors are named by SpawnDoors.
+                    item.id = $"{item.id}_room{roomIndex + 1}";
+                    item.locationHint = $"in room {roomIndex + 1} ({room.displayName}), {item.locationHint}";
+                }
+            }
+        }
+
+        // The doorway on the room's wall that faces the given world direction.
+        private static RoomDoor DoorwayFacing(RoomTemplate room, Vector3 direction, float roomSize)
+        {
+            RoomDoor doorway = NearestDoorway(room, room.transform.position + direction * roomSize * 0.5f);
+            if (doorway == null) return null;
+            Vector3 offset = doorway.transform.position - room.transform.position;
+            // Nearest is not enough: a room without a doorway on that side would return one on another wall.
+            return Vector3.Dot(new Vector3(offset.x, 0, offset.z).normalized, direction) > 0.9f ? doorway : null;
+        }
+
+        // Both sides are in the prefab's own coordinates, so turning the room does not matter.
+        private static bool IsEntrance(RoomTemplate room, RoomDoor doorway) =>
+            doorway != null && room.hasEntrance && doorway.side == room.entrance;
+
+        private static DoorwayLock LockOf(RoomDoor doorway)
+        {
+            // TryGetComponent returns a true null when missing; GetComponent in the editor returns a fake null object.
+            return doorway != null && doorway.TryGetComponent(out DoorwayLock found) ? found : null;
         }
 
         private static RoomDoor NearestDoorway(RoomTemplate room, Vector3 position)

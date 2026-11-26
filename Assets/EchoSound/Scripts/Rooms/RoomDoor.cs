@@ -6,8 +6,13 @@ namespace EchoSound.Rooms
     {
         [Tooltip("Direction in the prefab's local coordinates, before generator rotation.")]
         public DoorSide side;
+        [Tooltip("In this object's local units, like the gizmo: a scaled parent scales the opening too.")]
         public float width = 3;
         public float height = 2.6f;
+
+        /// <summary>Opening size in metres, with parent scaling applied.</summary>
+        public float WorldWidth => width * Mathf.Abs(transform.lossyScale.x);
+        public float WorldHeight => height * Mathf.Abs(transform.lossyScale.y);
         void OnDrawGizmos()
         {
             Gizmos.color = Color.cyan;

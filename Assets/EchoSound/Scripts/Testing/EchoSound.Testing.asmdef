@@ -6,6 +6,7 @@
     "EchoSound.Player",
     "EchoSound.Rooms",
     "EchoSound.Interaction",
+    "EchoSound.Puzzles",
     "EchoSound.Companion",
     "EchoSound.Sound",
     "EchoSound.VFX"

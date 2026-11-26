@@ -91,6 +91,16 @@ namespace EchoSound.Editor
                     Debug.Log("[PlayerCombatSetup] Added PlayerStatsHUD to FirstPersonPlayer prefab.");
                 }
 
+                // 4. PauseMenuController
+                var pause = root.GetComponent<PauseMenuController>();
+                if (pause == null)
+                {
+                    pause = root.AddComponent<PauseMenuController>();
+                    pause.health = health;
+                    modified = true;
+                    Debug.Log("[PlayerCombatSetup] Added PauseMenuController to FirstPersonPlayer prefab.");
+                }
+
                 if (modified)
                 {
                     PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);

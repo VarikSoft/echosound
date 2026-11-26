@@ -36,9 +36,15 @@ namespace EchoSound
         private HealthComponent health;
         private float cameraPitch;
         private float verticalSpeed;
+        private bool hasPauseMenu;
 
         public StaminaComponent Stamina => stamina != null ? stamina : (stamina = GetComponent<StaminaComponent>());
         public HealthComponent Health => health != null ? health : (health = GetComponent<HealthComponent>());
+
+        public void SetSensitivity(float value)
+        {
+            sensitivity = Mathf.Clamp(value, 0.2f, 10f);
+        }
 
         private void Awake()
         {
@@ -46,6 +52,8 @@ namespace EchoSound
             soundEmitter = GetComponent<PlayerSoundEmitter>();
             stamina = GetComponent<StaminaComponent>();
             health = GetComponent<HealthComponent>();
+            hasPauseMenu = GetComponent("PauseMenuController") != null;
+            sensitivity = PlayerPrefs.GetFloat("EchoSound_MouseSensitivity", sensitivity);
 
             if (view == null)
             {
@@ -96,7 +104,8 @@ namespace EchoSound
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Time.timeScale <= 0f) return;
+            if (!hasPauseMenu && Input.GetKeyDown(KeyCode.Escape))
             {
                 SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);
             }

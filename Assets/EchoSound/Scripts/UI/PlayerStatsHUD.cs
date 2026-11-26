@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using EchoSound.Combat;
 
 namespace EchoSound.UI
@@ -19,6 +20,10 @@ namespace EchoSound.UI
         public float barHeight = 12f;
         public float padding = 16f;
 
+        [Header("Death Redirect")]
+        public string mainMenuSceneName = "MainMenu";
+        [Min(0.2f)] public float deathRedirectDelay = 2.0f;
+
         private Texture2D bgTexture;
         private Texture2D healthTexture;
         private Texture2D staminaTexture;
@@ -27,6 +32,8 @@ namespace EchoSound.UI
         private GUIStyle labelStyle;
         private GUIStyle deathStyle;
         private float damageFlashAlpha;
+        private float deathTimer;
+        private bool deathTriggered;
 
         private void Awake()
         {
@@ -56,6 +63,24 @@ namespace EchoSound.UI
             if (damageFlashAlpha > 0f)
             {
                 damageFlashAlpha = Mathf.Max(0f, damageFlashAlpha - Time.deltaTime * 1.4f);
+            }
+
+            if (health != null && !health.IsAlive)
+            {
+                if (!deathTriggered)
+                {
+                    deathTriggered = true;
+                    deathTimer = deathRedirectDelay;
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
+
+                deathTimer -= Time.unscaledDeltaTime;
+                if (deathTimer <= 0f)
+                {
+                    Time.timeScale = 1f;
+                    SceneManager.LoadScene(mainMenuSceneName);
+                }
             }
         }
 

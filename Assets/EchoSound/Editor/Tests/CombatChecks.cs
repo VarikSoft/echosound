@@ -119,6 +119,7 @@ namespace EchoSound.Editor.Tests
             Require(prefab.GetComponent<HealthComponent>() != null, "FirstPersonPlayer.prefab missing HealthComponent.");
             Require(prefab.GetComponent<StaminaComponent>() != null, "FirstPersonPlayer.prefab missing StaminaComponent.");
             Require(prefab.GetComponent<PlayerStatsHUD>() != null, "FirstPersonPlayer.prefab missing PlayerStatsHUD.");
+            Require(prefab.GetComponent<PauseMenuController>() != null, "FirstPersonPlayer.prefab missing PauseMenuController.");
         }
 
         private static void Require(bool condition, string message)

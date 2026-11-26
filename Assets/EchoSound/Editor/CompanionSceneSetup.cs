@@ -63,7 +63,7 @@ namespace EchoSound.Editor
             var microphone = player.GetComponent<PushToTalkVoice>();
             if (microphone == null) microphone = Undo.AddComponent<PushToTalkVoice>(player.gameObject);
 
-            var controls = new GameObject("Companion Test Controls - V talk, E use door");
+            var controls = new GameObject("Companion Test Controls - V talk, LMB use");
             var playground = controls.AddComponent<CompanionPlayground>();
             playground.generator = generator;
             playground.player = player;

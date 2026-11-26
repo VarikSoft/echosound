@@ -7,7 +7,10 @@ namespace EchoSound.Interaction
     public enum InteractionAction
     {
         Open,
-        Close
+        Close,
+        Press,
+        Pull,
+        Turn
     }
 
     public static class InteractionActions

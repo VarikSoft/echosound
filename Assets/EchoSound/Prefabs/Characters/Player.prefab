@@ -139,7 +139,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: EchoSound.Player::EchoSound.PlayerInteractor
   view: {fileID: 1100000000000000013}
-  useKey: 101
+  useKey: 323
   rayLength: 4
 --- !u!114 &1100000000000000008
 MonoBehaviour:

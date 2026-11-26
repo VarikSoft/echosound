@@ -19,14 +19,22 @@ namespace EchoSound.Interaction
         [Tooltip("Distance from the doorway to the spot where an agent stands to use the door.")]
         [Min(0.5f)] public float standDistance = 1.1f;
         [SerializeField] private bool startOpen;
+        [Tooltip("A locked door cannot be used by hand; a mechanism such as DoorLock unlocks it.")]
+        [SerializeField] private bool locked;
 
         private NavMeshObstacle obstacle;
         // 0 means closed, 1 means fully open.
         private float openAmount;
 
         public bool IsOpen { get; private set; }
+        public bool IsLocked
+        {
+            get => locked;
+            set => locked = value;
+        }
         public override string Kind => "door";
-        public override string State => IsBusy ? (IsOpen ? "opening" : "closing") : (IsOpen ? "open" : "closed");
+        public override string State => IsBusy ? (IsOpen ? "opening" : "closing")
+            : IsOpen ? "open" : locked ? "locked" : "closed";
         public override IReadOnlyList<InteractionAction> Actions => actions;
         public override InteractionAction PrimaryAction => IsOpen ? InteractionAction.Close : InteractionAction.Open;
         public override bool IsBusy => openAmount != (IsOpen ? 1 : 0);
@@ -52,7 +60,8 @@ namespace EchoSound.Interaction
         {
             bool open = action == InteractionAction.Open;
             problem = null;
-            if (IsOpen == open) problem = open ? "it is already open" : "it is already closed";
+            if (locked) problem = "it is locked";
+            else if (IsOpen == open) problem = open ? "it is already open" : "it is already closed";
             else if (!open && IsDoorwayBlocked()) problem = "something is standing in the doorway";
             return problem == null;
         }
@@ -61,6 +70,17 @@ namespace EchoSound.Interaction
         protected override void Perform(Interactor user, InteractionAction action)
         {
             IsOpen = action == InteractionAction.Open;
+        }
+
+        /// <summary>
+        /// Opens or closes the door without a user, for mechanisms. Ignores the lock but never
+        /// closes on someone standing in the doorway. Returns false if the door could not close.
+        /// </summary>
+        public bool SetOpen(bool open)
+        {
+            if (!open && IsOpen && IsDoorwayBlocked()) return false;
+            IsOpen = open;
+            return true;
         }
 
         private void Update()
@@ -91,7 +111,7 @@ namespace EchoSound.Interaction
 
         /// <summary>Builds a door from primitives, so generated levels need no door prefab.</summary>
         public static Door Create(string id, Transform parent, Vector3 position, Quaternion rotation,
-            float width, float height, Material material, bool open)
+            float width, float height, Material material, bool open, bool locked = false)
         {
             var root = new GameObject("Door " + id);
             // Stay inactive until configured, so Awake sees the final settings.
@@ -120,6 +140,7 @@ namespace EchoSound.Interaction
             // Usable from anywhere in front of the opening, including its edges.
             door.useDistance = width * 0.5f + 1;
             door.startOpen = open;
+            door.locked = locked;
             root.SetActive(true);
             return door;
         }

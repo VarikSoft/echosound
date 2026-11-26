@@ -30,9 +30,13 @@ namespace EchoSound.Rooms
                 Prefab = prefab;
                 Turns = turns;
             }
+
+            /// <summary>The placed room's entrance side, or -1 if it has none.</summary>
+            public int EntranceSide => Prefab.GetComponent<RoomTemplate>().EntranceSide(Turns);
         }
 
-        public Match Pick(DoorMask requiredDoors, System.Random random)
+        /// <param name="allowed">Optional filter on prefab and turn, for example to face an entrance a given way.</param>
+        public Match Pick(DoorMask requiredDoors, System.Random random, Predicate<Match> allowed = null)
         {
             var candidates = new List<Match>();
             var weights = new List<int>();
@@ -45,6 +49,7 @@ namespace EchoSound.Rooms
                 if (template == null) continue;
 
                 List<int> rotations = FindMatchingRotations(template.Doors, requiredDoors, entry.allowRotation);
+                if (allowed != null) rotations.RemoveAll(turns => !allowed(new Match(entry.prefab, turns)));
                 if (rotations.Count == 0) continue;
 
                 // A symmetric prefab receives its weight once, regardless of matching rotation count.
@@ -67,6 +72,23 @@ namespace EchoSound.Rooms
                 if (choice < 0) return candidates[index];
             }
             return candidates[candidates.Count - 1];
+        }
+
+        /// <summary>Fits one given prefab to the required doors, turning it if needed. False if no turn matches.</summary>
+        public static bool TryFit(GameObject prefab, DoorMask requiredDoors, out Match match, Predicate<Match> allowed = null)
+        {
+            match = default;
+            RoomTemplate template = prefab != null ? prefab.GetComponent<RoomTemplate>() : null;
+            if (template == null) return false;
+
+            foreach (int turns in FindMatchingRotations(template.Doors, requiredDoors, true))
+            {
+                var candidate = new Match(prefab, turns);
+                if (allowed != null && !allowed(candidate)) continue;
+                match = candidate;
+                return true;
+            }
+            return false;
         }
 
         private static List<int> FindMatchingRotations(DoorMask available, DoorMask required, bool allowRotation)
@@ -97,7 +119,8 @@ namespace EchoSound.Rooms
             }
 
             // The five basic shapes, with rotations enabled, cover all fifteen non-empty masks.
-            for (int mask = 1; mask <= 15; mask++) Pick((DoorMask)mask, new System.Random(0));
+            // Rooms without an entrance must cover them alone: the generator falls back to them when an entrance cannot be honoured.
+            for (int mask = 1; mask <= 15; mask++) Pick((DoorMask)mask, new System.Random(0), match => match.EntranceSide < 0);
         }
     }
 }

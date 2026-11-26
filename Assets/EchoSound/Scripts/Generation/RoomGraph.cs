@@ -45,6 +45,22 @@ namespace EchoSound.Generation
             AddExtraConnections(Mathf.Clamp01(loopChance), random);
         }
 
+        private RoomGraph() { }
+
+        /// <summary>Rooms in a straight line going north, each connected to the next. Used for fixed test layouts.</summary>
+        public static RoomGraph Chain(int roomCount)
+        {
+            var graph = new RoomGraph();
+            // A chain never grows randomly, so the expansion list is not used.
+            var unusedConnections = new List<AvailableConnection>();
+            for (int index = 0; index < Mathf.Max(roomCount, 1); index++)
+            {
+                graph.AddRoom(new Vector2Int(0, index), unusedConnections);
+                if (index > 0) graph.ConnectRooms(index - 1, index, (int)DoorSide.North);
+            }
+            return graph;
+        }
+
         private void BuildConnectedRooms(int roomCount, System.Random random)
         {
             var availableConnections = new List<AvailableConnection>();

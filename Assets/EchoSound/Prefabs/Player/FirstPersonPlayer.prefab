@@ -124,6 +124,7 @@ GameObject:
   - component: {fileID: 5201642221860660947}
   - component: {fileID: 2994482568477724712}
   - component: {fileID: 7945735194006601552}
+  - component: {fileID: 7320254160129176786}
   m_Layer: 0
   m_Name: FirstPersonPlayer
   m_TagString: Untagged
@@ -184,9 +185,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c37286882f8ad8540b59bc80c4cc7002, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EchoSound.Player::EchoSound.FirstPersonPlayer
+  crouchSpeed: 1.6
   walkSpeed: 4.5
   runSpeed: 7.5
   jumpSpeed: 5
+  crouchHeight: 1.05
+  crouchCameraDrop: 0.55
+  crouchTransitionSpeed: 10
   useKeyboardOnly: 1
   enableGamepad: 0
   joystickDeadzone: 0.35
@@ -204,10 +209,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af972026e629ee74a90adf2616397d97, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EchoSound.Sound::EchoSound.Sound.PlayerSoundEmitter
+  crouchRadius: 3.5
   walkRadius: 14
   runRadius: 24
+  crouchStepDistance: 1.4
   walkStepDistance: 2
   runStepDistance: 2.4
+  crouchIntensity: 0.2
   jumpRadius: 16
   landRadius: 22
   minimumLandVelocity: 3
@@ -227,8 +235,8 @@ MonoBehaviour:
   maxHealth: 100
   currentHealth: 100
   invulnerabilityDuration: 0.4
-  hurtCue: {fileID: 0}
-  deathCue: {fileID: 0}
+  hurtCue: {fileID: 11400000, guid: a4010001000000000000000000000003, type: 2}
+  deathCue: {fileID: 11400000, guid: a4010001000000000000000000000004, type: 2}
 --- !u!114 &5201642221860660947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -265,6 +273,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.PlayerStatsHUD
   health: {fileID: 8604582454828022276}
   stamina: {fileID: 5201642221860660947}
+  decoyThrower: {fileID: 0}
   showHUD: 1
   barWidth: 180
   barHeight: 12
@@ -285,3 +294,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.PauseMenuController
   mainMenuSceneName: MainMenu
   health: {fileID: 8604582454828022276}
+--- !u!114 &7320254160129176786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3020000000000000000000000000007, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Combat::EchoSound.Combat.PlayerDecoyThrower
+  throwKey: 103
+  allowRightClick: 1
+  throwForce: 12
+  upwardBoost: 2.5
+  throwCooldown: 0.8
+  maxDecoys: 3
+  currentDecoys: 3
+  rechargeSeconds: 12
+  impactCue: {fileID: 0}

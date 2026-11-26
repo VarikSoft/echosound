@@ -43,6 +43,8 @@ namespace EchoSound.Combat
         [Min(1f)] public float stepWaveRadius = 12f;
         [Min(0.15f)] public float patrolWaveInterval = 0.7f;
         [Min(0.15f)] public float huntWaveInterval = 0.4f;
+        [Tooltip("3D footstep SoundCue played in sync with each red walk wave.")]
+        public SoundCue stepCue;
 
         [Header("Runtime State (Read-Only)")]
         [SerializeField] private State currentState = State.Patrol;
@@ -72,6 +74,7 @@ namespace EchoSound.Combat
             stats = GetComponent<MonsterStats>();
             stamina = GetComponent<StaminaComponent>();
             controller = GetComponent<CharacterController>();
+            if (stepCue == null) stepCue = Resources.Load<SoundCue>("Audio/Monsters/Stalker_Footstep");
             spawnOrigin = transform.position;
             PickNewPatrolPoint();
         }
@@ -114,6 +117,12 @@ namespace EchoSound.Combat
             {
                 targetDamageable = damageable;
                 targetTransform = soundEvent.Source.transform;
+            }
+            else
+            {
+                // Lured by a non-living sound source (e.g. thrown decoy keys)
+                targetDamageable = null;
+                targetTransform = null;
             }
 
             if (soundHitCount >= hitsToLocatePlayer)
@@ -238,6 +247,11 @@ namespace EchoSound.Combat
             if (Time.time < nextStepWaveTime) return;
 
             nextStepWaveTime = Time.time + interval;
+            if (stepCue == null) stepCue = Resources.Load<SoundCue>("Audio/Monsters/Stalker_Footstep");
+            if (stepCue != null)
+            {
+                AudioManager.Instance.Play(stepCue, transform.position);
+            }
             SoundBus.Emit(transform.position, stepWaveRadius, 1.0f, SoundType.Enemy, gameObject);
         }
 

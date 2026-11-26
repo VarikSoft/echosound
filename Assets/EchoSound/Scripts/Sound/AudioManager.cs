@@ -87,8 +87,31 @@ namespace EchoSound.Sound
                 DontDestroyOnLoad(gameObject);
             }
 
+            EnsureMixerLoaded();
             LoadVolumePreferences();
             WarmPool(initialPoolSize);
+        }
+
+        public void EnsureMixerLoaded()
+        {
+            if (masterMixer == null)
+            {
+                masterMixer = Resources.Load<AudioMixer>("Audio/EchoSoundMixer");
+            }
+
+            if (masterMixer != null)
+            {
+                if (sfxGroup == null) sfxGroup = FindMixerGroup("SFX");
+                if (voiceGroup == null) voiceGroup = FindMixerGroup("Voice");
+                if (ambienceGroup == null) ambienceGroup = FindMixerGroup("Ambience");
+                if (uiGroup == null) uiGroup = FindMixerGroup("UI");
+            }
+        }
+
+        private AudioMixerGroup FindMixerGroup(string groupName)
+        {
+            AudioMixerGroup[] matches = masterMixer.FindMatchingGroups(groupName);
+            return matches != null && matches.Length > 0 ? matches[0] : null;
         }
 
         /// <summary>

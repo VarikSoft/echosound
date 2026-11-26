@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/EchoSound/Scenes/MainMenu.unity
+    guid: b02e6df707749944494e332595423eed
+  - enabled: 1
     path: Assets/EchoSound/Scenes/GenerationTest.unity
     guid: bb33898777484087a7862cd016b0d8ad
   m_configObjects: {}

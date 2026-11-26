@@ -120,6 +120,10 @@ GameObject:
   - component: {fileID: 7720524864324910147}
   - component: {fileID: 596351268840142405}
   - component: {fileID: 1483615776902823761}
+  - component: {fileID: 8604582454828022276}
+  - component: {fileID: 5201642221860660947}
+  - component: {fileID: 2994482568477724712}
+  - component: {fileID: 7945735194006601552}
   m_Layer: 0
   m_Name: FirstPersonPlayer
   m_TagString: Untagged
@@ -208,3 +212,76 @@ MonoBehaviour:
   landRadius: 22
   minimumLandVelocity: 3
   surfaceAudio: {fileID: 11400000, guid: a1010000000000000000000000000001, type: 2}
+--- !u!114 &8604582454828022276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3020000000000000000000000000001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Combat::EchoSound.Combat.HealthComponent
+  maxHealth: 100
+  currentHealth: 100
+  invulnerabilityDuration: 0.4
+  hurtCue: {fileID: 0}
+  deathCue: {fileID: 0}
+--- !u!114 &5201642221860660947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3020000000000000000000000000002, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.Combat::EchoSound.Combat.StaminaComponent
+  maxStamina: 100
+  currentStamina: 100
+  sprintDrainRate: 22
+  jumpCost: 15
+  regenRate: 20
+  regenDelay: 1.2
+  recoveryThreshold: 0.2
+  exhaustedBreathingCue: {fileID: 11400000, guid: a4010001000000000000000000000001, type: 2}
+  exhaustedAcousticRadius: 6
+  breathingInterval: 2.2
+--- !u!114 &2994482568477724712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3030000000000000000000000000001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.PlayerStatsHUD
+  health: {fileID: 8604582454828022276}
+  stamina: {fileID: 5201642221860660947}
+  showHUD: 1
+  barWidth: 180
+  barHeight: 12
+  padding: 16
+  mainMenuSceneName: MainMenu
+  deathRedirectDelay: 2
+--- !u!114 &7945735194006601552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8450935133214359365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3030000000000000000000000000004, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EchoSound.UI::EchoSound.UI.PauseMenuController
+  mainMenuSceneName: MainMenu
+  health: {fileID: 8604582454828022276}

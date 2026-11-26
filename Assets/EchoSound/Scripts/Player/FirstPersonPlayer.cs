@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using EchoSound.Sound;
 using EchoSound.VFX;
+using EchoSound.Combat;
 
 namespace EchoSound
 {
@@ -11,9 +12,15 @@ namespace EchoSound
     public sealed class FirstPersonPlayer : MonoBehaviour
     {
         [Header("Movement")]
+        public float crouchSpeed = 1.6f;
         public float walkSpeed = 4.5f;
         public float runSpeed = 7.5f;
         public float jumpSpeed = 5f;
+
+        [Header("Crouch / Silent Walk")]
+        [Min(0.6f)] public float crouchHeight = 1.05f;
+        [Min(0.1f)] public float crouchCameraDrop = 0.55f;
+        [Min(1f)] public float crouchTransitionSpeed = 10f;
 
         [Header("Input Options")]
         [Tooltip("When enabled, uses WASD and Arrow keys exclusively, ignoring any connected CAD controllers (e.g. 3Dconnexion SpaceMouse) or virtual joysticks.")]
@@ -31,13 +38,35 @@ namespace EchoSound
 
         private CharacterController controller;
         private PlayerSoundEmitter soundEmitter;
+        private StaminaComponent stamina;
+        private HealthComponent health;
         private float cameraPitch;
         private float verticalSpeed;
+        private bool hasPauseMenu;
+        private float standingHeight;
+        private float standingCenterY;
+        private float standingCameraY;
+
+        public bool IsCrouching { get; private set; }
+        public StaminaComponent Stamina => stamina != null ? stamina : (stamina = GetComponent<StaminaComponent>());
+        public HealthComponent Health => health != null ? health : (health = GetComponent<HealthComponent>());
+
+        public void SetSensitivity(float value)
+        {
+            sensitivity = Mathf.Clamp(value, 0.2f, 10f);
+        }
 
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
             soundEmitter = GetComponent<PlayerSoundEmitter>();
+            stamina = GetComponent<StaminaComponent>();
+            health = GetComponent<HealthComponent>();
+            hasPauseMenu = GetComponent("PauseMenuController") != null;
+            sensitivity = PlayerPrefs.GetFloat("EchoSound_MouseSensitivity", sensitivity);
+            standingHeight = controller.height;
+            standingCenterY = controller.center.y;
+            if (view != null) standingCameraY = view.transform.localPosition.y;
 
             if (view == null)
             {
@@ -88,7 +117,8 @@ namespace EchoSound
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Time.timeScale <= 0f) return;
+            if (!hasPauseMenu && Input.GetKeyDown(KeyCode.Escape))
             {
                 SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);
             }
@@ -109,16 +139,70 @@ namespace EchoSound
 
         private void UpdateMovement()
         {
+            UpdateCrouch();
+
             Vector2 input = GetMovementInput();
-            float speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+            bool wantsToRun = !IsCrouching && Input.GetKey(KeyCode.LeftShift);
+            bool isMoving = input.sqrMagnitude > 0.01f;
+
+            bool isRunning = wantsToRun && isMoving && (stamina == null || stamina.CanSprint);
+            float speed = IsCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
+
+            if (isRunning && stamina != null)
+            {
+                stamina.ConsumeSprint(Time.deltaTime);
+            }
+
             Vector3 velocity = (transform.right * input.x + transform.forward * input.y) * speed;
 
             // A small downward velocity keeps the CharacterController grounded.
             if (controller.isGrounded && verticalSpeed < 0) verticalSpeed = -2;
-            if (controller.isGrounded && Input.GetKeyDown(KeyCode.Space)) verticalSpeed = jumpSpeed;
+            if (controller.isGrounded && !IsCrouching && Input.GetKeyDown(KeyCode.Space))
+            {
+                if (stamina == null || stamina.TryConsumeJump())
+                {
+                    verticalSpeed = jumpSpeed;
+                }
+            }
             verticalSpeed += Physics.gravity.y * Time.deltaTime;
             velocity.y = verticalSpeed;
             controller.Move(velocity * Time.deltaTime);
+        }
+
+        private void UpdateCrouch()
+        {
+            bool wantsToCrouch = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            if (!wantsToCrouch && IsCrouching && !HasHeadroomToStand())
+            {
+                wantsToCrouch = true;
+            }
+
+            IsCrouching = wantsToCrouch;
+            if (soundEmitter != null)
+            {
+                soundEmitter.IsCrouching = IsCrouching;
+            }
+
+            float targetHeight = IsCrouching ? Mathf.Min(crouchHeight, standingHeight) : standingHeight;
+            controller.height = Mathf.Lerp(controller.height, targetHeight, crouchTransitionSpeed * Time.deltaTime);
+            float heightDelta = standingHeight - controller.height;
+            controller.center = new Vector3(controller.center.x, standingCenterY - heightDelta * 0.5f, controller.center.z);
+
+            if (view != null)
+            {
+                float targetCamY = IsCrouching ? standingCameraY - crouchCameraDrop : standingCameraY;
+                Vector3 camPos = view.transform.localPosition;
+                camPos.y = Mathf.Lerp(camPos.y, targetCamY, crouchTransitionSpeed * Time.deltaTime);
+                view.transform.localPosition = camPos;
+            }
+        }
+
+        private bool HasHeadroomToStand()
+        {
+            float extraHeight = standingHeight - controller.height;
+            if (extraHeight <= 0.05f) return true;
+            Vector3 top = transform.position + Vector3.up * (controller.height - controller.radius);
+            return !Physics.SphereCast(top, controller.radius * 0.9f, Vector3.up, out _, extraHeight, ~0, QueryTriggerInteraction.Ignore);
         }
 
         private Vector2 GetMovementInput()

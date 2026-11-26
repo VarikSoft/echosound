@@ -12,17 +12,28 @@ namespace EchoSound.Sound
     public class PlayerSoundEmitter : MonoBehaviour
     {
         [Header("Footsteps")]
+        [Tooltip("Hearing/illumination radius for crouching silent walk footsteps in meters.")]
+        public float crouchRadius = 3.5f;
+
         [Tooltip("Hearing/illumination radius for walking footsteps in meters.")]
         public float walkRadius = 14f;
 
         [Tooltip("Hearing/illumination radius for running footsteps in meters.")]
         public float runRadius = 24f;
 
+        [Tooltip("Distance in meters traveled between footsteps while crouching.")]
+        public float crouchStepDistance = 1.4f;
+
         [Tooltip("Distance in meters traveled between footsteps while walking.")]
         public float walkStepDistance = 2.0f;
 
         [Tooltip("Distance in meters traveled between footsteps while running.")]
         public float runStepDistance = 2.4f;
+
+        [Tooltip("Sound intensity (0-1) emitted while crouching.")]
+        [Range(0.05f, 1f)] public float crouchIntensity = 0.2f;
+
+        public bool IsCrouching { get; set; }
 
         [Header("Jumping & Landing")]
         [Tooltip("Hearing/illumination radius when jumping.")]
@@ -74,8 +85,9 @@ namespace EchoSound.Sound
             bool isGrounded = controller.isGrounded;
             bool movedThisFrame = false;
 
-            // Detect Jump Takeoff (space pressed while on ground)
-            if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+            // Detect Jump Takeoff (space pressed while on ground and not crouching)
+            bool crouchingNow = IsCrouching || Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            if (isGrounded && !crouchingNow && Input.GetKeyDown(KeyCode.Space))
             {
                 EmitContact(jumpRadius, 1f, SoundType.Jump);
             }
@@ -110,8 +122,9 @@ namespace EchoSound.Sound
                 if (stepLength > 0.001f && stepLength < 5f)
                 {
                     movedThisFrame = true;
-                    bool isRunning = Input.GetKey(KeyCode.LeftShift);
-                    float targetStepDistance = isRunning ? runStepDistance : walkStepDistance;
+                    bool crouching = IsCrouching || Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+                    bool isRunning = !crouching && Input.GetKey(KeyCode.LeftShift);
+                    float targetStepDistance = crouching ? crouchStepDistance : (isRunning ? runStepDistance : walkStepDistance);
                     // First contact reveals a route as movement begins. Later contacts follow stride length.
                     if (!wasMoving) distanceTravelled = targetStepDistance;
                     distanceTravelled += stepLength;
@@ -120,9 +133,9 @@ namespace EchoSound.Sound
                     {
                         distanceTravelled -= targetStepDistance;
                         nextFootstepTime = Time.time + 0.18f;
-                        float radius = isRunning ? runRadius : walkRadius;
+                        float radius = crouching ? crouchRadius : (isRunning ? runRadius : walkRadius);
                         SoundType type = isRunning ? SoundType.FootstepRun : SoundType.FootstepWalk;
-                        float intensity = isRunning ? 1.0f : 0.6f;
+                        float intensity = crouching ? crouchIntensity : (isRunning ? 1.0f : 0.6f);
 
                         EmitContact(radius, intensity, type);
                     }

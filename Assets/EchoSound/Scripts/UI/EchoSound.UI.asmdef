@@ -1,5 +1,5 @@
 {
   "name": "EchoSound.UI",
   "rootNamespace": "EchoSound.UI",
-  "references": ["EchoSound.Sound", "EchoSound.VFX"]
+  "references": ["EchoSound.Sound", "EchoSound.VFX", "EchoSound.Combat"]
 }

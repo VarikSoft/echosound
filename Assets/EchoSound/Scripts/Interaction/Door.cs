@@ -35,6 +35,13 @@ namespace EchoSound.Interaction
         [Tooltip("Acoustic wave radius emitted to SoundBus for echolocation VFX and AI listeners.")]
         [Min(1f)] public float acousticRadius = 14f;
 
+        [Header("Material Tuning")]
+        [Tooltip("The acoustic material kind of this door (Metal, Wood, Concrete, etc.). If Unmarked, auto-detected from panel material or AcousticSurface.")]
+        public AcousticMaterialKind materialKind = AcousticMaterialKind.Unmarked;
+
+        [Tooltip("Optional direct reference to an AcousticMaterial profile.")]
+        public AcousticMaterial acousticMaterial;
+
         private NavMeshObstacle obstacle;
         // 0 means closed, 1 means fully open.
         private float openAmount;
@@ -61,6 +68,68 @@ namespace EchoSound.Interaction
             IsOpen = startOpen;
             openAmount = startOpen ? 1 : 0;
             ApplyOpenAmount();
+            EnsureDefaultCues();
+        }
+
+        /// <summary>
+        /// Resolves the effective acoustic material kind of the door.
+        /// </summary>
+        public AcousticMaterialKind GetEffectiveMaterialKind()
+        {
+            if (materialKind != AcousticMaterialKind.Unmarked)
+                return materialKind;
+
+            if (acousticMaterial != null && acousticMaterial.kind != AcousticMaterialKind.Unmarked)
+                return acousticMaterial.kind;
+
+            var surface = panel != null ? AcousticSurface.Find(panel) : AcousticSurface.Find(this);
+            if (surface != null && surface.profile != null && surface.profile.kind != AcousticMaterialKind.Unmarked)
+                return surface.profile.kind;
+
+            if (panel != null)
+            {
+                var renderer = panel.GetComponent<Renderer>();
+                if (renderer != null && renderer.sharedMaterial != null)
+                {
+                    string matName = renderer.sharedMaterial.name.ToLowerInvariant();
+                    if (matName.Contains("wood")) return AcousticMaterialKind.Wood;
+                    if (matName.Contains("metal") || matName.Contains("steel") || matName.Contains("iron")) return AcousticMaterialKind.Metal;
+                    if (matName.Contains("concrete") || matName.Contains("stone")) return AcousticMaterialKind.Concrete;
+                }
+            }
+
+            return AcousticMaterialKind.Metal;
+        }
+
+        /// <summary>
+        /// Ensures default door audio cues from Resources matching the door's material if not explicitly assigned in the Inspector.
+        /// </summary>
+        public void EnsureDefaultCues()
+        {
+            AcousticMaterialKind kind = GetEffectiveMaterialKind();
+            if (openCue == null)
+            {
+                openCue = LoadMaterialCue(kind, "Open");
+            }
+            if (closeCue == null)
+            {
+                closeCue = LoadMaterialCue(kind, "Close");
+            }
+            if (blockedCue == null)
+            {
+                blockedCue = LoadMaterialCue(kind, "Blocked");
+            }
+        }
+
+        private static SoundCue LoadMaterialCue(AcousticMaterialKind kind, string action)
+        {
+            string materialPrefix = kind == AcousticMaterialKind.Wood ? "Door_Wood_" : "Door_Metal_";
+            var cue = Resources.Load<SoundCue>($"Audio/Doors/{materialPrefix}{action}");
+            if (cue == null)
+            {
+                cue = Resources.Load<SoundCue>($"Audio/Doors/Door_{action}_Default");
+            }
+            return cue;
         }
 
         protected override bool CanPerform(InteractionAction action, out string problem)
@@ -74,6 +143,7 @@ namespace EchoSound.Interaction
             else if (!open && IsDoorwayBlocked())
             {
                 problem = "something is standing in the doorway";
+                EnsureDefaultCues();
                 if (blockedCue != null)
                 {
                     AudioManager.Instance.Play(blockedCue, transform.position);
@@ -86,6 +156,7 @@ namespace EchoSound.Interaction
         protected override void Perform(Interactor user, InteractionAction action)
         {
             IsOpen = action == InteractionAction.Open;
+            EnsureDefaultCues();
             SoundCue cue = IsOpen ? openCue : closeCue;
             if (cue != null)
             {
@@ -151,6 +222,16 @@ namespace EchoSound.Interaction
             // Usable from anywhere in front of the opening, including its edges.
             door.useDistance = width * 0.5f + 1;
             door.startOpen = open;
+
+            if (material != null)
+            {
+                string matName = material.name.ToLowerInvariant();
+                if (matName.Contains("wood")) door.materialKind = AcousticMaterialKind.Wood;
+                else if (matName.Contains("concrete") || matName.Contains("stone")) door.materialKind = AcousticMaterialKind.Concrete;
+                else door.materialKind = AcousticMaterialKind.Metal;
+            }
+
+            door.EnsureDefaultCues();
             root.SetActive(true);
             return door;
         }

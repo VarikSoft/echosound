@@ -235,8 +235,8 @@ MonoBehaviour:
   maxHealth: 100
   currentHealth: 100
   invulnerabilityDuration: 0.4
-  hurtCue: {fileID: 0}
-  deathCue: {fileID: 0}
+  hurtCue: {fileID: 11400000, guid: a4010001000000000000000000000003, type: 2}
+  deathCue: {fileID: 11400000, guid: a4010001000000000000000000000004, type: 2}
 --- !u!114 &5201642221860660947
 MonoBehaviour:
   m_ObjectHideFlags: 0

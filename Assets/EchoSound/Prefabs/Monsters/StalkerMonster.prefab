@@ -208,8 +208,8 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 1.2
   hearingSensitivity: 1.25
-  attackCue: {fileID: 0}
-  alertCue: {fileID: 0}
+  attackCue: {fileID: 11400000, guid: a4020001000000000000000000000003, type: 2}
+  alertCue: {fileID: 11400000, guid: a4020001000000000000000000000002, type: 2}
 --- !u!114 &8567005572226127581
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -222,10 +222,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3020000000000000000000000000005, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EchoSound.Combat::EchoSound.Combat.StalkerController
+  hitsToLocatePlayer: 4
+  soundMemoryDecay: 8
+  huntTimeout: 6
+  patrolSpeed: 2
   investigateSpeed: 2.6
-  chaseSpeed: 4.8
+  huntSpeed: 4.8
   turnSpeed: 8
-  investigationTimeout: 6
-  chaseMemoryDuration: 5
-  proximityDetectionRange: 4.5
+  patrolRadius: 10
+  obstacleCheckDistance: 1.1
+  stepWaveRadius: 12
+  patrolWaveInterval: 0.7
+  huntWaveInterval: 0.4
+  stepCue: {fileID: 11400000, guid: a4020001000000000000000000000001, type: 2}
   currentState: 0
+  soundHitCount: 0

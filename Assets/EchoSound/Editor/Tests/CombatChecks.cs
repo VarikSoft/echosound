@@ -2,12 +2,13 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using EchoSound.Combat;
+using EchoSound.Sound;
 using EchoSound.UI;
 
 namespace EchoSound.Editor.Tests
 {
     /// <summary>
-    /// Verification checks for HealthComponent, StaminaComponent, MonsterStats, and prefab wiring.
+    /// Verification checks for HealthComponent, StaminaComponent, MonsterStats, StalkerController, and prefab wiring.
     /// Accessible via EchoSound/Checks/Validate combat and stats.
     /// </summary>
     public static class CombatChecks
@@ -18,6 +19,7 @@ namespace EchoSound.Editor.Tests
             ValidateHealth();
             ValidateStamina();
             ValidateMonsterStats();
+            ValidateStalkerAcousticHunting();
             ValidatePlayerPrefab();
             Debug.Log("[CombatChecks] All combat and stat checks passed.");
         }
@@ -104,6 +106,50 @@ namespace EchoSound.Editor.Tests
 
                 bool hitOnCooldown = stats.TryAttack(playerHealth);
                 Require(!hitOnCooldown, "Monster should not attack again while on cooldown.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(monsterGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+
+        private static void ValidateStalkerAcousticHunting()
+        {
+            var monsterGo = new GameObject("TestStalker");
+            var playerGo = new GameObject("TestSilentPlayer");
+            try
+            {
+                monsterGo.AddComponent<HealthComponent>();
+                monsterGo.AddComponent<MonsterStats>();
+                var stalker = monsterGo.AddComponent<StalkerController>();
+                stalker.hitsToLocatePlayer = 4;
+
+                var playerHealth = playerGo.AddComponent<HealthComponent>();
+                playerHealth.maxHealth = 100f;
+                playerHealth.currentHealth = 100f;
+
+                Require(stalker.CurrentState == StalkerController.State.Patrol, "Stalker should start in Patrol.");
+                Require(stalker.SoundHitCount == 0, "Stalker should start with 0 sound hits.");
+
+                // Enemy's own red waves should be ignored
+                stalker.OnSoundHeard(new SoundEvent(Vector3.one, 10f, 1f, SoundType.Enemy, monsterGo), 1f);
+                Require(stalker.SoundHitCount == 0, "Stalker must ignore SoundType.Enemy waves.");
+
+                // 3 player sound hits -> Investigate, not Hunt yet
+                for (int i = 0; i < 3; i++)
+                {
+                    stalker.OnSoundHeard(new SoundEvent(new Vector3(i, 0f, 0f), 10f, 1f, SoundType.FootstepWalk, playerGo), 3f);
+                }
+                Require(stalker.SoundHitCount == 3, "Stalker should have 3 sound hits.");
+                Require(stalker.CurrentState == StalkerController.State.Investigate, "Stalker should be in Investigate after 3 hits.");
+
+                // 4th hit -> locks onto last wave position and enters Hunt
+                Vector3 finalWavePos = new Vector3(7f, 0f, -3f);
+                stalker.OnSoundHeard(new SoundEvent(finalWavePos, 10f, 1f, SoundType.FootstepRun, playerGo), 5f);
+                Require(stalker.SoundHitCount == 4, "Stalker should have 4 sound hits.");
+                Require(stalker.CurrentState == StalkerController.State.Hunt, "Stalker should enter Hunt after 4 hits.");
+                Require(stalker.LastHeardPosition == finalWavePos, "Stalker must go to the exact position of the last wave.");
             }
             finally
             {

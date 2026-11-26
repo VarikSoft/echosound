@@ -16,6 +16,11 @@ namespace EchoSound.Editor
         private const string PlayerPrefabPath = "Assets/EchoSound/Prefabs/Player/FirstPersonPlayer.prefab";
         private const string MonsterPrefabPath = "Assets/EchoSound/Prefabs/Monsters/StalkerMonster.prefab";
         private const string BreathingCuePath = "Assets/EchoSound/Resources/Audio/Player/Exhausted_Breathing.asset";
+        private const string PlayerHurtCuePath = "Assets/EchoSound/Resources/Audio/Player/Player_Hurt.asset";
+        private const string PlayerDeathCuePath = "Assets/EchoSound/Resources/Audio/Player/Player_Death.asset";
+        private const string StalkerFootstepCuePath = "Assets/EchoSound/Resources/Audio/Monsters/Stalker_Footstep.asset";
+        private const string StalkerAlertCuePath = "Assets/EchoSound/Resources/Audio/Monsters/Stalker_Alert.asset";
+        private const string StalkerAttackCuePath = "Assets/EchoSound/Resources/Audio/Monsters/Stalker_Attack.asset";
 
         [InitializeOnLoadMethod]
         private static void AutoInit()
@@ -47,6 +52,17 @@ namespace EchoSound.Editor
                     health.invulnerabilityDuration = 0.4f;
                     modified = true;
                     Debug.Log("[PlayerCombatSetup] Added HealthComponent to FirstPersonPlayer prefab.");
+                }
+
+                if (health.hurtCue == null)
+                {
+                    var hurt = AssetDatabase.LoadAssetAtPath<SoundCue>(PlayerHurtCuePath);
+                    if (hurt != null) { health.hurtCue = hurt; modified = true; }
+                }
+                if (health.deathCue == null)
+                {
+                    var death = AssetDatabase.LoadAssetAtPath<SoundCue>(PlayerDeathCuePath);
+                    if (death != null) { health.deathCue = death; modified = true; }
                 }
 
                 // 2. StaminaComponent
@@ -127,7 +143,47 @@ namespace EchoSound.Editor
         [MenuItem("EchoSound/Combat/Setup Stalker Monster Prefab")]
         public static void CheckAndCreateMonsterPrefab()
         {
-            if (File.Exists(MonsterPrefabPath)) return;
+            if (File.Exists(MonsterPrefabPath))
+            {
+                GameObject existingRoot = PrefabUtility.LoadPrefabContents(MonsterPrefabPath);
+                bool modified = false;
+                try
+                {
+                    var existingStats = existingRoot.GetComponent<MonsterStats>();
+                    if (existingStats != null)
+                    {
+                        if (existingStats.attackCue == null)
+                        {
+                            existingStats.attackCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerAttackCuePath);
+                            if (existingStats.attackCue != null) modified = true;
+                        }
+                        if (existingStats.alertCue == null)
+                        {
+                            existingStats.alertCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerAlertCuePath);
+                            if (existingStats.alertCue != null) modified = true;
+                        }
+                    }
+
+                    var existingStalker = existingRoot.GetComponent<StalkerController>();
+                    if (existingStalker != null && existingStalker.stepCue == null)
+                    {
+                        existingStalker.stepCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerFootstepCuePath);
+                        if (existingStalker.stepCue != null) modified = true;
+                    }
+
+                    if (modified)
+                    {
+                        PrefabUtility.SaveAsPrefabAsset(existingRoot, MonsterPrefabPath);
+                        AssetDatabase.SaveAssets();
+                        Debug.Log("[PlayerCombatSetup] Wired audio cues onto StalkerMonster prefab.");
+                    }
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(existingRoot);
+                }
+                return;
+            }
 
             string folder = Path.GetDirectoryName(MonsterPrefabPath);
             if (!Directory.Exists(folder))
@@ -170,8 +226,11 @@ namespace EchoSound.Editor
                 stats.attackRange = 2.0f;
                 stats.attackCooldown = 1.2f;
                 stats.hearingSensitivity = 1.25f;
+                stats.attackCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerAttackCuePath);
+                stats.alertCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerAlertCuePath);
 
-                root.AddComponent<StalkerController>();
+                var stalker = root.AddComponent<StalkerController>();
+                stalker.stepCue = AssetDatabase.LoadAssetAtPath<SoundCue>(StalkerFootstepCuePath);
 
                 PrefabUtility.SaveAsPrefabAsset(root, MonsterPrefabPath);
                 AssetDatabase.SaveAssets();

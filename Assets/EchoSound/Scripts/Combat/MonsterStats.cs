@@ -36,6 +36,13 @@ namespace EchoSound.Combat
         private void Awake()
         {
             Health = GetComponent<HealthComponent>();
+            EnsureDefaultAudio();
+        }
+
+        public void EnsureDefaultAudio()
+        {
+            if (attackCue == null) attackCue = Resources.Load<SoundCue>("Audio/Monsters/Stalker_Attack");
+            if (alertCue == null) alertCue = Resources.Load<SoundCue>("Audio/Monsters/Stalker_Alert");
         }
 
         public bool CanAttack(Vector3 targetPosition)
